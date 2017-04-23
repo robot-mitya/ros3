@@ -33,8 +33,7 @@
 
 #include "ros/ros.h"
 #include "mitya_teleop/Drive.h"
-
-#include <sstream>
+#include <sensor_msgs/Joy.h>
 
 /**
  * This tutorial demonstrates simple sending of messages over the ROS system.
@@ -46,7 +45,6 @@ int main(int argc, char **argv)
   ros::Publisher chatter_pub = n.advertise<mitya_teleop::Drive>("drive", 1000);
   ros::Rate loop_rate(10);
 
-  int count = 0;
   while (ros::ok())
   {
     mitya_teleop::Drive msg;
@@ -61,9 +59,7 @@ int main(int argc, char **argv)
     ros::spinOnce();
 
     loop_rate.sleep();
-    ++count;
   }
-
 
   return 0;
 }

@@ -34,16 +34,30 @@
 #include "ros/ros.h"
 #include "mitya_teleop/Drive.h"
 
-void driveCallback(const mitya_teleop::Drive::ConstPtr& msg)
+class ArduinoNode
 {
-  ROS_INFO("Received: [%d %d]", msg->left, msg->right);
+public:
+  ArduinoNode();
+private:
+  ros::Subscriber driveSubscriber;
+  void driveCallback(const mitya_teleop::Drive::ConstPtr& msg);
+};
+
+ArduinoNode::ArduinoNode()
+{
+  ros::NodeHandle nodeHandle("mitya");
+  driveSubscriber = nodeHandle.subscribe("drive", 1000, &ArduinoNode::driveCallback, this);
+}
+
+void ArduinoNode::driveCallback(const mitya_teleop::Drive::ConstPtr& msg)
+{
+  ROS_INFO("RECEIVED: [%d %d]", msg->left, msg->right);
 }
 
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "arduino_node");
-  ros::NodeHandle n("mitya");
-  ros::Subscriber sub = n.subscribe("drive", 1000, driveCallback);
+  ArduinoNode arduinoNode;
   ros::spin();
 
   return 0;
