@@ -34,6 +34,7 @@
 #include "ros/ros.h"
 #include "mitya_teleop/Drive.h"
 #include <sensor_msgs/Joy.h>
+#include <math.h>
 
 class JoystickNode
 {
@@ -42,14 +43,16 @@ public:
 private:
   const int axisX_;
   const int axisY_;
+  const float rad2Deg = 180.0f / M_PI;
   ros::Subscriber joystickSubscriber_;
   ros::Publisher drivePublisher_;
   void joystickCallback(const sensor_msgs::Joy::ConstPtr& joy);
+  int8_t getSpeedValue(float joystickValue);
 };
 
 JoystickNode::JoystickNode():
-    axisX_(1),
-    axisY_(2)
+    axisX_(0),
+    axisY_(1)
 {
   ros::NodeHandle joystickNodeHandle;
   joystickSubscriber_ = joystickNodeHandle.subscribe<sensor_msgs::Joy>("joy", 10, &JoystickNode::joystickCallback, this);
@@ -60,13 +63,58 @@ JoystickNode::JoystickNode():
 
 void JoystickNode::joystickCallback(const sensor_msgs::Joy::ConstPtr& joy)
 {
-  mitya_teleop::Drive msg;
-  msg.left = 19;
-  msg.right = 74;
+  float x = -joy->axes[axisX_];
+  float y = joy->axes[axisY_];
 
-  ROS_INFO("%d %d", msg.left, msg.right);
+  float alpha = atan2(y, x) * rad2Deg;
+  if (alpha < 0) alpha += 360;
+  if (alpha < 0) alpha += 360;
+  else if (alpha >= 360) alpha -= 360;
+
+  float radius = sqrt(x * x + y * y);
+  if (radius < 0) radius = 0.0f;
+  else if (radius > 1) radius = 1.0f;
+
+  float left = 0;
+  float right = 0;
+  if (alpha >= 0 && alpha < 90)
+  {
+    left = 1.0f;
+    right = 2.0f / 90.0f * alpha - 1.0f;
+  }
+  else if (alpha >= 90 && alpha < 180)
+  {
+    left = -2.0f / 90.0f * alpha + 3.0f;
+    right = 1.0f;
+  }
+  else if (alpha >= 180 && alpha < 270)
+  {
+    left = -1.0f;
+    right = - 2.0f / 90.0f * alpha + 5.0f;
+  }
+  else
+  {
+    left = 2.0f / 90.0f * alpha - 7.0f;
+    right = -1.0f;
+  }
+  left *= radius;
+  right *= radius;
+
+  //ROS_INFO("x=%+5.3f y=%+5.3f R=%+5.3f A=%+8.3f    Left=%+6.3f Right=%+6.3f", x, y, radius, alpha, left, right);
+
+  mitya_teleop::Drive msg;
+  msg.left = getSpeedValue(left);
+  msg.right = getSpeedValue(right);
 
   drivePublisher_.publish(msg);
+}
+
+int8_t JoystickNode::getSpeedValue(float joystickValue)
+{
+  float result = joystickValue * 100.0f;
+  if (result < -100.0f) result = -100.0f;
+  else if (result > 100.0f) result = 100.0f;
+  return (int8_t) round(result);
 }
 
 int main(int argc, char **argv)
