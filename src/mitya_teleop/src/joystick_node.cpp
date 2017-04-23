@@ -35,31 +35,45 @@
 #include "mitya_teleop/Drive.h"
 #include <sensor_msgs/Joy.h>
 
-/**
- * This tutorial demonstrates simple sending of messages over the ROS system.
- */
+class JoystickNode
+{
+public:
+  JoystickNode();
+private:
+  const int axisX_;
+  const int axisY_;
+  ros::Subscriber joystickSubscriber_;
+  ros::Publisher drivePublisher_;
+  void joystickCallback(const sensor_msgs::Joy::ConstPtr& joy);
+};
+
+JoystickNode::JoystickNode():
+    axisX_(1),
+    axisY_(2)
+{
+  ros::NodeHandle joystickNodeHandle;
+  joystickSubscriber_ = joystickNodeHandle.subscribe<sensor_msgs::Joy>("joy", 10, &JoystickNode::joystickCallback, this);
+
+  ros::NodeHandle driveNodeHandle("mitya");
+  drivePublisher_ = driveNodeHandle.advertise<mitya_teleop::Drive>("drive", 1000);
+}
+
+void JoystickNode::joystickCallback(const sensor_msgs::Joy::ConstPtr& joy)
+{
+  mitya_teleop::Drive msg;
+  msg.left = 19;
+  msg.right = 74;
+
+  ROS_INFO("%d %d", msg.left, msg.right);
+
+  drivePublisher_.publish(msg);
+}
+
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "joystick_node");
-  ros::NodeHandle n("mitya");
-  ros::Publisher chatter_pub = n.advertise<mitya_teleop::Drive>("drive", 1000);
-  ros::Rate loop_rate(10);
-
-  while (ros::ok())
-  {
-    mitya_teleop::Drive msg;
-
-    msg.left = 19;
-    msg.right = 74;
-
-    ROS_INFO("%d %d", msg.left, msg.right);
-
-    chatter_pub.publish(msg);
-
-    ros::spinOnce();
-
-    loop_rate.sleep();
-  }
+  JoystickNode joystickNode;
+  ros::spin();
 
   return 0;
 }

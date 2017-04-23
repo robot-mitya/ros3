@@ -39,14 +39,14 @@ class ArduinoNode
 public:
   ArduinoNode();
 private:
-  ros::Subscriber driveSubscriber;
+  ros::Subscriber driveSubscriber_;
   void driveCallback(const mitya_teleop::Drive::ConstPtr& msg);
 };
 
 ArduinoNode::ArduinoNode()
 {
   ros::NodeHandle nodeHandle("mitya");
-  driveSubscriber = nodeHandle.subscribe("drive", 1000, &ArduinoNode::driveCallback, this);
+  driveSubscriber_ = nodeHandle.subscribe("drive", 1000, &ArduinoNode::driveCallback, this);
 }
 
 void ArduinoNode::driveCallback(const mitya_teleop::Drive::ConstPtr& msg)
