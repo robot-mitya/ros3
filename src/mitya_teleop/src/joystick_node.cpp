@@ -35,6 +35,7 @@
 #include "mitya_teleop/Drive.h"
 #include <sensor_msgs/Joy.h>
 #include <math.h>
+#include "consts.h"
 
 class JoystickNode
 {
@@ -43,7 +44,7 @@ public:
 private:
   const int axisX_;
   const int axisY_;
-  const float rad2Deg = 180.0f / M_PI;
+  static const float RAD_TO_DEG = 180.0f / M_PI;
   ros::Subscriber joystickSubscriber_;
   ros::Publisher drivePublisher_;
   void joystickCallback(const sensor_msgs::Joy::ConstPtr& joy);
@@ -55,10 +56,10 @@ JoystickNode::JoystickNode():
     axisY_(1)
 {
   ros::NodeHandle joystickNodeHandle;
-  joystickSubscriber_ = joystickNodeHandle.subscribe<sensor_msgs::Joy>("joy", 10, &JoystickNode::joystickCallback, this);
+  joystickSubscriber_ = joystickNodeHandle.subscribe<sensor_msgs::Joy>(RM_JOY_TOPIC_NAME, 10, &JoystickNode::joystickCallback, this);
 
-  ros::NodeHandle driveNodeHandle("mitya");
-  drivePublisher_ = driveNodeHandle.advertise<mitya_teleop::Drive>("drive", 1000);
+  ros::NodeHandle driveNodeHandle(RM_NAMESPACE);
+  drivePublisher_ = driveNodeHandle.advertise<mitya_teleop::Drive>(RM_DRIVE_TOPIC_NAME, 1000);
 }
 
 void JoystickNode::joystickCallback(const sensor_msgs::Joy::ConstPtr& joy)
@@ -66,7 +67,7 @@ void JoystickNode::joystickCallback(const sensor_msgs::Joy::ConstPtr& joy)
   float x = -joy->axes[axisX_];
   float y = joy->axes[axisY_];
 
-  float alpha = atan2(y, x) * rad2Deg;
+  float alpha = atan2(y, x) * RAD_TO_DEG;
   if (alpha < 0) alpha += 360;
   if (alpha < 0) alpha += 360;
   else if (alpha >= 360) alpha -= 360;
@@ -119,7 +120,7 @@ int8_t JoystickNode::getSpeedValue(float joystickValue)
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "joystick_node");
+  ros::init(argc, argv, RM_JOYSTICK_NODE_NAME);
   JoystickNode joystickNode;
   ros::spin();
 

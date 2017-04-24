@@ -1,5 +1,5 @@
 /*
- * arduino_node.cpp
+ * consts.h
  * Copyright (c) 2017, Robot Mitya.
  * All rights reserved.
  * 
@@ -27,39 +27,29 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- *  Created on: Apr 22, 2017
+ *  Created on: Apr 24, 2017
  *      Author: Dmitry Dzakhov
  */
 
-#include "ros/ros.h"
-#include "mitya_teleop/Drive.h"
-#include "consts.h"
+#ifndef MITYA_TELEOP_SRC_CONSTS_H_
+#define MITYA_TELEOP_SRC_CONSTS_H_
 
-class ArduinoNode
-{
-public:
-  ArduinoNode();
-private:
-  ros::Subscriber driveSubscriber_;
-  void driveCallback(const mitya_teleop::Drive::ConstPtr& msg);
-};
 
-ArduinoNode::ArduinoNode()
-{
-  ros::NodeHandle nodeHandle(RM_NAMESPACE);
-  driveSubscriber_ = nodeHandle.subscribe(RM_DRIVE_TOPIC_NAME, 1000, &ArduinoNode::driveCallback, this);
-}
+/**
+ * ROS namespace for Robot Mitay's packages.
+ */
+#define RM_NAMESPACE "mitya"
 
-void ArduinoNode::driveCallback(const mitya_teleop::Drive::ConstPtr& msg)
-{
-  ROS_INFO("RECEIVED: [%d %d]", msg->left, msg->right);
-}
+/**
+ * Topic name from package joy, joy_node.
+ * Run "sudo apt-get install ros-kinetic-joy" to install package.
+ */
+#define RM_JOY_TOPIC_NAME "joy"
 
-int main(int argc, char **argv)
-{
-  ros::init(argc, argv, RM_ARDUINO_NODE_NAME);
-  ArduinoNode arduinoNode;
-  ros::spin();
+#define RM_ARDUINO_NODE_NAME "arduino_node"
 
-  return 0;
-}
+#define RM_JOYSTICK_NODE_NAME "joystick_node"
+#define RM_DRIVE_TOPIC_NAME "drive"
+
+
+#endif /* MITYA_TELEOP_SRC_CONSTS_H_ */
