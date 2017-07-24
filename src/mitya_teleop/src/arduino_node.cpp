@@ -35,31 +35,185 @@
 #include "mitya_teleop/Drive.h"
 #include "consts.h"
 
+#include <termios.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+#define MAX_MESSAGE_SIZE 200
+#define SERIAL_BUFFER_SIZE 1000
+
 class ArduinoNode
 {
 public:
   ArduinoNode();
+  void openSerial();
+  void readSerial(void (*func)(char*));
+  void writeSerial(char *message);
 private:
+  std::string serialPortName;
+  int fd;
+  char serialOutcomingMessage[MAX_MESSAGE_SIZE];
+  char serialIncomingMessage[MAX_MESSAGE_SIZE];
+  int serialIncomingMessageSize;
+  char buffer[SERIAL_BUFFER_SIZE];
+
   ros::Subscriber driveSubscriber_;
   void driveCallback(const mitya_teleop::Drive::ConstPtr& msg);
+
+  bool setInterfaceAttribs(int fd, int speed, int parity);
+  bool setBlocking(int fd, int should_block);
 };
 
 ArduinoNode::ArduinoNode()
 {
   ros::NodeHandle nodeHandle(RM_NAMESPACE);
   driveSubscriber_ = nodeHandle.subscribe(RM_DRIVE_TOPIC_NAME, 1000, &ArduinoNode::driveCallback, this);
+
+  ros::NodeHandle privateNodeHandle("~");
+  std::string serialPortParamName = "serial_port";
+  if (privateNodeHandle.getParam(serialPortParamName, serialPortName))
+  {
+    ROS_INFO("Serial port name: %s", serialPortName.c_str());
+  }
+  else
+  {
+    ROS_ERROR("Failed to get parameter '%s'", serialPortParamName.c_str());
+  }
+
+  fd = -1;
+  serialIncomingMessageSize = 0;
+  serialIncomingMessage[0] = '\0';
 }
 
 void ArduinoNode::driveCallback(const mitya_teleop::Drive::ConstPtr& msg)
 {
-  ROS_INFO("RECEIVED: [%d %d]", msg->left, msg->right);
+  ROS_INFO("Node \'%s\' topic \'%s\' received \'%d,%d\'", RM_ARDUINO_NODE_NAME, RM_DRIVE_TOPIC_NAME, msg->left, msg->right);
+  sprintf(serialOutcomingMessage, "ML %d;", msg->left);
+  writeSerial(serialOutcomingMessage);
+  sprintf(serialOutcomingMessage, "MR %d;", msg->right);
+  writeSerial(serialOutcomingMessage);
+}
+
+bool ArduinoNode::setInterfaceAttribs(int fd, int speed, int parity)
+{
+  struct termios tty;
+  memset(&tty, 0, sizeof tty);
+  if (tcgetattr(fd, &tty) != 0)
+  {
+    ROS_ERROR("Error %d from tcgetattr", errno);
+    return false;
+  }
+
+  cfsetospeed(&tty, speed);
+  cfsetispeed(&tty, speed);
+
+  tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;     // 8-bit chars
+  // disable IGNBRK for mismatched speed tests; otherwise receive break
+  // as \000 chars
+  tty.c_iflag &= ~IGNBRK;         // disable break processing
+  tty.c_lflag = 0;                // no signaling chars, no echo,
+                                  // no canonical processing
+  tty.c_oflag = 0;                // no remapping, no delays
+  tty.c_cc[VMIN]  = 0;            // read doesn't block
+  tty.c_cc[VTIME] = 5;            // 0.5 seconds read timeout
+
+  tty.c_iflag &= ~(IXON | IXOFF | IXANY); // shut off xon/xoff ctrl
+
+  tty.c_cflag |= (CLOCAL | CREAD);// ignore modem controls,
+                                  // enable reading
+  tty.c_cflag &= ~(PARENB | PARODD);      // shut off parity
+  tty.c_cflag |= parity;
+  tty.c_cflag &= ~CSTOPB;
+  tty.c_cflag &= ~CRTSCTS;
+
+  if (tcsetattr(fd, TCSANOW, &tty) != 0)
+  {
+    ROS_ERROR("Error %d from tcsetattr", errno);
+    return false;
+  }
+  return true;
+}
+
+bool ArduinoNode::setBlocking(int fd, int should_block)
+{
+  struct termios tty;
+  memset(&tty, 0, sizeof tty);
+  if (tcgetattr(fd, &tty) != 0)
+  {
+    ROS_ERROR("Error %d from tcgetattr", errno);
+    return false;
+  }
+
+  tty.c_cc[VMIN] = should_block ? 1 : 0;
+  tty.c_cc[VTIME] = 5;            // 0.5 seconds read timeout
+
+  if (tcsetattr(fd, TCSANOW, &tty) != 0)
+  {
+    ROS_ERROR("Error %d setting term attributes", errno);
+    return false;
+  }
+
+  return true;
+}
+
+void ArduinoNode::openSerial()
+{
+  fd = open(serialPortName.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
+  if (fd < 0)
+  {
+    ROS_ERROR("Error %d opening %s: %s", errno, serialPortName.c_str(), strerror(errno));
+    return;
+  }
+  if (!setInterfaceAttribs(fd, B9600, 0)) // set speed to 9,600 bps, 8n1 (no parity)
+    return;
+  if (!setBlocking(fd, 0))                // set no blocking
+    return;
+  ROS_INFO("Serial port is opened");
+}
+
+void ArduinoNode::readSerial(void (*func)(char*))
+{
+  int n = read(fd, buffer, SERIAL_BUFFER_SIZE);
+  char ch;
+  for (int i = 0; i < n; i++)
+  {
+    ch = buffer[i];
+    if (ch < 32) continue;
+    serialIncomingMessage[serialIncomingMessageSize++] = ch;
+    if (ch == ';')
+    {
+      serialIncomingMessage[serialIncomingMessageSize] = '\0';
+      func(serialIncomingMessage);
+      serialIncomingMessageSize = 0;
+      serialIncomingMessage[serialIncomingMessageSize] = '\0';
+    }
+  }
+}
+
+void ArduinoNode::writeSerial(char *message)
+{
+  write(fd, message, strlen(message));
+}
+
+void onReceiveSerialMessage(char *message)
+{
+  ROS_INFO("Message from the controller: %s", message);
+  //todo: Publish it to some topic.
 }
 
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, RM_ARDUINO_NODE_NAME);
   ArduinoNode arduinoNode;
-  ros::spin();
+  arduinoNode.openSerial();
+
+  ros::Rate loop_rate(100); // 100 Hz
+  while (ros::ok())
+  {
+    arduinoNode.readSerial(onReceiveSerialMessage);
+    loop_rate.sleep();
+    ros::spinOnce();
+  }
 
   return 0;
 }

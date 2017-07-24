@@ -40,9 +40,31 @@ $ tail -f /proc/17821/fd/1
  -->
 
 <launch>
-  <!-- Arduino Node-->
-  <node pkg="mitya_teleop" type="arduino_node" name="arduino"/>
+  <!--  
+  	Mitya's Raspberry Pi
+  	/home/dmitrydzz/dev/mitya3/ros3/env.bash - is the file located on remote machine with the following content:
+  	
+  	#!/bin/bash
+	export ROS_IP=192.168.100.235
+	export ROS_MASTER_URI=http://192.168.100.3:11311/
+	source /home/dmitrydzz/dev/mitya3/ros3/devel/setup.bash
+	exec "$@"
+  	
+  -->
+  <machine 
+    name="mitya" 
+    address="192.168.100.235" 
+    env-loader="/home/dmitrydzz/dev/mitya3/ros3/env.bash"
+    user="dmitrydzz" />
 
+  <!-- Arduino Node-->
+  <node pkg="mitya_teleop" type="arduino_node" name="arduino">
+  	<param name="serial_port" type="string" value="/dev/ttyACM0" />
+  </node>
+  <!--
+  <node machine="mitya" pkg="mitya_teleop" type="arduino_node" name="arduino"/>
+  -->
+  
   <!-- joy node -->
   <node respawn="true" pkg="joy"
         type="joy_node" name="mitya_joy" >
