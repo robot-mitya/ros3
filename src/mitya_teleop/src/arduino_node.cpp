@@ -32,6 +32,7 @@
  */
 
 #include "ros/ros.h"
+#include "std_msgs/String.h"
 #include "mitya_teleop/Drive.h"
 #include "consts.h"
 
@@ -47,8 +48,9 @@ class ArduinoNode
 public:
   ArduinoNode();
   void openSerial();
-  void readSerial(void (*func)(char*));
-  void writeSerial(char *message);
+  void readSerial(void (*func)(ArduinoNode*, char*));
+  void writeSerial(char const* message);
+  void publish(char *message);
 private:
   std::string serialPortName;
   int fd;
@@ -57,6 +59,9 @@ private:
   int serialIncomingMessageSize;
   char buffer[SERIAL_BUFFER_SIZE];
 
+  ros::Subscriber arduinoInputSubscriber_;
+  void arduinoInputCallback(const std_msgs::StringConstPtr& msg);
+  ros::Publisher arduinoOutputPublisher_;
   ros::Subscriber driveSubscriber_;
   void driveCallback(const mitya_teleop::Drive::ConstPtr& msg);
 
@@ -67,6 +72,8 @@ private:
 ArduinoNode::ArduinoNode()
 {
   ros::NodeHandle nodeHandle(RM_NAMESPACE);
+  arduinoInputSubscriber_ = nodeHandle.subscribe(RM_ARDUINO_INPUT_TOPIC_NAME, 1000, &ArduinoNode::arduinoInputCallback, this);
+  arduinoOutputPublisher_ = nodeHandle.advertise<std_msgs::String>(RM_ARDUINO_OUTPUT_TOPIC_NAME, 1000);
   driveSubscriber_ = nodeHandle.subscribe(RM_DRIVE_TOPIC_NAME, 1000, &ArduinoNode::driveCallback, this);
 
   ros::NodeHandle privateNodeHandle("~");
@@ -83,6 +90,12 @@ ArduinoNode::ArduinoNode()
   fd = -1;
   serialIncomingMessageSize = 0;
   serialIncomingMessage[0] = '\0';
+}
+
+void ArduinoNode::arduinoInputCallback(const std_msgs::StringConstPtr& msg)
+{
+  ROS_INFO("Node \'%s\' topic \'%s\' received \'%s\'", RM_ARDUINO_NODE_NAME, RM_ARDUINO_INPUT_TOPIC_NAME, msg->data.c_str());
+  writeSerial(msg->data.c_str());
 }
 
 void ArduinoNode::driveCallback(const mitya_teleop::Drive::ConstPtr& msg)
@@ -171,7 +184,7 @@ void ArduinoNode::openSerial()
   ROS_INFO("Serial port is opened");
 }
 
-void ArduinoNode::readSerial(void (*func)(char*))
+void ArduinoNode::readSerial(void (*func)(ArduinoNode*, char*))
 {
   int n = read(fd, buffer, SERIAL_BUFFER_SIZE);
   char ch;
@@ -183,22 +196,29 @@ void ArduinoNode::readSerial(void (*func)(char*))
     if (ch == ';')
     {
       serialIncomingMessage[serialIncomingMessageSize] = '\0';
-      func(serialIncomingMessage);
+      func(this, serialIncomingMessage);
       serialIncomingMessageSize = 0;
       serialIncomingMessage[serialIncomingMessageSize] = '\0';
     }
   }
 }
 
-void ArduinoNode::writeSerial(char *message)
+void ArduinoNode::writeSerial(char const* message)
 {
   write(fd, message, strlen(message));
 }
 
-void onReceiveSerialMessage(char *message)
+void ArduinoNode::publish(char *message)
+{
+  std_msgs::String stringMessage;
+  stringMessage.data = message;
+  arduinoOutputPublisher_.publish(stringMessage);
+}
+
+void onReceiveSerialMessage(ArduinoNode *arduinoNode, char *message)
 {
   ROS_INFO("Message from the controller: %s", message);
-  //todo: Publish it to some topic.
+  arduinoNode->publish(message);
 }
 
 int main(int argc, char **argv)

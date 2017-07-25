@@ -47,6 +47,8 @@
 #define RM_JOY_TOPIC_NAME "joy"
 
 #define RM_ARDUINO_NODE_NAME "arduino_node"
+#define RM_ARDUINO_OUTPUT_TOPIC_NAME "arduino_output"
+#define RM_ARDUINO_INPUT_TOPIC_NAME "arduino_input"
 
 #define RM_JOYSTICK_NODE_NAME "joystick_node"
 #define RM_DRIVE_TOPIC_NAME "drive"
