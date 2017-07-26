@@ -35,10 +35,10 @@
 #include "std_msgs/String.h"
 #include "mitya_teleop/Drive.h"
 #include "consts.h"
-
 #include <termios.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include "robo_com.h"
 
 #define MAX_MESSAGE_SIZE 200
 #define SERIAL_BUFFER_SIZE 1000
@@ -55,7 +55,6 @@ private:
   std::string serialPortName;
   int serialBaudRate;
   int fd;
-  char serialOutcomingMessage[MAX_MESSAGE_SIZE];
   char serialIncomingMessage[MAX_MESSAGE_SIZE];
   int serialIncomingMessageSize;
   char buffer[SERIAL_BUFFER_SIZE];
@@ -114,10 +113,8 @@ void ArduinoNode::arduinoInputCallback(const std_msgs::StringConstPtr& msg)
 void ArduinoNode::driveCallback(const mitya_teleop::Drive::ConstPtr& msg)
 {
   ROS_INFO("Node \'%s\' topic \'%s\' received \'%d,%d\'", RM_ARDUINO_NODE_NAME, RM_DRIVE_TOPIC_NAME, msg->left, msg->right);
-  sprintf(serialOutcomingMessage, "ML %d;", msg->left);
-  writeSerial(serialOutcomingMessage);
-  sprintf(serialOutcomingMessage, "MR %d;", msg->right);
-  writeSerial(serialOutcomingMessage);
+  writeSerial(RoboCom::getDriveLeftCommand((signed char) (msg->left)));
+  writeSerial(RoboCom::getDriveRightCommand((signed char) (msg->right)));
 }
 
 bool ArduinoNode::setInterfaceAttribs(int fd, int speed, int parity)
