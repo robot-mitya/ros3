@@ -33,6 +33,7 @@
 
 #include "ros/ros.h"
 #include "std_msgs/String.h"
+#include "std_msgs/Int8.h"
 #include "std_msgs/Float32.h"
 #include "mitya_teleop/Drive.h"
 #include "consts.h"
@@ -52,6 +53,7 @@ public:
   void readSerial(void (*func)(ArduinoNode*, char*));
   void writeSerial(char const* message);
   void publishArduinoOutput(char *message);
+  void publishLED(int ledState);
   void publishDistance(float distance);
   void publishSpeed(float speed);
 private:
@@ -74,6 +76,9 @@ private:
   ros::Subscriber driveSubscriber_;
   void driveCallback(const mitya_teleop::Drive::ConstPtr& msg);
 
+  // Topic RM_LED_TOPIC_NAME ('led') publisher:
+  ros::Publisher ledPublisher_;
+
   // Topic RM_DISTANCE_TOPIC_NAME ('distance') publisher:
   ros::Publisher distancePublisher_;
 
@@ -90,6 +95,7 @@ ArduinoNode::ArduinoNode()
   arduinoInputSubscriber_ = nodeHandle.subscribe(RM_ARDUINO_INPUT_TOPIC_NAME, 1000, &ArduinoNode::arduinoInputCallback, this);
   arduinoOutputPublisher_ = nodeHandle.advertise<std_msgs::String>(RM_ARDUINO_OUTPUT_TOPIC_NAME, 1000);
   driveSubscriber_ = nodeHandle.subscribe(RM_DRIVE_TOPIC_NAME, 1000, &ArduinoNode::driveCallback, this);
+  ledPublisher_ = nodeHandle.advertise<std_msgs::Int8>(RM_LED_TOPIC_NAME, 1000);
   distancePublisher_ = nodeHandle.advertise<std_msgs::Float32>(RM_DISTANCE_TOPIC_NAME, 1000);
   speedPublisher_ = nodeHandle.advertise<std_msgs::Float32>(RM_SPEED_TOPIC_NAME, 1000);
 
@@ -311,6 +317,13 @@ void ArduinoNode::publishArduinoOutput(char *message)
   arduinoOutputPublisher_.publish(stringMessage);
 }
 
+void ArduinoNode::publishLED(int ledState)
+{
+  std_msgs::Int8 intMessage;
+  intMessage.data = ledState;
+  ledPublisher_.publish(intMessage);
+}
+
 void ArduinoNode::publishDistance(float distance)
 {
   std_msgs::Float32 floatMessage;
@@ -338,6 +351,11 @@ void onReceiveSerialMessage(ArduinoNode *arduinoNode, char *message)
     {
       if (param1 > 0)
         ROS_ERROR("Arduino controller's status response error: %s (%d)", RoboCom::getStatusText(param1), param1);
+      break;
+    }
+    case CMD_LED_RESPONSE:
+    {
+      arduinoNode->publishLED(param1);
       break;
     }
     case CMD_DIST_RESPONSE:

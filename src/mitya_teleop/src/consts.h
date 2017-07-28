@@ -53,6 +53,7 @@
 #define RM_JOYSTICK_NODE_NAME "joystick_node"
 #define RM_DRIVE_TOPIC_NAME "drive"
 
+#define RM_LED_TOPIC_NAME "led"
 #define RM_DISTANCE_TOPIC_NAME "distance"
 #define RM_SPEED_TOPIC_NAME "speed"
 
