@@ -33,6 +33,7 @@
 
 #include "ros/ros.h"
 #include "std_msgs/String.h"
+#include "std_msgs/Float32.h"
 #include "mitya_teleop/Drive.h"
 #include "consts.h"
 #include <termios.h>
@@ -50,7 +51,9 @@ public:
   void openSerial();
   void readSerial(void (*func)(ArduinoNode*, char*));
   void writeSerial(char const* message);
-  void publish(char *message);
+  void publishArduinoOutput(char *message);
+  void publishDistance(float distance);
+  void publishSpeed(float speed);
 private:
   std::string serialPortName;
   int serialBaudRate;
@@ -60,11 +63,22 @@ private:
   char buffer[SERIAL_BUFFER_SIZE];
   int baudRateToBaudRateConst(int baudRate);
 
+  // Topic RM_ARDUINO_INPUT_TOPIC_NAME ('arduino_input') subscriber:
   ros::Subscriber arduinoInputSubscriber_;
   void arduinoInputCallback(const std_msgs::StringConstPtr& msg);
+
+  // Topic RM_ARDUINO_OUTPUT_TOPIC_NAME ('arduino_output') publisher:
   ros::Publisher arduinoOutputPublisher_;
+
+  // Topic RM_DRIVE_TOPIC_NAME ('drive') subscriber:
   ros::Subscriber driveSubscriber_;
   void driveCallback(const mitya_teleop::Drive::ConstPtr& msg);
+
+  // Topic RM_DISTANCE_TOPIC_NAME ('distance') publisher:
+  ros::Publisher distancePublisher_;
+
+  // Topic RM_SPEED_TOPIC_NAME ('speed') publisher:
+  ros::Publisher speedPublisher_;
 
   bool setInterfaceAttribs(int fd, int speed, int parity);
   bool setBlocking(int fd, int should_block);
@@ -76,6 +90,8 @@ ArduinoNode::ArduinoNode()
   arduinoInputSubscriber_ = nodeHandle.subscribe(RM_ARDUINO_INPUT_TOPIC_NAME, 1000, &ArduinoNode::arduinoInputCallback, this);
   arduinoOutputPublisher_ = nodeHandle.advertise<std_msgs::String>(RM_ARDUINO_OUTPUT_TOPIC_NAME, 1000);
   driveSubscriber_ = nodeHandle.subscribe(RM_DRIVE_TOPIC_NAME, 1000, &ArduinoNode::driveCallback, this);
+  distancePublisher_ = nodeHandle.advertise<std_msgs::Float32>(RM_DISTANCE_TOPIC_NAME, 1000);
+  speedPublisher_ = nodeHandle.advertise<std_msgs::Float32>(RM_SPEED_TOPIC_NAME, 1000);
 
   ros::NodeHandle privateNodeHandle("~");
   std::string serialPortParamName = "serial_port";
@@ -106,13 +122,13 @@ ArduinoNode::ArduinoNode()
 
 void ArduinoNode::arduinoInputCallback(const std_msgs::StringConstPtr& msg)
 {
-  ROS_INFO("Node \'%s\' topic \'%s\' received \'%s\'", RM_ARDUINO_NODE_NAME, RM_ARDUINO_INPUT_TOPIC_NAME, msg->data.c_str());
+  ROS_DEBUG("Node \'%s\' topic \'%s\' received \'%s\'", RM_ARDUINO_NODE_NAME, RM_ARDUINO_INPUT_TOPIC_NAME, msg->data.c_str());
   writeSerial(msg->data.c_str());
 }
 
 void ArduinoNode::driveCallback(const mitya_teleop::Drive::ConstPtr& msg)
 {
-  ROS_INFO("Node \'%s\' topic \'%s\' received \'%d,%d\'", RM_ARDUINO_NODE_NAME, RM_DRIVE_TOPIC_NAME, msg->left, msg->right);
+  ROS_DEBUG("Node \'%s\' topic \'%s\' received \'%d,%d\'", RM_ARDUINO_NODE_NAME, RM_DRIVE_TOPIC_NAME, msg->left, msg->right);
   writeSerial(RoboCom::getDriveLeftCommand((signed char) (msg->left)));
   writeSerial(RoboCom::getDriveRightCommand((signed char) (msg->right)));
 }
@@ -273,7 +289,7 @@ void ArduinoNode::readSerial(void (*func)(ArduinoNode*, char*))
     ch = buffer[i];
     if (ch < 32) continue;
     serialIncomingMessage[serialIncomingMessageSize++] = ch;
-    if (ch == ';')
+    if (ch == COMMAND_SEPARATOR)
     {
       serialIncomingMessage[serialIncomingMessageSize] = '\0';
       func(this, serialIncomingMessage);
@@ -288,24 +304,100 @@ void ArduinoNode::writeSerial(char const* message)
   write(fd, message, strlen(message));
 }
 
-void ArduinoNode::publish(char *message)
+void ArduinoNode::publishArduinoOutput(char *message)
 {
   std_msgs::String stringMessage;
   stringMessage.data = message;
   arduinoOutputPublisher_.publish(stringMessage);
 }
 
-void onReceiveSerialMessage(ArduinoNode *arduinoNode, char *message)
+void ArduinoNode::publishDistance(float distance)
 {
-  ROS_INFO("Message from the controller: %s", message);
-  arduinoNode->publish(message);
+  std_msgs::Float32 floatMessage;
+  floatMessage.data = distance;
+  distancePublisher_.publish(floatMessage);
 }
 
+void ArduinoNode::publishSpeed(float speed)
+{
+  std_msgs::Float32 floatMessage;
+  floatMessage.data = speed;
+  speedPublisher_.publish(floatMessage);
+}
+
+void onReceiveSerialMessage(ArduinoNode *arduinoNode, char *message)
+{
+  ROS_DEBUG("Message from the controller: %s", message);
+  arduinoNode->publishArduinoOutput(message);
+  Command command;
+  int param1, param2, param3;
+  RoboCom::parseMessage(message, command, param1, param2, param3);
+  switch (command)
+  {
+    case CMD_STATUS_RESPONSE:
+    {
+      if (param1 > 0)
+        ROS_ERROR("Arduino controller's status response error: %s (%d)", RoboCom::getStatusText(param1), param1);
+      break;
+    }
+    case CMD_DIST_RESPONSE:
+    {
+      float meters = param2;
+      meters /= 1000;
+      meters += param1;
+      arduinoNode->publishDistance(meters);
+      break;
+    }
+    case CMD_SPD_RESPONSE:
+    {
+      float kilometersPerHour = param1;
+      kilometersPerHour /= 1000;
+      arduinoNode->publishSpeed(kilometersPerHour);
+      break;
+    }
+  }
+}
+/*
+void checkResult(int testId,
+                 Command expectedCommand, int expectedParam1, int expectedParam2, int expectedParam3,
+                 Command actualCommand, int actualParam1, int actualParam2, int actualParam3)
+{
+  if (expectedCommand != actualCommand)
+    ROS_ERROR("%d: Bad command", testId);
+  if (expectedParam1 != actualParam1)
+    ROS_ERROR("%d: Expected param1 %d is not equal to actual %d", testId, expectedParam1, actualParam1);
+  if (expectedParam2 != actualParam2)
+    ROS_ERROR("%d: Expected param2 %d is not equal to actual %d", testId, expectedParam2, actualParam2);
+  if (expectedParam3 != actualParam3)
+    ROS_ERROR("%d: Expected param3 %d is not equal to actual %d", testId, expectedParam3, actualParam3);
+
+  if (expectedCommand == actualCommand && expectedParam1 == actualParam1
+    && expectedParam2 == actualParam2 && expectedParam3 == actualParam3)
+    ROS_INFO("%d: Test OK", testId);
+}
+
+void test()
+{
+  Command command;
+  int param1, param2, param3;
+  RoboCom::parseMessage("foo -2 2 128;", command, param1, param2, param3);
+  checkResult(1, CMD_UNKNOWN, -2, 2, 128, command, param1, param2, param3);
+  RoboCom::parseMessage("!DIST -1974 1974 32767;", command, param1, param2, param3);
+  checkResult(2, CMD_DIST_RESPONSE, -1974, 1974, 32767, command, param1, param2, param3);
+  RoboCom::parseMessage("!SPD -1974 1974 32767;", command, param1, param2, param3);
+  checkResult(3, CMD_SPD_RESPONSE, -1974, 1974, 32767, command, param1, param2, param3);
+  RoboCom::parseMessage("?SPD -1974 1974 32767;", command, param1, param2, param3);
+  checkResult(4, CMD_UNKNOWN, -1974, 1974, 32767, command, param1, param2, param3);
+  RoboCom::parseMessage("!DIST -19.74 197a4 32768;", command, param1, param2, param3);
+  checkResult(5, CMD_DIST_RESPONSE, -19, 197, -1, command, param1, param2, param3);
+}
+*/
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, RM_ARDUINO_NODE_NAME);
   ArduinoNode arduinoNode;
   arduinoNode.openSerial();
+  //test();
 
   ros::Rate loop_rate(100); // 100 Hz
   while (ros::ok())

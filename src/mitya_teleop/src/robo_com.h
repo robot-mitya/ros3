@@ -35,16 +35,49 @@
 #define MITYA_TELEOP_SRC_ROBO_COM_H_
 
 #define MAX_MESSAGE_SIZE 200
+#define COMMAND_SEPARATOR ';'
+
+enum Command
+{
+  CMD_UNKNOWN = 0,
+  CMD_STATUS_REQUEST = 10,
+  CMD_STATUS_RESPONSE = 20,
+  CMD_MOTOR_LEFT = 30,
+  CMD_MOTOR_RIGHT = 40,
+  CMD_MOTOR_BOTH = 50,
+  CMD_LED = 60,
+  CMD_ENCL_REQUEST = 70,
+  CMD_ENCR_REQUEST = 80,
+  CMD_ENCB_REQUEST = 90,
+  CMD_ENCL_RESPONSE = 100,
+  CMD_ENCR_RESPONSE = 110,
+  CMD_DIST_REQUEST = 120,
+  CMD_DIST_RESPONSE = 130,
+  CMD_SPD_REQUEST = 140,
+  CMD_SPD_RESPONSE = 150,
+  CMD_MCPS_REQUEST = 160,
+  CMD_MCPS_RESPONSE = 170
+};
+
+enum StatusCode
+{
+  RET_OK = 0,
+  RET_BAD_PARAMETER = 1,
+  RET_TOO_MANY_WORDS = 2,
+  RET_BAD_COMMAND = 3
+};
 
 class RoboCom
 {
 public:
-  static void test();
+  static char const* getStatusText(int status);
   static char* getDriveLeftCommand(signed char speed);
   static char* getDriveRightCommand(signed char speed);
+  static void parseMessage(const char* message, Command &command, int &param1, int &param2, int &param3);
 private:
   static char driveLeftMessage_[MAX_MESSAGE_SIZE];
   static char driveRightMessage_[MAX_MESSAGE_SIZE];
+  static Command getCommand(char *text);
 };
 
 #endif /* MITYA_TELEOP_SRC_ROBO_COM_H_ */

@@ -32,10 +32,39 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "robo_com.h"
+
+//#include "ros/ros.h"
 
 char RoboCom::driveLeftMessage_[MAX_MESSAGE_SIZE];
 char RoboCom::driveRightMessage_[MAX_MESSAGE_SIZE];
+
+static char charArray[2] = "\0";
+static char commandText[11] = "";
+static char param1Text[7] = "";
+static char param2Text[7] = "";
+static char param3Text[7] = "";
+static int wordCounter = 0;
+static bool inWordSeparator = false;
+
+char const* RoboCom::getStatusText(int status)
+{
+  switch (status)
+  {
+    case RET_OK:
+      return "OK";
+    case RET_BAD_PARAMETER:
+      return "Bad parameter";
+    case RET_TOO_MANY_WORDS:
+      return "Too many words";
+    case RET_BAD_COMMAND:
+      return "Bad command";
+    default:
+      return "Unknown error";
+  }
+}
 
 char* RoboCom::getDriveLeftCommand(signed char speed)
 {
@@ -47,4 +76,76 @@ char* RoboCom::getDriveRightCommand(signed char speed)
 {
   sprintf(RoboCom::driveRightMessage_, "MR %d;", speed);
   return RoboCom::driveRightMessage_;
+}
+
+void RoboCom::parseMessage(const char* message, Command &command, int &param1, int &param2, int &param3)
+{
+  command = CMD_UNKNOWN;
+  param1 = 0;
+  param2 = 0;
+  param3 = 0;
+
+  char ch;
+  strcpy(commandText, "");
+  strcpy(param1Text, "");
+  strcpy(param2Text, "");
+  strcpy(param3Text, "");
+  wordCounter = 0;
+  inWordSeparator = false;
+  int messageLength = strlen(message);
+  for (int i = 0; i < messageLength; i++)
+  {
+    ch = message[i];
+    if (ch == COMMAND_SEPARATOR)
+    {
+      command = getCommand(commandText);
+      param1 = atoi(param1Text);
+      param2 = atoi(param2Text);
+      param3 = atoi(param3Text);
+      return;
+    }
+    else
+    {
+      if (ch <= 32) //(white space)
+      {
+        if (!inWordSeparator)
+        {
+          inWordSeparator = true;
+          wordCounter++;
+        }
+        continue;
+      }
+
+      inWordSeparator = false;
+      charArray[0] = ch;
+      switch (wordCounter)
+      {
+        case 0:
+          strcat(commandText, charArray);
+          break;
+        case 1:
+          strcat(param1Text, charArray);
+          break;
+        case 2:
+          strcat(param2Text, charArray);
+          break;
+        case 3:
+          strcat(param3Text, charArray);
+          break;
+      }
+    }
+  }
+}
+
+Command RoboCom::getCommand(char *text)
+{
+  if (strlen(text) == 0)
+    return CMD_UNKNOWN;
+  if (strcmp(text, "!") == 0)
+    return CMD_STATUS_RESPONSE;
+  if (strcmp(text, "!DIST") == 0)
+    return CMD_DIST_RESPONSE;
+  if (strcmp(text, "!SPD") == 0)
+    return CMD_SPD_RESPONSE;
+  return CMD_UNKNOWN;
 }

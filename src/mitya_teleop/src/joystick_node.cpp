@@ -101,7 +101,7 @@ void JoystickNode::joystickCallback(const sensor_msgs::Joy::ConstPtr& joy)
   left *= radius;
   right *= radius;
 
-  //ROS_INFO("x=%+5.3f y=%+5.3f R=%+5.3f A=%+8.3f    Left=%+6.3f Right=%+6.3f", x, y, radius, alpha, left, right);
+  //ROS_DEBUG("x=%+5.3f y=%+5.3f R=%+5.3f A=%+8.3f    Left=%+6.3f Right=%+6.3f", x, y, radius, alpha, left, right);
 
   mitya_teleop::Drive msg;
   msg.left = getSpeedValue(left);
