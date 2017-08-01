@@ -1,5 +1,5 @@
 /*
- * consts.h
+ * herkulex_node.cpp
  * Copyright (c) 2017, Robot Mitya.
  * All rights reserved.
  * 
@@ -27,38 +27,49 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- *  Created on: Apr 24, 2017
+ *  Created on: Aug 2, 2017
  *      Author: Dmitry Dzakhov
  */
 
-#ifndef MITYA_TELEOP_SRC_CONSTS_H_
-#define MITYA_TELEOP_SRC_CONSTS_H_
+#include "ros/ros.h"
+#include "consts.h"
+#include "mitya_teleop/HeadPosition.h"
+
+class HerkulexNode
+{
+public:
+  HerkulexNode();
+private:
+  // Topic RM_HEAD_POSITION_TOPIC_NAME ('head_position') subscriber:
+  ros::Subscriber headPositionSubscriber_;
+  void headPositionCallback(const mitya_teleop::HeadPosition::ConstPtr& msg);
+};
+
+HerkulexNode::HerkulexNode()
+{
+  ros::NodeHandle nodeHandle(RM_NAMESPACE);
+  headPositionSubscriber_ = nodeHandle.subscribe(RM_HEAD_POSITION_TOPIC_NAME, 1000, &HerkulexNode::headPositionCallback, this);
+}
+
+void HerkulexNode::headPositionCallback(const mitya_teleop::HeadPosition::ConstPtr& msg)
+{
+  ROS_INFO("Received in %s.%s: %f, %f", RM_HERKULEX_NODE_NAME, RM_HEAD_POSITION_TOPIC_NAME, msg->horizontal, msg->vertical);
+}
 
 
-/**
- * ROS namespace for Robot Mitay's packages.
- */
-#define RM_NAMESPACE "mitya"
+int main(int argc, char **argv)
+{
+  ros::init(argc, argv, RM_HERKULEX_NODE_NAME);
+  HerkulexNode herkulexNode;
+  //herkulexNode.openSerial();
 
-/**
- * Topic name from package joy, joy_node.
- * Run "sudo apt-get install ros-kinetic-joy" to install package.
- */
-#define RM_JOY_TOPIC_NAME "joy"
+  ros::Rate loop_rate(100); // 100 Hz
+  while (ros::ok())
+  {
+    //herkulexNode.readSerial(onReceiveSerialMessage);
+    loop_rate.sleep();
+    ros::spinOnce();
+  }
 
-#define RM_ARDUINO_NODE_NAME "arduino_node"
-#define RM_ARDUINO_OUTPUT_TOPIC_NAME "arduino_output"
-#define RM_ARDUINO_INPUT_TOPIC_NAME "arduino_input"
-
-#define RM_JOYSTICK_NODE_NAME "joystick_node"
-#define RM_DRIVE_TOPIC_NAME "drive"
-
-#define RM_LED_TOPIC_NAME "led"
-#define RM_DISTANCE_TOPIC_NAME "distance"
-#define RM_SPEED_TOPIC_NAME "speed"
-
-#define RM_HERKULEX_NODE_NAME "herkulex_node"
-#define RM_HEAD_POSITION_TOPIC_NAME "head_position"
-
-
-#endif /* MITYA_TELEOP_SRC_CONSTS_H_ */
+  return 0;
+}

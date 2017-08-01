@@ -3,5 +3,7 @@
   (:export
    "<DRIVE>"
    "DRIVE"
+   "<HEADPOSITION>"
+   "HEADPOSITION"
   ))
 

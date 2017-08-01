@@ -52,6 +52,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   Drive.msg
+  HeadPosition.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -201,9 +202,15 @@ include_directories(
 # catkin_add_nosetests(test)
 
 include_directories(include ${catkin_INCLUDE_DIRS})
+
 add_executable(joystick_node src/joystick_node.cpp)
 target_link_libraries(joystick_node ${catkin_LIBRARIES})
 add_dependencies(joystick_node mitya_teleop_generate_messages_cpp)
+
 add_executable(arduino_node src/arduino_node.cpp src/robo_com.cpp)
 target_link_libraries(arduino_node ${catkin_LIBRARIES})
 add_dependencies(arduino_node mitya_teleop_generate_messages_cpp)
+
+add_executable(herkulex_node src/herkulex_node.cpp)
+target_link_libraries(herkulex_node ${catkin_LIBRARIES})
+add_dependencies(herkulex_node mitya_teleop_generate_messages_cpp)
