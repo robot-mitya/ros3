@@ -74,5 +74,22 @@ $ tail -f /proc/17821/fd/1
   </node>
 
   <!-- Axes -->
-  <node pkg="mitya_teleop" type="joystick_node" name="joystick"/>
+  <node pkg="mitya_teleop" type="joystick_node" name="joystick">
+    <param name="drive_axis_x" type="int" value="0" />
+    <param name="drive_axis_y" type="int" value="1" />
+    <param name="drive_max_value" type="int" value="100" />
+    <param name="drive_invert_x" type="bool" value="true" />
+    <param name="drive_invert_y" type="bool" value="false" />
+
+    <param name="head_axis_x" type="int" value="3" />
+    <param name="head_axis_y" type="int" value="4" />
+    <param name="head_horizontal_min_degree" type="double" value="-120.0" />
+    <param name="head_horizontal_center_degree" type="double" value="0.0" />
+    <param name="head_horizontal_max_degree" type="double" value="120.0" />
+    <param name="head_vertical_min_degree" type="double" value="-10.0" />
+    <param name="head_vertical_center_degree" type="double" value="15.0" />
+    <param name="head_vertical_max_degree" type="double" value="120.0" />
+    <param name="head_invert_horizontal" type="bool" value="true" />
+    <param name="head_invert_vertical" type="bool" value="true" />
+  </node>
 </launch>

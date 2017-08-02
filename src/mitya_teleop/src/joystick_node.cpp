@@ -52,7 +52,7 @@ private:
   int headAxisX_;
   int headAxisY_;
 
-  int8_t driveMaxValue;
+  int driveMaxValue;
   bool driveInvertX;
   bool driveInvertY;
   float driveSignX;
@@ -89,25 +89,25 @@ JoystickNode::JoystickNode()
   ros::NodeHandle headPositionNodeHandle(RM_NAMESPACE);
   headPositionPublisher_ = headPositionNodeHandle.advertise<mitya_teleop::HeadPosition>(RM_HEAD_POSITION_TOPIC_NAME, 1000);
 
-  driveAxisX_ = 0;
-  driveAxisY_ = 1;
-  headAxisX_ = 3;
-  headAxisY_ = 4;
-
-  driveMaxValue = 100;
-  driveInvertX = true;
-  driveInvertY = false;
+  ros::NodeHandle privateNodeHandle("~");
+  privateNodeHandle.param("drive_axis_x", driveAxisX_, 0);
+  privateNodeHandle.param("drive_axis_y", driveAxisY_, 1);
+  privateNodeHandle.param("drive_max_value", driveMaxValue, 100);
+  privateNodeHandle.param("drive_invert_x", driveInvertX, true);
+  privateNodeHandle.param("drive_invert_y", driveInvertY, false);
   driveSignX = driveInvertX ? -1.0f : 1.0f;
   driveSignY = driveInvertY ? -1.0f : 1.0f;
 
-  headHorizontalMinDegree = -120.0f;
-  headHorizontalCenterDegree = 0.0f;
-  headHorizontalMaxDegree = 120.0f;
-  headVerticalMinDegree = -10.0f;
-  headVerticalCenterDegree = 10.0f;
-  headVerticalMaxDegree = 120.0f;
-  headInvertHorizontal = true;
-  headInvertVertical = true;
+  privateNodeHandle.param("head_axis_x", headAxisX_, 3);
+  privateNodeHandle.param("head_axis_y", headAxisY_, 4);
+  privateNodeHandle.param("head_horizontal_min_degree", headHorizontalMinDegree, -120.0f);
+  privateNodeHandle.param("head_horizontal_center_degree", headHorizontalCenterDegree, 0.0f);
+  privateNodeHandle.param("head_horizontal_max_degree", headHorizontalMaxDegree, 120.0f);
+  privateNodeHandle.param("head_vertical_min_degree", headVerticalMinDegree, -10.0f);
+  privateNodeHandle.param("head_vertical_center_degree", headVerticalCenterDegree, 10.0f);
+  privateNodeHandle.param("head_vertical_max_degree", headVerticalMaxDegree, 120.0f);
+  privateNodeHandle.param("head_invert_horizontal", headInvertHorizontal, true);
+  privateNodeHandle.param("head_invert_vertical", headInvertVertical, true);
 
   headHorizontalAmplitude = MAX(
       abs(headHorizontalMinDegree - headHorizontalCenterDegree),
