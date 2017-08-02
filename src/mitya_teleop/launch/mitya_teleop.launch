@@ -69,7 +69,7 @@ $ tail -f /proc/17821/fd/1
   <!-- joy node -->
   <node respawn="true" pkg="joy"
         type="joy_node" name="mitya_joy" >
-    <param name="dev" type="string" value="/dev/input/js1" />
+    <param name="dev" type="string" value="/dev/input/js0" />
     <param name="deadzone" value="0.12" />
   </node>
 

@@ -33,39 +33,113 @@
 
 #include "ros/ros.h"
 #include "mitya_teleop/Drive.h"
+#include "mitya_teleop/HeadPosition.h"
 #include <sensor_msgs/Joy.h>
 #include <math.h>
 #include "consts.h"
+
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
 
 class JoystickNode
 {
 public:
   JoystickNode();
 private:
-  const int axisX_;
-  const int axisY_;
   static const float RAD_TO_DEG = 180.0f / M_PI;
+
+  int driveAxisX_;
+  int driveAxisY_;
+  int headAxisX_;
+  int headAxisY_;
+
+  int8_t driveMaxValue;
+  bool driveInvertX;
+  bool driveInvertY;
+  float driveSignX;
+  float driveSignY;
+
+  float headHorizontalMinDegree;
+  float headHorizontalCenterDegree;
+  float headHorizontalMaxDegree;
+  float headVerticalMinDegree;
+  float headVerticalCenterDegree;
+  float headVerticalMaxDegree;
+  bool headInvertHorizontal;
+  bool headInvertVertical;
+  float headHorizontalAmplitude;
+  float headVerticalAmplitude;
+
   ros::Subscriber joystickSubscriber_;
   ros::Publisher drivePublisher_;
+  ros::Publisher headPositionPublisher_;
   void joystickCallback(const sensor_msgs::Joy::ConstPtr& joy);
   int8_t getSpeedValue(float joystickValue);
+  void publishDriveMessage(float x, float y);
+  void publishHeadPositionMessage(float x, float y);
 };
 
-JoystickNode::JoystickNode():
-    axisX_(0),
-    axisY_(1)
+JoystickNode::JoystickNode()
 {
   ros::NodeHandle joystickNodeHandle;
   joystickSubscriber_ = joystickNodeHandle.subscribe<sensor_msgs::Joy>(RM_JOY_TOPIC_NAME, 10, &JoystickNode::joystickCallback, this);
 
   ros::NodeHandle driveNodeHandle(RM_NAMESPACE);
   drivePublisher_ = driveNodeHandle.advertise<mitya_teleop::Drive>(RM_DRIVE_TOPIC_NAME, 1000);
+
+  ros::NodeHandle headPositionNodeHandle(RM_NAMESPACE);
+  headPositionPublisher_ = headPositionNodeHandle.advertise<mitya_teleop::HeadPosition>(RM_HEAD_POSITION_TOPIC_NAME, 1000);
+
+  driveAxisX_ = 0;
+  driveAxisY_ = 1;
+  headAxisX_ = 3;
+  headAxisY_ = 4;
+
+  driveMaxValue = 100;
+  driveInvertX = true;
+  driveInvertY = false;
+  driveSignX = driveInvertX ? -1.0f : 1.0f;
+  driveSignY = driveInvertY ? -1.0f : 1.0f;
+
+  headHorizontalMinDegree = -120.0f;
+  headHorizontalCenterDegree = 0.0f;
+  headHorizontalMaxDegree = 120.0f;
+  headVerticalMinDegree = -10.0f;
+  headVerticalCenterDegree = 10.0f;
+  headVerticalMaxDegree = 120.0f;
+  headInvertHorizontal = true;
+  headInvertVertical = true;
+
+  headHorizontalAmplitude = MAX(
+      abs(headHorizontalMinDegree - headHorizontalCenterDegree),
+      abs(headHorizontalMaxDegree - headHorizontalCenterDegree));
+  headVerticalAmplitude = MAX(
+      abs(headVerticalMinDegree - headVerticalCenterDegree),
+      abs(headVerticalMaxDegree - headVerticalCenterDegree));
+
+  if (headInvertHorizontal)
+    headHorizontalAmplitude *= -1.0f;
+  if (headInvertVertical)
+    headVerticalAmplitude *= -1.0f;
 }
 
 void JoystickNode::joystickCallback(const sensor_msgs::Joy::ConstPtr& joy)
 {
-  float x = -joy->axes[axisX_];
-  float y = joy->axes[axisY_];
+  publishDriveMessage(joy->axes[driveAxisX_], joy->axes[driveAxisY_]);
+  publishHeadPositionMessage(joy->axes[headAxisX_], joy->axes[headAxisY_]);
+}
+
+int8_t JoystickNode::getSpeedValue(float joystickValue)
+{
+  int8_t result = (int8_t) round(joystickValue * driveMaxValue);
+  if (result < -driveMaxValue) return -driveMaxValue;
+  else if (result > driveMaxValue) return driveMaxValue;
+  return result;
+}
+
+void JoystickNode::publishDriveMessage(float x, float y)
+{
+  x *= driveSignX;
+  y *= driveSignY;
 
   float alpha = atan2(y, x) * RAD_TO_DEG;
   if (alpha < 0) alpha += 360;
@@ -106,16 +180,26 @@ void JoystickNode::joystickCallback(const sensor_msgs::Joy::ConstPtr& joy)
   mitya_teleop::Drive msg;
   msg.left = getSpeedValue(left);
   msg.right = getSpeedValue(right);
-
   drivePublisher_.publish(msg);
 }
 
-int8_t JoystickNode::getSpeedValue(float joystickValue)
+void JoystickNode::publishHeadPositionMessage(float x, float y)
 {
-  float result = joystickValue * 100.0f;
-  if (result < -100.0f) result = -100.0f;
-  else if (result > 100.0f) result = 100.0f;
-  return (int8_t) round(result);
+  mitya_teleop::HeadPosition msg;
+
+  x *= headHorizontalAmplitude;
+  x += headHorizontalCenterDegree;
+  if (x < headHorizontalMinDegree) x = headHorizontalMinDegree;
+  else if (x > headHorizontalMaxDegree) x = headHorizontalMaxDegree;
+  msg.horizontal = x;
+
+  y *= headVerticalAmplitude;
+  y += headVerticalCenterDegree;
+  if (y < headVerticalMinDegree) y = headVerticalMinDegree;
+  else if (y > headVerticalMaxDegree) y = headVerticalMaxDegree;
+  msg.vertical = y;
+
+  headPositionPublisher_.publish(msg);
 }
 
 int main(int argc, char **argv)
