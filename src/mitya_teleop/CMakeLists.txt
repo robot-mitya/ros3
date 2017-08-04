@@ -211,6 +211,6 @@ add_executable(arduino_node src/arduino_node.cpp src/robo_com.cpp)
 target_link_libraries(arduino_node ${catkin_LIBRARIES})
 add_dependencies(arduino_node mitya_teleop_generate_messages_cpp)
 
-add_executable(herkulex_node src/herkulex_node.cpp)
+add_executable(herkulex_node src/herkulex_node.cpp src/herkulex.cpp)
 target_link_libraries(herkulex_node ${catkin_LIBRARIES})
 add_dependencies(herkulex_node mitya_teleop_generate_messages_cpp)
