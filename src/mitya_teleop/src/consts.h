@@ -59,6 +59,8 @@
 
 #define RM_HERKULEX_NODE_NAME "herkulex_node"
 #define RM_HEAD_POSITION_TOPIC_NAME "head_position"
+#define RM_HERKULEX_OUTPUT_TOPIC_NAME "herkulex_output"
+#define RM_HERKULEX_INPUT_TOPIC_NAME "herkulex_input"
 
 
 #endif /* MITYA_TELEOP_SRC_CONSTS_H_ */
