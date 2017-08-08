@@ -34,13 +34,24 @@
 #include "herkulex.h"
 
 #include <unistd.h>
+#include <string.h>
+#include <time.h>
 
-// Herkulex begin with Arduino Uno
-void HerkulexClass::begin(long baud, int rx, int tx)
+// Herkulex serial port initialization
+bool HerkulexClass::begin(char const* portName, long baud)
 {
+  fd = open(portName, O_RDWR | O_NOCTTY | O_SYNC);
+  if (fd < 0)
+    return false;
+  if (!setInterfaceAttribs(fd, baudRateToBaudRateConst(baud), 0)) // set speed bps, 8n1 (no parity)
+    return false;
+  if (!setBlocking(fd, 0)) // set no blocking
+    return false;
+
+  return true;
 }
 
-// Herkulex end
+// Herkulex serial port initialization
 void HerkulexClass::end()
 {
 }
@@ -49,7 +60,7 @@ void HerkulexClass::end()
 void HerkulexClass::initialize()
 {
   conta = 0;
-  lenghtString = 0;
+  lengthString = 0;
   delay(100);
   clearError(BROADCAST_ID); // clear error for all servos
   delay(10);
@@ -60,7 +71,7 @@ void HerkulexClass::initialize()
 }
 
 // stat
-uint8_t HerkulexClass::stat(int servoID)
+uint8_t HerkulexClass::stat(int servoID, uint8_t *statusError, uint8_t *statusDetail)
 {
   pSize = 0x07; //3.Packet size
   pID = servoID; //4.Servo ID - 0XFE=All servos
@@ -86,7 +97,7 @@ uint8_t HerkulexClass::stat(int servoID)
   cmd = dataEx[4]; // 5. CMD
   data[0] = dataEx[7];
   data[1] = dataEx[8];
-  lenghtString = 2;
+  lengthString = 2;
 
   ck1 = (dataEx[2] ^ dataEx[3] ^ dataEx[4] ^ dataEx[7] ^ dataEx[8]) & 0xFE;
   ck2 = checksum2(ck1);
@@ -96,7 +107,11 @@ uint8_t HerkulexClass::stat(int servoID)
   if (ck2 != dataEx[6])
     return -2;
 
-  return dataEx[7]; // return status
+  if (statusError != NULL)
+    *statusError = dataEx[7];
+  if (statusDetail != NULL)
+    *statusDetail = dataEx[8];
+  return 0;
 }
 
 // torque on -
@@ -106,11 +121,11 @@ void HerkulexClass::torqueON(int servoID)
   pID = servoID; // 4. Servo ID
   cmd = HRAMWRITE; // 5. CMD
   data[0] = 0x34; // 8. Address
-  data[1] = 0x01; // 9. Lenght
+  data[1] = 0x01; // 9. Length
   data[2] = 0x60; // 10. 0x60=Torque ON
-  lenghtString = 3; // lenghtData
+  lengthString = 3; // lengthData
 
-  ck1 = checksum1(data, lenghtString); //6. Checksum1
+  ck1 = checksum1(data, lengthString); //6. Checksum1
   ck2 = checksum2(ck1); //7. Checksum2
 
   dataEx[0] = 0xFF; // Packet Header
@@ -134,11 +149,11 @@ void HerkulexClass::torqueOFF(int servoID)
   pID = servoID; // 4. Servo ID
   cmd = HRAMWRITE; // 5. CMD
   data[0] = 0x34; // 8. Address
-  data[1] = 0x01; // 9. Lenght
+  data[1] = 0x01; // 9. Length
   data[2] = 0x00; // 10. 0x00=Torque Free
-  lenghtString = 3; // lenghtData
+  lengthString = 3; // lengthData
 
-  ck1 = checksum1(data, lenghtString); //6. Checksum1
+  ck1 = checksum1(data, lengthString); //6. Checksum1
   ck2 = checksum2(ck1); //7. Checksum2
 
   dataEx[0] = 0xFF; // Packet Header
@@ -162,11 +177,11 @@ void HerkulexClass::ACK(int valueACK)
   pID = 0xFE; // 4. Servo ID
   cmd = HRAMWRITE; // 5. CMD
   data[0] = 0x34; // 8. Address
-  data[1] = 0x01; // 9. Lenght
+  data[1] = 0x01; // 9. Length
   data[2] = valueACK; // 10.Value. 0=No Replay, 1=Only reply to READ CMD, 2=Always reply
-  lenghtString = 3; // lenghtData
+  lengthString = 3; // lengthData
 
-  ck1 = checksum1(data, lenghtString); //6. Checksum1
+  ck1 = checksum1(data, lengthString); //6. Checksum1
   ck2 = checksum2(ck1); //7. Checksum2
 
   dataEx[0] = 0xFF; // Packet Header
@@ -190,10 +205,10 @@ uint8_t HerkulexClass::model()
   pID = 0xFE; // 4. Servo ID
   cmd = HEEPREAD; // 5. CMD
   data[0] = 0x00; // 8. Address
-  data[1] = 0x01; // 9. Lenght
-  lenghtString = 2; // lenghtData
+  data[1] = 0x01; // 9. Length
+  lengthString = 2; // lengthData
 
-  ck1 = checksum1(data, lenghtString); //6. Checksum1
+  ck1 = checksum1(data, lengthString); //6. Checksum1
   ck2 = checksum2(ck1); //7. Checksum2
 
   dataEx[0] = 0xFF; // Packet Header
@@ -215,9 +230,9 @@ uint8_t HerkulexClass::model()
   pID = dataEx[3]; // 4. Servo ID
   cmd = dataEx[4]; // 5. CMD
   data[0] = dataEx[7]; // 8. 1st uint8_t
-  lenghtString = 1; // lenghtData
+  lengthString = 1; // lengthData
 
-  ck1 = checksum1(data, lenghtString); //6. Checksum1
+  ck1 = checksum1(data, lengthString); //6. Checksum1
   ck2 = checksum2(ck1); //7. Checksum2
 
   if (ck1 != dataEx[5])
@@ -235,11 +250,11 @@ void HerkulexClass::set_ID(int ID_Old, int ID_New)
   pID = ID_Old; // 4. Servo ID OLD - original servo ID
   cmd = HEEPWRITE; // 5. CMD
   data[0] = 0x06; // 8. Address
-  data[1] = 0x01; // 9. Lenght
+  data[1] = 0x01; // 9. Length
   data[2] = ID_New; // 10. ServoID NEW
-  lenghtString = 3; // lenghtData
+  lengthString = 3; // lengthData
 
-  ck1 = checksum1(data, lenghtString); //6. Checksum1
+  ck1 = checksum1(data, lengthString); //6. Checksum1
   ck2 = checksum2(ck1); //7. Checksum2
 
   dataEx[0] = 0xFF; // Packet Header
@@ -263,13 +278,13 @@ void HerkulexClass::clearError(int servoID)
   pID = servoID; // 4. Servo ID - 253=all servos
   cmd = HRAMWRITE; // 5. CMD
   data[0] = 0x30; // 8. Address
-  data[1] = 0x02; // 9. Lenght
+  data[1] = 0x02; // 9. Length
   data[2] = 0x00; // 10. Write error=0
   data[3] = 0x00; // 10. Write detail error=0
 
-  lenghtString = 4; // lenghtData
+  lengthString = 4; // lengthData
 
-  ck1 = checksum1(data, lenghtString); //6. Checksum1
+  ck1 = checksum1(data, lengthString); //6. Checksum1
   ck2 = checksum2(ck1); //7. Checksum2
 
   dataEx[0] = 0xFF; // Packet Header
@@ -418,11 +433,11 @@ int HerkulexClass::getPosition(int servoID)
   pID = servoID; // 4. Servo ID - 253=all servos
   cmd = HRAMREAD; // 5. CMD
   data[0] = 0x3A; // 8. Address
-  data[1] = 0x02; // 9. Lenght
+  data[1] = 0x02; // 9. Length
 
-  lenghtString = 2; // lenghtData
+  lengthString = 2; // lengthData
 
-  ck1 = checksum1(data, lenghtString); //6. Checksum1
+  ck1 = checksum1(data, lengthString); //6. Checksum1
   ck2 = checksum2(ck1); //7. Checksum2
 
   dataEx[0] = 0xFF; // Packet Header
@@ -449,9 +464,9 @@ int HerkulexClass::getPosition(int servoID)
   data[3] = dataEx[10];
   data[4] = dataEx[11];
   data[5] = dataEx[12];
-  lenghtString = 6;
+  lengthString = 6;
 
-  ck1 = checksum1(data, lenghtString); //6. Checksum1
+  ck1 = checksum1(data, lengthString); //6. Checksum1
   ck2 = checksum2(ck1); //7. Checksum2
 
   if (ck1 != dataEx[5])
@@ -498,11 +513,11 @@ void HerkulexClass::setLed(int servoID, int valueLed)
   pID = servoID; // 4. Servo ID
   cmd = HRAMWRITE; // 5. CMD
   data[0] = 0x35; // 8. Address 53
-  data[1] = 0x01; // 9. Lenght
+  data[1] = 0x01; // 9. Length
   data[2] = valueLed; // 10.LedValue
-  lenghtString = 3; // lenghtData
+  lengthString = 3; // lengthData
 
-  ck1 = checksum1(data, lenghtString); //6. Checksum1
+  ck1 = checksum1(data, lengthString); //6. Checksum1
   ck2 = checksum2(ck1); //7. Checksum2
 
   dataEx[0] = 0xFF; // Packet Header
@@ -528,11 +543,11 @@ int HerkulexClass::getSpeed(int servoID)
   pID = servoID; // 4. Servo ID
   cmd = HRAMREAD; // 5. CMD
   data[0] = 0x40; // 8. Address
-  data[1] = 0x02; // 9. Lenght
+  data[1] = 0x02; // 9. Length
 
-  lenghtString = 2; // lenghtData
+  lengthString = 2; // lengthData
 
-  ck1 = checksum1(data, lenghtString); //6. Checksum1
+  ck1 = checksum1(data, lengthString); //6. Checksum1
   ck2 = checksum2(ck1); //7. Checksum2
 
   dataEx[0] = 0xFF; // Packet Header
@@ -559,9 +574,9 @@ int HerkulexClass::getSpeed(int servoID)
   data[3] = dataEx[10];
   data[4] = dataEx[11];
   data[5] = dataEx[12];
-  lenghtString = 6;
+  lengthString = 6;
 
-  ck1 = checksum1(data, lenghtString); //6. Checksum1
+  ck1 = checksum1(data, lengthString); //6. Checksum1
   ck2 = checksum2(ck1); //7. Checksum2
 
   if (ck1 != dataEx[5])
@@ -624,9 +639,9 @@ void HerkulexClass::moveSpeedOne(int servoID, int Goal, int pTime, int iLed)
 
   pID = servoID ^ playTime;
 
-  lenghtString = 4; // lenghtData
+  lengthString = 4; // lengthData
 
-  ck1 = checksum1(data, lenghtString); //6. Checksum1
+  ck1 = checksum1(data, lengthString); //6. Checksum1
   ck2 = checksum2(ck1); //7. Checksum2
 
   pID = servoID;
@@ -689,9 +704,9 @@ void HerkulexClass::moveOne(int servoID, int Goal, int pTime, int iLed)
 
   pID = servoID ^ playTime;
 
-  lenghtString = 4; // lenghtData
+  lengthString = 4; // lengthData
 
-  ck1 = checksum1(data, lenghtString); //6. Checksum1
+  ck1 = checksum1(data, lengthString); //6. Checksum1
   ck2 = checksum2(ck1); //7. Checksum2
 
   pID = servoID;
@@ -728,12 +743,12 @@ void HerkulexClass::writeRegistryRAM(int servoID, int address, int writeByte)
   pID = servoID; // 4. Servo ID - 253=all servos
   cmd = HRAMWRITE; // 5. CMD
   data[0] = address; // 8. Address
-  data[1] = 0x01; // 9. Lenght
+  data[1] = 0x01; // 9. Length
   data[2] = writeByte; // 10. Write error=0
 
-  lenghtString = 3; // lenghtData
+  lengthString = 3; // lengthData
 
-  ck1 = checksum1(data, lenghtString); //6. Checksum1
+  ck1 = checksum1(data, lengthString); //6. Checksum1
   ck2 = checksum2(ck1); //7. Checksum2
 
   dataEx[0] = 0xFF; // Packet Header
@@ -758,12 +773,12 @@ void HerkulexClass::writeRegistryEEP(int servoID, int address, int writeByte)
   pID = servoID; // 4. Servo ID - 253=all servos
   cmd = HEEPWRITE; // 5. CMD
   data[0] = address; // 8. Address
-  data[1] = 0x01; // 9. Lenght
+  data[1] = 0x01; // 9. Length
   data[2] = writeByte; // 10. Write error=0
 
-  lenghtString = 3; // lenghtData
+  lengthString = 3; // lengthData
 
-  ck1 = checksum1(data, lenghtString); //6. Checksum1
+  ck1 = checksum1(data, lengthString); //6. Checksum1
   ck2 = checksum2(ck1); //7. Checksum2
 
   dataEx[0] = 0xFF; // Packet Header
@@ -784,13 +799,13 @@ void HerkulexClass::writeRegistryEEP(int servoID, int address, int writeByte)
 // Private Methods //////////////////////////////////////////////////////////////
 
 // checksum1
-int HerkulexClass::checksum1(uint8_t* data, int lenghtString)
+int HerkulexClass::checksum1(uint8_t* data, int lengthString)
 {
   XOR = 0;
   XOR = XOR ^ pSize;
   XOR = XOR ^ pID;
   XOR = XOR ^ cmd;
-  for (int i = 0; i < lenghtString; i++)
+  for (int i = 0; i < lengthString; i++)
   {
     XOR = XOR ^ data[i];
   }
@@ -812,36 +827,36 @@ void HerkulexClass::addData(int GoalLSB, int GoalMSB, int set, int servoID)
   moveData[conta++] = servoID;
 }
 
-// Sending the buffer long lenght to Serial port
-void HerkulexClass::sendData(uint8_t* buffer, int lenght)
+// Sending the buffer long length to Serial port
+void HerkulexClass::sendData(uint8_t* buffer, int length)
 {
-  clearBuffer(); //clear the serialport buffer - try to do it!
-/*  switch (port)
-  {
-    case SSerial:
-      SwSerial.write(buffer, lenght);
-      delay(1);
-      break;
-#if defined (__AVR_ATmega1280__) || defined (__AVR_ATmega128__) || defined (__AVR_ATmega2560__)
-      case HSerial1:
-      Serial1.write(buffer, lenght);
-      delay(1);
-      break;
-      case HSerial2:
-      Serial2.write(buffer, lenght);
-      delay(1);
-      break;
-      case HSerial3:
-      Serial3.write(buffer, lenght);
-      delay(1);
-      break;
-#endif
-  }*/
+  //clear the serial port input buffer - try to do it!
+  tcflush(fd, TCIFLUSH);
+
+  write(fd, buffer, length);
 }
 
-// * Receiving the lenght of bytes from Serial port
-void HerkulexClass::readData(int size)
+const clock_t TIMEOUT_CLOCK = TIME_OUT * CLOCKS_PER_SEC;
+
+// * Receiving the length of bytes from Serial port
+bool HerkulexClass::readData(int size)
 {
+  clock_t start = clock();
+  int totalReadBytes = 0;
+  int totalBytesToRead = size;
+  int bytesToRead;
+  while (totalReadBytes < size)
+  {
+    bytesToRead = totalBytesToRead <= DATA_MOVE_ALL ? totalBytesToRead : DATA_MOVE_ALL;
+    int readBytes = read(fd, &dataEx[totalReadBytes], bytesToRead);
+    totalReadBytes += readBytes;
+    totalBytesToRead -= readBytes;
+
+    clock_t now = clock();
+    if (now - start > TIMEOUT_CLOCK)
+      return false;
+  }
+  return true;
 /*  int i = 0;
   int beginsave = 0;
   int Time_Counter = 0;
@@ -874,32 +889,135 @@ void HerkulexClass::readData(int size)
   }*/
 }
 
-//clear buffer in the serial port - better - try to do this
-void HerkulexClass::clearBuffer()
-{
-/*  switch (port)
-  {
-    case SSerial:
-      SwSerial.flush();
-      delay(1);
-      break;
-  }*/
-}
-
-void HerkulexClass::printHexByte(uint8_t x)
-{
-/*  Serial.print("0x");
-  if (x < 16)
-  {
-    Serial.print('0');
-  }
-  Serial.print(x, HEX);
-  Serial.print(" ");*/
-}
-
 void HerkulexClass::delay(long millis)
 {
   usleep(millis * 1000);
 }
+
+bool HerkulexClass::setInterfaceAttribs(int fd, int speed, int parity)
+{
+  struct termios tty;
+  memset(&tty, 0, sizeof tty);
+  if (tcgetattr(fd, &tty) != 0)
+    return false;
+
+  cfsetospeed(&tty, speed);
+  cfsetispeed(&tty, speed);
+
+  tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8;     // 8-bit chars
+  // disable IGNBRK for mismatched speed tests; otherwise receive break
+  // as \000 chars
+  tty.c_iflag &= ~IGNBRK;         // disable break processing
+  tty.c_lflag = 0;                // no signaling chars, no echo,
+                                  // no canonical processing
+  tty.c_oflag = 0;                // no remapping, no delays
+  tty.c_cc[VMIN]  = 0;            // read doesn't block
+  tty.c_cc[VTIME] = 5;            // 0.5 seconds read timeout
+
+  tty.c_iflag &= ~(IXON | IXOFF | IXANY); // shut off xon/xoff ctrl
+
+  tty.c_cflag |= (CLOCAL | CREAD);// ignore modem controls,
+                                  // enable reading
+  tty.c_cflag &= ~(PARENB | PARODD);      // shut off parity
+  tty.c_cflag |= parity;
+  tty.c_cflag &= ~CSTOPB;
+  tty.c_cflag &= ~CRTSCTS;
+
+  if (tcsetattr(fd, TCSANOW, &tty) != 0)
+  {
+    return false;
+  }
+  return true;
+}
+
+bool HerkulexClass::setBlocking(int fd, int should_block)
+{
+  struct termios tty;
+  memset(&tty, 0, sizeof tty);
+  if (tcgetattr(fd, &tty) != 0)
+  {
+    return false;
+  }
+
+  tty.c_cc[VMIN] = should_block ? 1 : 0;
+  tty.c_cc[VTIME] = 5;            // 0.5 seconds read timeout
+
+  if (tcsetattr(fd, TCSANOW, &tty) != 0)
+  {
+    return false;
+  }
+
+  return true;
+}
+
+int HerkulexClass::baudRateToBaudRateConst(int baudRate)
+{
+  switch (baudRate)
+  {
+    case 50:
+      return B50;
+    case 75:
+      return B75;
+    case 110:
+      return B110;
+    case 134:
+      return B134;
+    case 150:
+      return B150;
+    case 200:
+      return B200;
+    case 300:
+      return B300;
+    case 600:
+      return B600;
+    case 1200:
+      return B1200;
+    case 1800:
+      return B1800;
+    case 2400:
+      return B2400;
+    case 4800:
+      return B4800;
+    case 9600:
+      return B9600;
+    case 19200:
+      return B19200;
+    case 38400:
+      return B38400;
+    case 57600:
+      return B57600;
+    case 115200:
+      return B115200;
+    case 230400:
+      return B230400;
+    case 460800:
+      return B460800;
+    case 500000:
+      return B500000;
+    case 576000:
+      return B576000;
+    case 921600:
+      return B921600;
+    case 1000000:
+      return B1000000;
+    case 1152000:
+      return B1152000;
+    case 1500000:
+      return B1500000;
+    case 2000000:
+      return B2000000;
+    case 2500000:
+      return B2500000;
+    case 3000000:
+      return B3000000;
+    case 3500000:
+      return B3500000;
+    case 4000000:
+      return B4000000;
+    default:
+      return B9600;
+  }
+}
+
 
 HerkulexClass Herkulex;

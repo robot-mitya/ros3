@@ -36,9 +36,14 @@
 
 
 #include <stdint.h>
+#include <termios.h>
+#include <fcntl.h>
+#include <unistd.h>
+
 
 #define DATA_SIZE        30             // buffer for input data
 #define DATA_MOVE        50             // max 10 servos <---- change this for more servos!
+#define DATA_MOVE_ALL    58
 #define TIME_OUT     5          //timeout serial communication
 
 // SERVO HERKULEX COMMAND - See Manual p40
@@ -53,6 +58,7 @@
 #define HREBOOT          0x09   //Reboot
 
 // HERKULEX LED - See Manual p29
+static int LED_OFF   =   0x00;
 static int LED_GREEN =   0x01;
 static int LED_BLUE  =   0x02;
 static int LED_CYAN  =   0x03;
@@ -76,11 +82,11 @@ static uint8_t BROADCAST_ID = 0xFE;
 
 class HerkulexClass {
 public:
-  void  begin(long baud, int rx, int tx);
+  bool begin(char const* portName, long baud);
   void  end();
 
   void  initialize();
-  uint8_t  stat(int servoID);
+  uint8_t  stat(int servoID, uint8_t *statusError, uint8_t *statusDetail);
   void  ACK(int valueACK);
   uint8_t  model();
   void  set_ID(int ID_Old, int ID_New);
@@ -111,19 +117,17 @@ public:
 
 // private area
 private:
-  void sendData(uint8_t* buffer, int lenght);
-  void readData(int size);
+  void sendData(uint8_t* buffer, int length);
+  bool readData(int size);
   void addData(int GoalLSB, int GoalMSB, int set, int servoID);
-  int  checksum1(uint8_t* data, int lenghtString);
+  int  checksum1(uint8_t* data, int lengthString);
   int  checksum2(int XOR);
-  void clearBuffer();
-  void printHexByte(uint8_t x);
   void delay(long millis);
 
   int pSize;
   int pID;
   int cmd;
-  int lenghtString;
+  int lengthString;
   int ck1;
   int ck2;
 
@@ -133,8 +137,13 @@ private:
   int playTime;
 
   uint8_t data[DATA_SIZE];
-  uint8_t dataEx[DATA_MOVE+8];
+  uint8_t dataEx[DATA_MOVE_ALL];
   uint8_t moveData[DATA_MOVE];
+
+  int fd;
+  bool setInterfaceAttribs(int fd, int speed, int parity);
+  bool setBlocking(int fd, int should_block);
+  int baudRateToBaudRateConst(int baudRate);
 };
 
 extern HerkulexClass Herkulex;
