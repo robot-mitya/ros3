@@ -50,6 +50,7 @@ class ArduinoNode
 public:
   ArduinoNode();
   void openSerial();
+  void closeSerial();
   void readSerial(void (*func)(ArduinoNode*, char*));
   void writeSerial(char const* message);
   void publishArduinoOutput(char *message);
@@ -60,6 +61,7 @@ private:
   std::string serialPortName;
   int serialBaudRate;
   int fd;
+  bool isPortOpened;
   char serialIncomingMessage[MAX_MESSAGE_SIZE];
   int serialIncomingMessageSize;
   char buffer[SERIAL_BUFFER_SIZE];
@@ -122,6 +124,7 @@ ArduinoNode::ArduinoNode()
   }
 
   fd = -1;
+  isPortOpened = false;
   serialIncomingMessageSize = 0;
   serialIncomingMessage[0] = '\0';
 }
@@ -203,17 +206,30 @@ bool ArduinoNode::setBlocking(int fd, int should_block)
 
 void ArduinoNode::openSerial()
 {
+  closeSerial();
   fd = open(serialPortName.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
   if (fd < 0)
   {
     ROS_ERROR("Error %d opening %s: %s", errno, serialPortName.c_str(), strerror(errno));
     return;
   }
+  isPortOpened = true;
+
   if (!setInterfaceAttribs(fd, baudRateToBaudRateConst(serialBaudRate), 0)) // set speed bps, 8n1 (no parity)
     return;
   if (!setBlocking(fd, 0)) // set no blocking
     return;
+
   ROS_INFO("Serial port is opened");
+}
+
+void ArduinoNode::closeSerial()
+{
+  if (isPortOpened)
+  {
+    close(fd);
+    isPortOpened = false;
+  }
 }
 
 int ArduinoNode::baudRateToBaudRateConst(int baudRate)
@@ -425,5 +441,6 @@ int main(int argc, char **argv)
     ros::spinOnce();
   }
 
+  arduinoNode.closeSerial();
   return 0;
 }

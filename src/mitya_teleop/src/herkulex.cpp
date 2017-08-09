@@ -37,12 +37,26 @@
 #include <string.h>
 #include <time.h>
 
+HerkulexClass::HerkulexClass()
+{
+  isPortOpened = false;
+}
+
+HerkulexClass::~HerkulexClass()
+{
+  end();
+}
+
 // Herkulex serial port initialization
 bool HerkulexClass::begin(char const* portName, long baud)
 {
+  end();
+
   fd = open(portName, O_RDWR | O_NOCTTY | O_SYNC);
   if (fd < 0)
     return false;
+
+  isPortOpened = true;
   if (!setInterfaceAttribs(fd, baudRateToBaudRateConst(baud), 0)) // set speed bps, 8n1 (no parity)
     return false;
   if (!setBlocking(fd, 0)) // set no blocking
@@ -54,6 +68,11 @@ bool HerkulexClass::begin(char const* portName, long baud)
 // Herkulex serial port initialization
 void HerkulexClass::end()
 {
+  if (isPortOpened)
+  {
+    close(fd);
+    isPortOpened = false;
+  }
 }
 
 // initialize servos

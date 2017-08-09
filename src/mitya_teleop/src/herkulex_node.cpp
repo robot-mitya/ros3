@@ -48,6 +48,8 @@ public:
 
   HerkulexNode();
 private:
+  HerkulexClass herkulex;
+
   // Topic RM_HERKULEX_INPUT_TOPIC_NAME ('herkulex_input') subscriber:
   ros::Subscriber herkulexInputSubscriber_;
   void herkulexInputCallback(const std_msgs::StringConstPtr& msg);
@@ -69,11 +71,48 @@ HerkulexNode::HerkulexNode()
 
   serialPortName = "/dev/ttyUSB0";
   serialBaudRate = 115200;
+
+  bool portOpened = herkulex.begin(serialPortName.c_str(), serialBaudRate);
+  if (portOpened)
+    ROS_INFO("Serial port \'%s\' is opened", serialPortName.c_str());
+  else
+    ROS_ERROR("Error %d opening %s: %s", errno, serialPortName.c_str(), strerror(errno));
+  herkulex.initialize();
+
+/*
+  uint8_t statusError;
+  uint8_t statusDetail;
+  uint8_t statusResult = herkulex.stat(1, &statusError, &statusDetail);
+  if (statusResult == 0)
+    ROS_INFO("stat: %d, %d", statusError, statusDetail);
+  else
+    ROS_INFO("stat: error %d", statusResult);
+
+  //usleep(1000000);
+
+  ROS_INFO("1");
+  ROS_INFO("2");
+  herkulex.moveOneAngle(1, -100, 1000, LED_BLUE);
+  ROS_INFO("3");
+
+  usleep(1000000);
+
+  herkulex.moveOneAngle(1, 0, 1000, LED_BLUE);
+  ROS_INFO("4");
+
+  //usleep(1000000);
+
+  ROS_INFO("5");
+  //usleep(1000000);
+  herkulex.setLed(1, LED_OFF);
+  herkulex.setLed(2, LED_OFF);
+  ROS_INFO("6");
+*/
 }
 
 void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
 {
-  ROS_INFO("Received in %s.%s: %s", RM_HERKULEX_NODE_NAME, RM_HERKULEX_INPUT_TOPIC_NAME, msg->data.c_str());
+  ROS_DEBUG("Received in %s.%s: %s", RM_HERKULEX_NODE_NAME, RM_HERKULEX_INPUT_TOPIC_NAME, msg->data.c_str());
 
   YAML::Node node = YAML::Load(msg->data);
 
@@ -93,11 +132,33 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
 
   if (commandName.compare("stat") == 0)
   {
-    //...
+    uint8_t statusError;
+    uint8_t statusDetail;
+    signed char result = herkulex.stat(address, &statusError, &statusDetail);
+    if (result == 0)
+    {
+      ROS_DEBUG("Sending HerkuleX response to %s: statusError=%d, statusDetail=%d", RM_HERKULEX_INPUT_TOPIC_NAME, statusError, statusDetail);
 
-    //  std_msgs::String stringMessage;
-    //  stringMessage.data = "Response to " + msg->data;
-    //  herkulexOutputPublisher_.publish(stringMessage);
+      YAML::Emitter out;
+      out << YAML::BeginMap;
+      out << YAML::Key << "n";
+      out << YAML::Value << "stat";
+      out << YAML::Key << "a";
+      out << YAML::Value << (int) address;
+      out << YAML::Key << "e";
+      out << YAML::Value << (int) statusError;
+      out << YAML::Key << "d";
+      out << YAML::Value << (int) statusDetail;
+      out << YAML::EndMap;
+
+      std_msgs::String stringMessage;
+      stringMessage.data = out.c_str();
+      herkulexOutputPublisher_.publish(stringMessage);
+    }
+    else
+    {
+      ROS_ERROR("Command %s returned wrong checksum (error code %d)", commandName.c_str(), result);
+    }
   }
   else
   {
@@ -115,59 +176,15 @@ void HerkulexNode::headPositionCallback(const mitya_teleop::HeadPosition::ConstP
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, RM_HERKULEX_NODE_NAME);
+
   HerkulexNode herkulexNode;
-
-  HerkulexClass herkulex;
-  bool portOpened = herkulex.begin(herkulexNode.serialPortName.c_str(), herkulexNode.serialBaudRate);
-  if (!portOpened)
-    ROS_ERROR("Error %d opening %s: %s", errno, herkulexNode.serialPortName.c_str(), strerror(errno));
-
-  uint8_t statusError;
-  uint8_t statusDetail;
-  uint8_t statusResult = herkulex.stat(1, &statusError, &statusDetail);
-  if (statusResult == 0)
-    ROS_INFO("stat: %d, %d", statusError, statusDetail);
-  else
-    ROS_INFO("stat: error %d", statusResult);
-
-  //usleep(1000000);
-
-  ROS_INFO("1");
-  herkulex.initialize();
-  ROS_INFO("2");
-  herkulex.moveOneAngle(1, -100, 1000, LED_BLUE);
-  ROS_INFO("3");
-
-  usleep(100000);
-
-  herkulex.moveOneAngle(1, 0, 1000, LED_BLUE);
-  ROS_INFO("4");
-
-  //usleep(1000000);
-
-  ROS_INFO("5");
-  //usleep(1000000);
-  herkulex.setLed(1, LED_OFF);
-  herkulex.setLed(2, LED_OFF);
-  ROS_INFO("6");
-
-/*
-  YAML::Node node = YAML::Load("{a: 1, data: 'Hello, world!'}");
-  ROS_INFO(node.IsMap() ? "Map" : "Not map");
-  ROS_INFO("size=%d", (int) (node.size()));
-  int a = node["a"] ? node["a"].as<int>() : -1;
-  std::string d = node["data"] ? node["data"].as<std::string>() : "nothing";
-  ROS_INFO("a=%d, data=%s", a, d.c_str());
-*/
 
   ros::Rate loop_rate(100); // 100 Hz
   while (ros::ok())
   {
-    //herkulexNode.readSerial(onReceiveSerialMessage);
     loop_rate.sleep();
     ros::spinOnce();
   }
 
-  herkulex.end();
   return 0;
 }

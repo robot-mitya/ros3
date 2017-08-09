@@ -82,6 +82,9 @@ static uint8_t BROADCAST_ID = 0xFE;
 
 class HerkulexClass {
 public:
+  HerkulexClass();
+  ~HerkulexClass();
+
   bool begin(char const* portName, long baud);
   void  end();
 
@@ -141,6 +144,7 @@ private:
   uint8_t moveData[DATA_MOVE];
 
   int fd;
+  bool isPortOpened;
   bool setInterfaceAttribs(int fd, int speed, int parity);
   bool setBlocking(int fd, int should_block);
   int baudRateToBaudRateConst(int baudRate);
