@@ -120,13 +120,13 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
 
   if (!node["a"])
   {
-    ROS_ERROR("Servo ID is not defined");
+    ROS_ERROR("HerkuleX command (%s) processor error: servo ID is not defined", commandName.c_str());
     return;
   }
   int address = node["a"].as<int>();
   if (address != 1 && address != 2 && address != 0xFE)
   {
-    ROS_ERROR("Unknown servo ID: %d", address);
+    ROS_ERROR("HerkuleX command (%s) processor error: unknown servo ID (%d)", commandName.c_str(), address);
     return;
   }
 
@@ -157,8 +157,23 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
     }
     else
     {
-      ROS_ERROR("Command %s returned wrong checksum (error code %d)", commandName.c_str(), result);
+      ROS_ERROR("HerkuleX command (%s) processor error: wrong checksum in response (error code %d)", commandName.c_str(), result);
     }
+  }
+  else if (commandName.compare("led") == 0)
+  {
+    if (!node["c"])
+    {
+      ROS_ERROR("HerkuleX command (%s) processor error: LED color is not defined", commandName.c_str());
+      return;
+    }
+    int color = node["c"].as<int>();
+    if (color < 0 || color > 7)
+    {
+      ROS_ERROR("HerkuleX command (%s) processor error: bad color value (%d)", commandName.c_str(), color);
+      return;
+    }
+    herkulex.setLed(address, color);
   }
   else
   {
