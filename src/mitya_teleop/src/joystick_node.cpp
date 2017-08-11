@@ -100,14 +100,15 @@ JoystickNode::JoystickNode()
 
   privateNodeHandle.param("head_axis_x", headAxisX_, 3);
   privateNodeHandle.param("head_axis_y", headAxisY_, 4);
+  privateNodeHandle.param("head_invert_horizontal", headInvertHorizontal, true);
+  privateNodeHandle.param("head_invert_vertical", headInvertVertical, true);
+
   privateNodeHandle.param("head_horizontal_min_degree", headHorizontalMinDegree, -120.0f);
   privateNodeHandle.param("head_horizontal_center_degree", headHorizontalCenterDegree, 0.0f);
   privateNodeHandle.param("head_horizontal_max_degree", headHorizontalMaxDegree, 120.0f);
-  privateNodeHandle.param("head_vertical_min_degree", headVerticalMinDegree, -10.0f);
-  privateNodeHandle.param("head_vertical_center_degree", headVerticalCenterDegree, 10.0f);
-  privateNodeHandle.param("head_vertical_max_degree", headVerticalMaxDegree, 120.0f);
-  privateNodeHandle.param("head_invert_horizontal", headInvertHorizontal, true);
-  privateNodeHandle.param("head_invert_vertical", headInvertVertical, true);
+  privateNodeHandle.param("head_vertical_min_degree", headVerticalMinDegree, -120.0f);
+  privateNodeHandle.param("head_vertical_center_degree", headVerticalCenterDegree, -15.0f);
+  privateNodeHandle.param("head_vertical_max_degree", headVerticalMaxDegree, 10.0f);
 
   headHorizontalAmplitude = MAX(
       abs(headHorizontalMinDegree - headHorizontalCenterDegree),

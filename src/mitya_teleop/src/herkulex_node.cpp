@@ -47,8 +47,17 @@ public:
   int serialBaudRate;
 
   HerkulexNode();
+
+  void logPosition();
 private:
   HerkulexClass herkulex;
+
+  float headHorizontalMinDegree;
+  float headHorizontalCenterDegree;
+  float headHorizontalMaxDegree;
+  float headVerticalMinDegree;
+  float headVerticalCenterDegree;
+  float headVerticalMaxDegree;
 
   // Topic RM_HERKULEX_INPUT_TOPIC_NAME ('herkulex_input') subscriber:
   ros::Subscriber herkulexInputSubscriber_;
@@ -79,35 +88,13 @@ HerkulexNode::HerkulexNode()
     ROS_ERROR("Error %d opening %s: %s", errno, serialPortName.c_str(), strerror(errno));
   herkulex.initialize();
 
-/*
-  uint8_t statusError;
-  uint8_t statusDetail;
-  uint8_t statusResult = herkulex.stat(1, &statusError, &statusDetail);
-  if (statusResult == 0)
-    ROS_INFO("stat: %d, %d", statusError, statusDetail);
-  else
-    ROS_INFO("stat: error %d", statusResult);
-
-  //usleep(1000000);
-
-  ROS_INFO("1");
-  ROS_INFO("2");
-  herkulex.moveOneAngle(1, -100, 1000, LED_BLUE);
-  ROS_INFO("3");
-
-  usleep(1000000);
-
-  herkulex.moveOneAngle(1, 0, 1000, LED_BLUE);
-  ROS_INFO("4");
-
-  //usleep(1000000);
-
-  ROS_INFO("5");
-  //usleep(1000000);
-  herkulex.setLed(1, LED_OFF);
-  herkulex.setLed(2, LED_OFF);
-  ROS_INFO("6");
-*/
+  ros::NodeHandle privateNodeHandle("~");
+  privateNodeHandle.param("head_horizontal_min_degree", headHorizontalMinDegree, -120.0f);
+  privateNodeHandle.param("head_horizontal_center_degree", headHorizontalCenterDegree, 0.0f);
+  privateNodeHandle.param("head_horizontal_max_degree", headHorizontalMaxDegree, 120.0f);
+  privateNodeHandle.param("head_vertical_min_degree", headVerticalMinDegree, -120.0f);
+  privateNodeHandle.param("head_vertical_center_degree", headVerticalCenterDegree, -15.0f);
+  privateNodeHandle.param("head_vertical_max_degree", headVerticalMaxDegree, 10.0f);
 }
 
 void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
@@ -185,8 +172,27 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
 void HerkulexNode::headPositionCallback(const mitya_teleop::HeadPosition::ConstPtr& msg)
 {
   ROS_INFO("Received in %s.%s: %f, %f", RM_HERKULEX_NODE_NAME, RM_HEAD_POSITION_TOPIC_NAME, msg->horizontal, msg->vertical);
+
+  float angleH = msg->horizontal;
+  if (angleH < headHorizontalMinDegree)
+    angleH = headHorizontalMinDegree;
+  else if (angleH > headHorizontalMaxDegree)
+    angleH = headHorizontalMaxDegree;
+
+  float angleV = msg->vertical;
+  if (angleV < headVerticalMinDegree)
+    angleV = headVerticalMinDegree;
+  else if (angleV > headVerticalMaxDegree)
+    angleV = headVerticalMaxDegree;
+
+  herkulex.moveOneAngle(1, angleH, 0, 0);
+  herkulex.moveOneAngle(2, angleV, 0, 0);
 }
 
+void HerkulexNode::logPosition()
+{
+  ROS_INFO("++++++ Angle=%.3f", herkulex.getAngle(1));
+}
 
 int main(int argc, char **argv)
 {
@@ -199,6 +205,8 @@ int main(int argc, char **argv)
   {
     loop_rate.sleep();
     ros::spinOnce();
+
+    herkulexNode.logPosition();
   }
 
   return 0;
