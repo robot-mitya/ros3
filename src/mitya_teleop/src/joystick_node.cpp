@@ -121,6 +121,11 @@ JoystickNode::JoystickNode()
     headHorizontalAmplitude *= -1.0f;
   if (headInvertVertical)
     headVerticalAmplitude *= -1.0f;
+
+  std::string testValue;
+  std::string defaultValue = "Default value";
+  privateNodeHandle.param("test", testValue, defaultValue);
+  ROS_INFO("test=%s", testValue.c_str());
 }
 
 void JoystickNode::joystickCallback(const sensor_msgs::Joy::ConstPtr& joy)

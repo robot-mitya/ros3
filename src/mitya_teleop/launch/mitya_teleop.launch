@@ -40,77 +40,82 @@ $ tail -f /proc/17821/fd/1
  -->
 
 <launch>
-  <!--  
-  	Mitya's Raspberry Pi
-  	/home/dmitrydzz/dev/mitya3/ros3/env.bash - is the file located on remote machine with the following content:
-  	
-  	#!/bin/bash
-	export ROS_IP=192.168.100.235
-	export ROS_MASTER_URI=http://192.168.100.3:11311/
-	source /home/dmitrydzz/dev/mitya3/ros3/devel/setup.bash
-	exec "$@"
-  	
-  -->
-  <machine 
-    name="mitya" 
-    address="192.168.100.235" 
-    env-loader="/home/dmitrydzz/dev/mitya3/ros3/env.bash"
-    user="dmitrydzz" />
+	<!--  
+		Mitya's Raspberry Pi
+		/home/dmitrydzz/dev/mitya3/ros3/env.bash - is the file located on remote machine with the following content:
+		
+		#!/bin/bash
+		export ROS_IP=192.168.100.235
+		export ROS_MASTER_URI=http://192.168.100.3:11311/
+		source /home/dmitrydzz/dev/mitya3/ros3/devel/setup.bash
+		exec "$@"
+	-->
+	<machine 
+	    name="mitya" 
+	    address="192.168.100.235" 
+	    env-loader="/home/dmitrydzz/dev/mitya3/ros3/env.bash"
+	    user="dmitrydzz" />
 
-  <!-- Arduino Node-->
-  <node pkg="mitya_teleop" type="arduino_node" name="arduino">
-  	<param name="serial_port" type="str" value="/dev/ttyACM0" />
-  	<param name="baud_rate" type="int" value="9600" />
-  </node>
-  <!--
-  <node machine="mitya" pkg="mitya_teleop" type="arduino_node" name="arduino"/>
-  -->
+	<!-- Arduino Node-->
+	<node pkg="mitya_teleop" type="arduino_node" name="arduino">
+		<param name="serial_port" type="str" value="/dev/ttyACM0" />
+		<param name="baud_rate" type="int" value="9600" />
+	</node>
+	<!--
+		<node machine="mitya" pkg="mitya_teleop" type="arduino_node" name="arduino"/>
+	-->
   
-  <!-- joy node -->
-  <node respawn="true" pkg="joy"
-        type="joy_node" name="mitya_joy" >
-    <param name="dev" type="string" value="/dev/input/js0" />
-    <param name="deadzone" value="0.12" />
-  </node>
+	<!-- joy node -->
+	<node respawn="true" pkg="joy"
+	      type="joy_node" name="mitya_joy" >
+		<param name="dev" type="string" value="/dev/input/js0" />
+		<param name="deadzone" value="0.12" />
+	</node>
 
-  <!-- group ns="head" -->
-  <group>
-    <param name="head_horizontal_min_degree" type="double" value="-120.0" />
-    <param name="head_horizontal_center_degree" type="double" value="0.0" />
-    <param name="head_horizontal_max_degree" type="double" value="120.0" />
-    <param name="head_vertical_min_degree" type="double" value="-120.0" />
-    <param name="head_vertical_center_degree" type="double" value="-15.0" />
-    <param name="head_vertical_max_degree" type="double" value="10.0" />
+	<!-- group ns="head" -->
+	<group>
+	    <param name="head_horizontal_min_degree" type="double" value="-120.0" />
+	    <param name="head_horizontal_center_degree" type="double" value="0.0" />
+	    <param name="head_horizontal_max_degree" type="double" value="120.0" />
+	    <param name="head_vertical_min_degree" type="double" value="-120.0" />
+	    <param name="head_vertical_center_degree" type="double" value="-15.0" />
+	    <param name="head_vertical_max_degree" type="double" value="10.0" />
+	
+		<param name="test" type="string" value="Value Common" />
 
-    <!-- Axes -->
-    <node pkg="mitya_teleop" type="joystick_node" name="joystick">
-      <param name="drive_axis_x" type="int" value="0" />
-      <param name="drive_axis_y" type="int" value="1" />
-      <param name="drive_max_value" type="int" value="100" />
-      <param name="drive_invert_x" type="bool" value="true" />
-      <param name="drive_invert_y" type="bool" value="false" />
-
-      <param name="head_axis_x" type="int" value="3" />
-      <param name="head_axis_y" type="int" value="4" />
-      <param name="head_invert_horizontal" type="bool" value="false" />
-      <param name="head_invert_vertical" type="bool" value="false" />
-
-    <param name="head_horizontal_min_degree" type="double" value="-120.0" />
-    <param name="head_horizontal_center_degree" type="double" value="0.0" />
-    <param name="head_horizontal_max_degree" type="double" value="120.0" />
-    <param name="head_vertical_min_degree" type="double" value="-120.0" />
-    <param name="head_vertical_center_degree" type="double" value="-15.0" />
-    <param name="head_vertical_max_degree" type="double" value="10.0" />
-    </node>
-  
-    <!-- Head node -->
-    <node pkg="mitya_teleop" type="herkulex_node" name="herkulex">
-    <param name="head_horizontal_min_degree" type="double" value="-120.0" />
-    <param name="head_horizontal_center_degree" type="double" value="0.0" />
-    <param name="head_horizontal_max_degree" type="double" value="120.0" />
-    <param name="head_vertical_min_degree" type="double" value="-120.0" />
-    <param name="head_vertical_center_degree" type="double" value="-15.0" />
-    <param name="head_vertical_max_degree" type="double" value="10.0" />
-    </node>
-  </group>
+		<!-- Axes -->
+		<node pkg="mitya_teleop" type="joystick_node" name="joystick">
+			<param name="drive_axis_x" type="int" value="0" />
+			<param name="drive_axis_y" type="int" value="1" />
+			<param name="drive_max_value" type="int" value="100" />
+			<param name="drive_invert_x" type="bool" value="true" />
+			<param name="drive_invert_y" type="bool" value="false" />
+			
+			<param name="head_axis_x" type="int" value="3" />
+			<param name="head_axis_y" type="int" value="4" />
+			<param name="head_invert_horizontal" type="bool" value="false" />
+			<param name="head_invert_vertical" type="bool" value="false" />
+			
+			<param name="head_horizontal_min_degree" type="double" value="-120.0" />
+			<param name="head_horizontal_center_degree" type="double" value="0.0" />
+			<param name="head_horizontal_max_degree" type="double" value="120.0" />
+			<param name="head_vertical_min_degree" type="double" value="-120.0" />
+			<param name="head_vertical_center_degree" type="double" value="-15.0" />
+			<param name="head_vertical_max_degree" type="double" value="10.0" />
+			
+			<param name="test" type="string" value="Value Joystick" />
+		</node>
+	  
+		<!-- Head node -->
+		<node pkg="mitya_teleop" type="herkulex_node" name="herkulex">
+			<param name="head_horizontal_min_degree" type="double" value="-120.0" />
+			<param name="head_horizontal_center_degree" type="double" value="0.0" />
+			<param name="head_horizontal_max_degree" type="double" value="120.0" />
+			<param name="head_vertical_min_degree" type="double" value="-120.0" />
+			<param name="head_vertical_center_degree" type="double" value="-15.0" />
+			<param name="head_vertical_max_degree" type="double" value="10.0" />
+			
+			<param name="test" type="string" value="Value HerkuleX" />
+		</node>
+	</group>
 </launch>

@@ -95,6 +95,11 @@ HerkulexNode::HerkulexNode()
   privateNodeHandle.param("head_vertical_min_degree", headVerticalMinDegree, -120.0f);
   privateNodeHandle.param("head_vertical_center_degree", headVerticalCenterDegree, -15.0f);
   privateNodeHandle.param("head_vertical_max_degree", headVerticalMaxDegree, 10.0f);
+
+  std::string testValue;
+  std::string defaultValue = "Default value";
+  privateNodeHandle.param("test", testValue, defaultValue);
+  ROS_INFO("test=%s", testValue.c_str());
 }
 
 void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
@@ -206,7 +211,7 @@ int main(int argc, char **argv)
     loop_rate.sleep();
     ros::spinOnce();
 
-    herkulexNode.logPosition();
+//    herkulexNode.logPosition();
   }
 
   return 0;
