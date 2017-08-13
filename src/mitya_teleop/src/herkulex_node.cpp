@@ -78,8 +78,9 @@ HerkulexNode::HerkulexNode()
   herkulexOutputPublisher_ = nodeHandle.advertise<std_msgs::String>(RM_HERKULEX_OUTPUT_TOPIC_NAME, 1000);
   headPositionSubscriber_ = nodeHandle.subscribe(RM_HEAD_POSITION_TOPIC_NAME, 1000, &HerkulexNode::headPositionCallback, this);
 
-  serialPortName = "/dev/ttyUSB0";
-  serialBaudRate = 115200;
+  ros::NodeHandle privateNodeHandle("~");
+  privateNodeHandle.param("serial_port", serialPortName, (std::string) "/dev/ttyUSB0");
+  privateNodeHandle.param("baud_rate", serialBaudRate, 115200);
 
   bool portOpened = herkulex.begin(serialPortName.c_str(), serialBaudRate);
   if (portOpened)
@@ -88,18 +89,13 @@ HerkulexNode::HerkulexNode()
     ROS_ERROR("Error %d opening %s: %s", errno, serialPortName.c_str(), strerror(errno));
   herkulex.initialize();
 
-  ros::NodeHandle privateNodeHandle("~");
-  privateNodeHandle.param("head_horizontal_min_degree", headHorizontalMinDegree, -120.0f);
-  privateNodeHandle.param("head_horizontal_center_degree", headHorizontalCenterDegree, 0.0f);
-  privateNodeHandle.param("head_horizontal_max_degree", headHorizontalMaxDegree, 120.0f);
-  privateNodeHandle.param("head_vertical_min_degree", headVerticalMinDegree, -120.0f);
-  privateNodeHandle.param("head_vertical_center_degree", headVerticalCenterDegree, -15.0f);
-  privateNodeHandle.param("head_vertical_max_degree", headVerticalMaxDegree, 10.0f);
-
-  std::string testValue;
-  std::string defaultValue = "Default value";
-  privateNodeHandle.param("test", testValue, defaultValue);
-  ROS_INFO("test=%s", testValue.c_str());
+  ros::NodeHandle commonNodeHandle("");
+  commonNodeHandle.param("head_horizontal_min_degree", headHorizontalMinDegree, -120.0f);
+  commonNodeHandle.param("head_horizontal_center_degree", headHorizontalCenterDegree, 0.0f);
+  commonNodeHandle.param("head_horizontal_max_degree", headHorizontalMaxDegree, 120.0f);
+  commonNodeHandle.param("head_vertical_min_degree", headVerticalMinDegree, -120.0f);
+  commonNodeHandle.param("head_vertical_center_degree", headVerticalCenterDegree, -15.0f);
+  commonNodeHandle.param("head_vertical_max_degree", headVerticalMaxDegree, 10.0f);
 }
 
 void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)

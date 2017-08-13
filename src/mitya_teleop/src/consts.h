@@ -37,8 +37,9 @@
 
 /**
  * ROS namespace for Robot Mitay's packages.
+ * Actually namespace is defined in launch file.
  */
-#define RM_NAMESPACE "mitya"
+#define RM_NAMESPACE ""
 
 /**
  * Topic name from package joy, joy_node.

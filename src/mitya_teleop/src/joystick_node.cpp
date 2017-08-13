@@ -103,12 +103,13 @@ JoystickNode::JoystickNode()
   privateNodeHandle.param("head_invert_horizontal", headInvertHorizontal, true);
   privateNodeHandle.param("head_invert_vertical", headInvertVertical, true);
 
-  privateNodeHandle.param("head_horizontal_min_degree", headHorizontalMinDegree, -120.0f);
-  privateNodeHandle.param("head_horizontal_center_degree", headHorizontalCenterDegree, 0.0f);
-  privateNodeHandle.param("head_horizontal_max_degree", headHorizontalMaxDegree, 120.0f);
-  privateNodeHandle.param("head_vertical_min_degree", headVerticalMinDegree, -120.0f);
-  privateNodeHandle.param("head_vertical_center_degree", headVerticalCenterDegree, -15.0f);
-  privateNodeHandle.param("head_vertical_max_degree", headVerticalMaxDegree, 10.0f);
+  ros::NodeHandle commonNodeHandle("");
+  commonNodeHandle.param("head_horizontal_min_degree", headHorizontalMinDegree, -120.0f);
+  commonNodeHandle.param("head_horizontal_center_degree", headHorizontalCenterDegree, 0.0f);
+  commonNodeHandle.param("head_horizontal_max_degree", headHorizontalMaxDegree, 120.0f);
+  commonNodeHandle.param("head_vertical_min_degree", headVerticalMinDegree, -120.0f);
+  commonNodeHandle.param("head_vertical_center_degree", headVerticalCenterDegree, -15.0f);
+  commonNodeHandle.param("head_vertical_max_degree", headVerticalMaxDegree, 10.0f);
 
   headHorizontalAmplitude = MAX(
       abs(headHorizontalMinDegree - headHorizontalCenterDegree),
@@ -122,10 +123,10 @@ JoystickNode::JoystickNode()
   if (headInvertVertical)
     headVerticalAmplitude *= -1.0f;
 
-  std::string testValue;
-  std::string defaultValue = "Default value";
-  privateNodeHandle.param("test", testValue, defaultValue);
-  ROS_INFO("test=%s", testValue.c_str());
+//  std::string testValue;
+//  std::string defaultValue = "Default value";
+//  privateNodeHandle.param("test", testValue, defaultValue);
+//  ROS_INFO("test=%s", testValue.c_str());
 }
 
 void JoystickNode::joystickCallback(const sensor_msgs::Joy::ConstPtr& joy)
