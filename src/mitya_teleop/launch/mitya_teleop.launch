@@ -65,7 +65,7 @@ $ tail -f /proc/17821/fd/1
 		</node>
 		-->
 		<node machine="mitya" pkg="mitya_teleop" type="arduino_node" name="arduino">
-			<param name="serial_port" type="str" value="/dev/ttyUSB0" />
+			<param name="serial_port" type="str" value="/dev/ttyUSB1" />
 			<param name="baud_rate" type="int" value="9600" />
 		</node>
 	  
@@ -101,7 +101,7 @@ $ tail -f /proc/17821/fd/1
 			</node>
 		  
 			<!-- Head node -->
-			<node pkg="mitya_teleop" type="herkulex_node" name="herkulex">
+			<node machine="mitya" pkg="mitya_teleop" type="herkulex_node" name="herkulex">
 				<param name="serial_port" type="string" value="/dev/ttyUSB0" />
 				<param name="baud_rate" type="int" value="115200" />
 			</node>
