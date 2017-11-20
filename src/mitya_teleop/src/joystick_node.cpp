@@ -49,6 +49,11 @@ private:
 
   int driveAxisX_;
   int driveAxisY_;
+  int driveBoost_;
+  bool driveBoostWasChanged_; // (To fix a bug in joy node - bad initial values in triggers' axes)
+  float driveBoostMinFactor_;
+  float driveBoostMaxFactor_;
+
   int headAxisX_;
   int headAxisY_;
 
@@ -74,7 +79,7 @@ private:
   ros::Publisher headPositionPublisher_;
   void joystickCallback(const sensor_msgs::Joy::ConstPtr& joy);
   int8_t getSpeedValue(float joystickValue);
-  void publishDriveMessage(float x, float y);
+  void publishDriveMessage(float x, float y, float boost);
   void publishHeadPositionMessage(float x, float y);
 };
 
@@ -90,16 +95,20 @@ JoystickNode::JoystickNode()
   headPositionPublisher_ = headPositionNodeHandle.advertise<mitya_teleop::HeadPosition>(RM_HEAD_POSITION_TOPIC_NAME, 1000);
 
   ros::NodeHandle privateNodeHandle("~");
-  privateNodeHandle.param("drive_axis_x", driveAxisX_, 0);
-  privateNodeHandle.param("drive_axis_y", driveAxisY_, 1);
+  privateNodeHandle.param("drive_axis_x", driveAxisX_, 3);
+  privateNodeHandle.param("drive_axis_y", driveAxisY_, 4);
+  privateNodeHandle.param("drive_boost", driveBoost_, 2);
+  privateNodeHandle.param("drive_boost_min_factor", driveBoostMinFactor_, 0.25f);
+  privateNodeHandle.param("drive_boost_max_factor", driveBoostMaxFactor_, 1.0f);
+  driveBoostWasChanged_ = false;
   privateNodeHandle.param("drive_max_value", driveMaxValue, 100);
   privateNodeHandle.param("drive_invert_x", driveInvertX, true);
   privateNodeHandle.param("drive_invert_y", driveInvertY, false);
   driveSignX = driveInvertX ? -1.0f : 1.0f;
   driveSignY = driveInvertY ? -1.0f : 1.0f;
 
-  privateNodeHandle.param("head_axis_x", headAxisX_, 3);
-  privateNodeHandle.param("head_axis_y", headAxisY_, 4);
+  privateNodeHandle.param("head_axis_x", headAxisX_, 0);
+  privateNodeHandle.param("head_axis_y", headAxisY_, 1);
   privateNodeHandle.param("head_invert_horizontal", headInvertHorizontal, true);
   privateNodeHandle.param("head_invert_vertical", headInvertVertical, true);
 
@@ -131,7 +140,20 @@ JoystickNode::JoystickNode()
 
 void JoystickNode::joystickCallback(const sensor_msgs::Joy::ConstPtr& joy)
 {
-  publishDriveMessage(joy->axes[driveAxisX_], joy->axes[driveAxisY_]);
+  float driveBoost =  joy->axes[driveBoost_];
+  // driveBoost values should be in interval [+1..-1].
+  // +1 - the trigger is released, -1 - the trigger is fully pressed.
+  // By some reason the initial value of the trigger is wrong - it is set to 0.
+  // To fix the bug in joy node I have to use a flag driveBoostWasChanged_:
+  if (!driveBoostWasChanged_)
+  {
+    if (driveBoost < -0.01 || driveBoost > 0.01)
+      driveBoostWasChanged_ = true;
+    else
+      driveBoost = 1.0;
+  }
+
+  publishDriveMessage(joy->axes[driveAxisX_], joy->axes[driveAxisY_], driveBoost);
   publishHeadPositionMessage(joy->axes[headAxisX_], joy->axes[headAxisY_]);
 }
 
@@ -143,7 +165,7 @@ int8_t JoystickNode::getSpeedValue(float joystickValue)
   return result;
 }
 
-void JoystickNode::publishDriveMessage(float x, float y)
+void JoystickNode::publishDriveMessage(float x, float y, float boost)
 {
   x *= driveSignX;
   y *= driveSignY;
@@ -182,7 +204,16 @@ void JoystickNode::publishDriveMessage(float x, float y)
   left *= radius;
   right *= radius;
 
-  //ROS_DEBUG("x=%+5.3f y=%+5.3f R=%+5.3f A=%+8.3f    Left=%+6.3f Right=%+6.3f", x, y, radius, alpha, left, right);
+  // Calculating boost_factor according to the <boost> argument:
+  // <boost> value is in interval [+1..-1].
+  // When <boost> is +1 - the trigger is released and boost_factor should be equal to driveBoostMinFactor_.
+  // When <boost> is -1 - the trigger is fully pressed and boost_factor should be equal to driveBoostMaxFactor_.
+  float boost_factor = driveBoostMinFactor_ + (driveBoostMaxFactor_ - driveBoostMinFactor_) * (boost - 1.0) / (-2.0);
+  left *= boost_factor;
+  right *= boost_factor;
+
+  //ROS_INFO("x=%+5.3f y=%+5.3f R=%+5.3f A=%+8.3f    Left=%+6.3f Right=%+6.3f", x, y, radius, alpha, left, right);
+  //ROS_INFO("Left=%+6.3f  Right=%+6.3f  Boost=%+6.3f  BoostFactor=%+6.3f", left, right, boost, boost_factor);
 
   mitya_teleop::Drive msg;
   msg.left = getSpeedValue(left);
