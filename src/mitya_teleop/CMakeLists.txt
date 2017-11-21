@@ -203,7 +203,7 @@ include_directories(
 
 include_directories(include ${catkin_INCLUDE_DIRS})
 
-add_executable(joystick_node src/joystick_node.cpp)
+add_executable(joystick_node src/joystick_node.cpp src/robo_com.cpp)
 target_link_libraries(joystick_node ${catkin_LIBRARIES})
 add_dependencies(joystick_node mitya_teleop_generate_messages_cpp)
 

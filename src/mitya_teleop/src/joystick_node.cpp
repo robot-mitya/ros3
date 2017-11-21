@@ -34,9 +34,11 @@
 #include "ros/ros.h"
 #include "mitya_teleop/Drive.h"
 #include "mitya_teleop/HeadPosition.h"
+#include "std_msgs/String.h"
 #include <sensor_msgs/Joy.h>
 #include <math.h>
 #include "consts.h"
+#include "robo_com.h"
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 
@@ -57,6 +59,9 @@ private:
   int headAxisX_;
   int headAxisY_;
 
+  int led1Button_;
+  int led2Button_;
+
   int driveMaxValue;
   bool driveInvertX;
   bool driveInvertY;
@@ -74,9 +79,13 @@ private:
   float headHorizontalAmplitude;
   float headVerticalAmplitude;
 
+  bool led1ButtonPrevState_;
+  bool led2ButtonPrevState_;
+
   ros::Subscriber joystickSubscriber_;
   ros::Publisher drivePublisher_;
   ros::Publisher headPositionPublisher_;
+  ros::Publisher arduinoInputPublisher_;
   void joystickCallback(const sensor_msgs::Joy::ConstPtr& joy);
   int8_t getSpeedValue(float joystickValue);
   void publishDriveMessage(float x, float y, float boost);
@@ -93,6 +102,9 @@ JoystickNode::JoystickNode()
 
   ros::NodeHandle headPositionNodeHandle(RM_NAMESPACE);
   headPositionPublisher_ = headPositionNodeHandle.advertise<mitya_teleop::HeadPosition>(RM_HEAD_POSITION_TOPIC_NAME, 1000);
+
+  ros::NodeHandle arduinoInputNodeHandle(RM_NAMESPACE);
+  arduinoInputPublisher_ = arduinoInputNodeHandle.advertise<std_msgs::String>(RM_ARDUINO_INPUT_TOPIC_NAME, 1000);
 
   ros::NodeHandle privateNodeHandle("~");
   privateNodeHandle.param("drive_axis_x", driveAxisX_, 3);
@@ -111,6 +123,9 @@ JoystickNode::JoystickNode()
   privateNodeHandle.param("head_axis_y", headAxisY_, 1);
   privateNodeHandle.param("head_invert_horizontal", headInvertHorizontal, true);
   privateNodeHandle.param("head_invert_vertical", headInvertVertical, true);
+
+  privateNodeHandle.param("led1_button", led1Button_, 3);
+  privateNodeHandle.param("led2_button", led2Button_, 1);
 
   ros::NodeHandle commonNodeHandle("");
   commonNodeHandle.param("head_horizontal_min_degree", headHorizontalMinDegree, -120.0f);
@@ -131,6 +146,9 @@ JoystickNode::JoystickNode()
     headHorizontalAmplitude *= -1.0f;
   if (headInvertVertical)
     headVerticalAmplitude *= -1.0f;
+
+  led1ButtonPrevState_ = false;
+  led2ButtonPrevState_ = false;
 
 //  std::string testValue;
 //  std::string defaultValue = "Default value";
@@ -155,6 +173,24 @@ void JoystickNode::joystickCallback(const sensor_msgs::Joy::ConstPtr& joy)
 
   publishDriveMessage(joy->axes[driveAxisX_], joy->axes[driveAxisY_], driveBoost);
   publishHeadPositionMessage(joy->axes[headAxisX_], joy->axes[headAxisY_]);
+
+  bool led1ButtonState = joy->buttons[led1Button_] == 1;
+  if (led1ButtonState && !led1ButtonPrevState_)
+  {
+    std_msgs::String msg;
+    msg.data = RoboCom::getSwitchLed1Command();
+    arduinoInputPublisher_.publish(msg);
+  }
+  led1ButtonPrevState_ = led1ButtonState;
+
+  bool led2ButtonState = joy->buttons[led2Button_] == 1;
+  if (led2ButtonState && !led2ButtonPrevState_)
+  {
+    std_msgs::String msg;
+    msg.data = RoboCom::getSwitchLed2Command();
+    arduinoInputPublisher_.publish(msg);
+  }
+  led2ButtonPrevState_ = led2ButtonState;
 }
 
 int8_t JoystickNode::getSpeedValue(float joystickValue)
