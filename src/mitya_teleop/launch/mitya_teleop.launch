@@ -104,6 +104,7 @@ $ tail -f /proc/17821/fd/1
 				
 				<param name="led1_button" type="int" value="3" />
 				<param name="led2_button" type="int" value="1" />
+				<param name="tail_button" type="int" value="2" />
 			</node>
 		  
 			<!-- Head node -->

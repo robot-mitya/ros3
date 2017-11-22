@@ -61,6 +61,7 @@ private:
 
   int led1Button_;
   int led2Button_;
+  int tailButton_;
 
   int driveMaxValue;
   bool driveInvertX;
@@ -81,6 +82,7 @@ private:
 
   bool led1ButtonPrevState_;
   bool led2ButtonPrevState_;
+  bool tailButtonPrevState_;
 
   ros::Subscriber joystickSubscriber_;
   ros::Publisher drivePublisher_;
@@ -90,6 +92,9 @@ private:
   int8_t getSpeedValue(float joystickValue);
   void publishDriveMessage(float x, float y, float boost);
   void publishHeadPositionMessage(float x, float y);
+  void publishSwitchLed1Message();
+  void publishSwitchLed2Message();
+  void publishSwingTailMessage();
 };
 
 JoystickNode::JoystickNode()
@@ -126,6 +131,7 @@ JoystickNode::JoystickNode()
 
   privateNodeHandle.param("led1_button", led1Button_, 3);
   privateNodeHandle.param("led2_button", led2Button_, 1);
+  privateNodeHandle.param("tail_button", tailButton_, 2);
 
   ros::NodeHandle commonNodeHandle("");
   commonNodeHandle.param("head_horizontal_min_degree", headHorizontalMinDegree, -120.0f);
@@ -149,6 +155,7 @@ JoystickNode::JoystickNode()
 
   led1ButtonPrevState_ = false;
   led2ButtonPrevState_ = false;
+  tailButtonPrevState_ = false;
 
 //  std::string testValue;
 //  std::string defaultValue = "Default value";
@@ -176,21 +183,18 @@ void JoystickNode::joystickCallback(const sensor_msgs::Joy::ConstPtr& joy)
 
   bool led1ButtonState = joy->buttons[led1Button_] == 1;
   if (led1ButtonState && !led1ButtonPrevState_)
-  {
-    std_msgs::String msg;
-    msg.data = RoboCom::getSwitchLed1Command();
-    arduinoInputPublisher_.publish(msg);
-  }
+    publishSwitchLed1Message();
   led1ButtonPrevState_ = led1ButtonState;
 
   bool led2ButtonState = joy->buttons[led2Button_] == 1;
   if (led2ButtonState && !led2ButtonPrevState_)
-  {
-    std_msgs::String msg;
-    msg.data = RoboCom::getSwitchLed2Command();
-    arduinoInputPublisher_.publish(msg);
-  }
+    publishSwitchLed2Message();
   led2ButtonPrevState_ = led2ButtonState;
+
+  bool tailButtonState = joy->buttons[tailButton_] == 1;
+  if (tailButtonState && !tailButtonPrevState_)
+    publishSwingTailMessage();
+  tailButtonPrevState_ = tailButtonState;
 }
 
 int8_t JoystickNode::getSpeedValue(float joystickValue)
@@ -274,6 +278,27 @@ void JoystickNode::publishHeadPositionMessage(float x, float y)
   msg.vertical = y;
 
   headPositionPublisher_.publish(msg);
+}
+
+void JoystickNode::publishSwitchLed1Message()
+{
+  std_msgs::String msg;
+  msg.data = RoboCom::getSwitchLed1Command();
+  arduinoInputPublisher_.publish(msg);
+}
+
+void JoystickNode::publishSwitchLed2Message()
+{
+  std_msgs::String msg;
+  msg.data = RoboCom::getSwitchLed2Command();
+  arduinoInputPublisher_.publish(msg);
+}
+
+void JoystickNode::publishSwingTailMessage()
+{
+  std_msgs::String msg;
+  msg.data = RoboCom::getSwingTailCommand();
+  arduinoInputPublisher_.publish(msg);
 }
 
 int main(int argc, char **argv)
