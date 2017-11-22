@@ -119,7 +119,7 @@ ArduinoNode::ArduinoNode()
   }
   else
   {
-    serialBaudRate = 9600;
+    serialBaudRate = 115200;
     ROS_ERROR("Failed to get parameter '%s'. The default value is %d.", baudRateParamName.c_str(), serialBaudRate);
   }
 
