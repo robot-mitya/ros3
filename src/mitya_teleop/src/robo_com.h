@@ -75,10 +75,16 @@ public:
   static char const* getStatusText(int status);
   static char* getDriveLeftCommand(signed char speed);
   static char* getDriveRightCommand(signed char speed);
+  static char* getSwitchLed1Command();
+  static char* getSwitchLed2Command();
+  static char* getSwingTailCommand();
   static void parseMessage(const char* message, Command &command, int &param1, int &param2, int &param3);
 private:
   static char driveLeftMessage_[MAX_MESSAGE_SIZE];
   static char driveRightMessage_[MAX_MESSAGE_SIZE];
+  static char led1Message_[MAX_MESSAGE_SIZE];
+  static char led2Message_[MAX_MESSAGE_SIZE];
+  static char tailMessage_[MAX_MESSAGE_SIZE];
   static Command getCommand(char *text);
 };
 

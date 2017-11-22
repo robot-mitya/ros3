@@ -40,6 +40,9 @@
 
 char RoboCom::driveLeftMessage_[MAX_MESSAGE_SIZE];
 char RoboCom::driveRightMessage_[MAX_MESSAGE_SIZE];
+char RoboCom::led1Message_[MAX_MESSAGE_SIZE];
+char RoboCom::led2Message_[MAX_MESSAGE_SIZE];
+char RoboCom::tailMessage_[MAX_MESSAGE_SIZE];
 
 static char charArray[2] = "\0";
 static char commandText[11] = "";
@@ -76,6 +79,24 @@ char* RoboCom::getDriveRightCommand(signed char speed)
 {
   sprintf(RoboCom::driveRightMessage_, "MR %d;", speed);
   return RoboCom::driveRightMessage_;
+}
+
+char* RoboCom::getSwitchLed1Command()
+{
+  sprintf(RoboCom::led1Message_, "L1 %d;", -1);
+  return RoboCom::led1Message_;
+}
+
+char* RoboCom::getSwitchLed2Command()
+{
+  sprintf(RoboCom::led2Message_, "L2 %d;", -1);
+  return RoboCom::led2Message_;
+}
+
+char* RoboCom::getSwingTailCommand()
+{
+  sprintf(RoboCom::tailMessage_, "TLSA %d %d %d;", 300, 30, 10);
+  return RoboCom::tailMessage_;
 }
 
 void RoboCom::parseMessage(const char* message, Command &command, int &param1, int &param2, int &param3)

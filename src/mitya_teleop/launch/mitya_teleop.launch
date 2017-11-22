@@ -65,7 +65,7 @@ $ tail -f /proc/17821/fd/1
 		</node>
 		-->
 		<node machine="mitya" pkg="mitya_teleop" type="arduino_node" name="arduino">
-			<param name="serial_port" type="str" value="/dev/ttyUSB0" />
+			<param name="serial_port" type="str" value="/dev/ttyUSB1" />
 			<param name="baud_rate" type="int" value="9600" />
 		</node>
 	  
@@ -88,20 +88,27 @@ $ tail -f /proc/17821/fd/1
 	
 			<!-- Axes -->
 			<node pkg="mitya_teleop" type="joystick_node" name="joystick">
-				<param name="drive_axis_x" type="int" value="0" />
-				<param name="drive_axis_y" type="int" value="1" />
+				<param name="drive_axis_x" type="int" value="3" />
+				<param name="drive_axis_y" type="int" value="4" />
+				<param name="drive_boost" type="int" value="2" />
+				<param name="drive_boost_min_factor" type="double" value="0.25" />
+				<param name="drive_boost_max_factor" type="double" value="1.0" />
 				<param name="drive_max_value" type="int" value="100" />
 				<param name="drive_invert_x" type="bool" value="true" />
 				<param name="drive_invert_y" type="bool" value="false" />
 				
-				<param name="head_axis_x" type="int" value="3" />
-				<param name="head_axis_y" type="int" value="4" />
+				<param name="head_axis_x" type="int" value="0" />
+				<param name="head_axis_y" type="int" value="1" />
 				<param name="head_invert_horizontal" type="bool" value="false" />
 				<param name="head_invert_vertical" type="bool" value="false" />
+				
+				<param name="led1_button" type="int" value="3" />
+				<param name="led2_button" type="int" value="1" />
+				<param name="tail_button" type="int" value="2" />
 			</node>
 		  
 			<!-- Head node -->
-			<node pkg="mitya_teleop" type="herkulex_node" name="herkulex">
+			<node machine="mitya" pkg="mitya_teleop" type="herkulex_node" name="herkulex">
 				<param name="serial_port" type="string" value="/dev/ttyUSB0" />
 				<param name="baud_rate" type="int" value="115200" />
 			</node>

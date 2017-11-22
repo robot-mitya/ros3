@@ -34,9 +34,11 @@
 #include "ros/ros.h"
 #include "mitya_teleop/Drive.h"
 #include "mitya_teleop/HeadPosition.h"
+#include "std_msgs/String.h"
 #include <sensor_msgs/Joy.h>
 #include <math.h>
 #include "consts.h"
+#include "robo_com.h"
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 
@@ -49,8 +51,17 @@ private:
 
   int driveAxisX_;
   int driveAxisY_;
+  int driveBoost_;
+  bool driveBoostWasChanged_; // (To fix a bug in joy node - bad initial values in triggers' axes)
+  float driveBoostMinFactor_;
+  float driveBoostMaxFactor_;
+
   int headAxisX_;
   int headAxisY_;
+
+  int led1Button_;
+  int led2Button_;
+  int tailButton_;
 
   int driveMaxValue;
   bool driveInvertX;
@@ -69,13 +80,21 @@ private:
   float headHorizontalAmplitude;
   float headVerticalAmplitude;
 
+  bool led1ButtonPrevState_;
+  bool led2ButtonPrevState_;
+  bool tailButtonPrevState_;
+
   ros::Subscriber joystickSubscriber_;
   ros::Publisher drivePublisher_;
   ros::Publisher headPositionPublisher_;
+  ros::Publisher arduinoInputPublisher_;
   void joystickCallback(const sensor_msgs::Joy::ConstPtr& joy);
   int8_t getSpeedValue(float joystickValue);
-  void publishDriveMessage(float x, float y);
+  void publishDriveMessage(float x, float y, float boost);
   void publishHeadPositionMessage(float x, float y);
+  void publishSwitchLed1Message();
+  void publishSwitchLed2Message();
+  void publishSwingTailMessage();
 };
 
 JoystickNode::JoystickNode()
@@ -89,19 +108,30 @@ JoystickNode::JoystickNode()
   ros::NodeHandle headPositionNodeHandle(RM_NAMESPACE);
   headPositionPublisher_ = headPositionNodeHandle.advertise<mitya_teleop::HeadPosition>(RM_HEAD_POSITION_TOPIC_NAME, 1000);
 
+  ros::NodeHandle arduinoInputNodeHandle(RM_NAMESPACE);
+  arduinoInputPublisher_ = arduinoInputNodeHandle.advertise<std_msgs::String>(RM_ARDUINO_INPUT_TOPIC_NAME, 1000);
+
   ros::NodeHandle privateNodeHandle("~");
-  privateNodeHandle.param("drive_axis_x", driveAxisX_, 0);
-  privateNodeHandle.param("drive_axis_y", driveAxisY_, 1);
+  privateNodeHandle.param("drive_axis_x", driveAxisX_, 3);
+  privateNodeHandle.param("drive_axis_y", driveAxisY_, 4);
+  privateNodeHandle.param("drive_boost", driveBoost_, 2);
+  privateNodeHandle.param("drive_boost_min_factor", driveBoostMinFactor_, 0.25f);
+  privateNodeHandle.param("drive_boost_max_factor", driveBoostMaxFactor_, 1.0f);
+  driveBoostWasChanged_ = false;
   privateNodeHandle.param("drive_max_value", driveMaxValue, 100);
   privateNodeHandle.param("drive_invert_x", driveInvertX, true);
   privateNodeHandle.param("drive_invert_y", driveInvertY, false);
   driveSignX = driveInvertX ? -1.0f : 1.0f;
   driveSignY = driveInvertY ? -1.0f : 1.0f;
 
-  privateNodeHandle.param("head_axis_x", headAxisX_, 3);
-  privateNodeHandle.param("head_axis_y", headAxisY_, 4);
+  privateNodeHandle.param("head_axis_x", headAxisX_, 0);
+  privateNodeHandle.param("head_axis_y", headAxisY_, 1);
   privateNodeHandle.param("head_invert_horizontal", headInvertHorizontal, true);
   privateNodeHandle.param("head_invert_vertical", headInvertVertical, true);
+
+  privateNodeHandle.param("led1_button", led1Button_, 3);
+  privateNodeHandle.param("led2_button", led2Button_, 1);
+  privateNodeHandle.param("tail_button", tailButton_, 2);
 
   ros::NodeHandle commonNodeHandle("");
   commonNodeHandle.param("head_horizontal_min_degree", headHorizontalMinDegree, -120.0f);
@@ -123,6 +153,10 @@ JoystickNode::JoystickNode()
   if (headInvertVertical)
     headVerticalAmplitude *= -1.0f;
 
+  led1ButtonPrevState_ = false;
+  led2ButtonPrevState_ = false;
+  tailButtonPrevState_ = false;
+
 //  std::string testValue;
 //  std::string defaultValue = "Default value";
 //  privateNodeHandle.param("test", testValue, defaultValue);
@@ -131,8 +165,36 @@ JoystickNode::JoystickNode()
 
 void JoystickNode::joystickCallback(const sensor_msgs::Joy::ConstPtr& joy)
 {
-  publishDriveMessage(joy->axes[driveAxisX_], joy->axes[driveAxisY_]);
+  float driveBoost =  joy->axes[driveBoost_];
+  // driveBoost values should be in interval [+1..-1].
+  // +1 - the trigger is released, -1 - the trigger is fully pressed.
+  // By some reason the initial value of the trigger is wrong - it is set to 0.
+  // To fix the bug in joy node I have to use a flag driveBoostWasChanged_:
+  if (!driveBoostWasChanged_)
+  {
+    if (driveBoost < -0.01 || driveBoost > 0.01)
+      driveBoostWasChanged_ = true;
+    else
+      driveBoost = 1.0;
+  }
+
+  publishDriveMessage(joy->axes[driveAxisX_], joy->axes[driveAxisY_], driveBoost);
   publishHeadPositionMessage(joy->axes[headAxisX_], joy->axes[headAxisY_]);
+
+  bool led1ButtonState = joy->buttons[led1Button_] == 1;
+  if (led1ButtonState && !led1ButtonPrevState_)
+    publishSwitchLed1Message();
+  led1ButtonPrevState_ = led1ButtonState;
+
+  bool led2ButtonState = joy->buttons[led2Button_] == 1;
+  if (led2ButtonState && !led2ButtonPrevState_)
+    publishSwitchLed2Message();
+  led2ButtonPrevState_ = led2ButtonState;
+
+  bool tailButtonState = joy->buttons[tailButton_] == 1;
+  if (tailButtonState && !tailButtonPrevState_)
+    publishSwingTailMessage();
+  tailButtonPrevState_ = tailButtonState;
 }
 
 int8_t JoystickNode::getSpeedValue(float joystickValue)
@@ -143,7 +205,7 @@ int8_t JoystickNode::getSpeedValue(float joystickValue)
   return result;
 }
 
-void JoystickNode::publishDriveMessage(float x, float y)
+void JoystickNode::publishDriveMessage(float x, float y, float boost)
 {
   x *= driveSignX;
   y *= driveSignY;
@@ -182,7 +244,16 @@ void JoystickNode::publishDriveMessage(float x, float y)
   left *= radius;
   right *= radius;
 
-  //ROS_DEBUG("x=%+5.3f y=%+5.3f R=%+5.3f A=%+8.3f    Left=%+6.3f Right=%+6.3f", x, y, radius, alpha, left, right);
+  // Calculating boost_factor according to the <boost> argument:
+  // <boost> value is in interval [+1..-1].
+  // When <boost> is +1 - the trigger is released and boost_factor should be equal to driveBoostMinFactor_.
+  // When <boost> is -1 - the trigger is fully pressed and boost_factor should be equal to driveBoostMaxFactor_.
+  float boost_factor = driveBoostMinFactor_ + (driveBoostMaxFactor_ - driveBoostMinFactor_) * (boost - 1.0) / (-2.0);
+  left *= boost_factor;
+  right *= boost_factor;
+
+  //ROS_INFO("x=%+5.3f y=%+5.3f R=%+5.3f A=%+8.3f    Left=%+6.3f Right=%+6.3f", x, y, radius, alpha, left, right);
+  //ROS_INFO("Left=%+6.3f  Right=%+6.3f  Boost=%+6.3f  BoostFactor=%+6.3f", left, right, boost, boost_factor);
 
   mitya_teleop::Drive msg;
   msg.left = getSpeedValue(left);
@@ -207,6 +278,27 @@ void JoystickNode::publishHeadPositionMessage(float x, float y)
   msg.vertical = y;
 
   headPositionPublisher_.publish(msg);
+}
+
+void JoystickNode::publishSwitchLed1Message()
+{
+  std_msgs::String msg;
+  msg.data = RoboCom::getSwitchLed1Command();
+  arduinoInputPublisher_.publish(msg);
+}
+
+void JoystickNode::publishSwitchLed2Message()
+{
+  std_msgs::String msg;
+  msg.data = RoboCom::getSwitchLed2Command();
+  arduinoInputPublisher_.publish(msg);
+}
+
+void JoystickNode::publishSwingTailMessage()
+{
+  std_msgs::String msg;
+  msg.data = RoboCom::getSwingTailCommand();
+  arduinoInputPublisher_.publish(msg);
 }
 
 int main(int argc, char **argv)
