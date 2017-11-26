@@ -1,5 +1,5 @@
 /*
- * consts.h
+ * button_event.h
  * Copyright (c) 2017, Robot Mitya.
  * All rights reserved.
  * 
@@ -27,42 +27,26 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- *  Created on: Apr 24, 2017
+ *  Created on: Nov 26, 2017
  *      Author: Dmitry Dzakhov
  */
 
-#ifndef MITYA_TELEOP_SRC_CONSTS_H_
-#define MITYA_TELEOP_SRC_CONSTS_H_
+#ifndef MITYA_TELEOP_SRC_BUTTON_EVENT_H_
+#define MITYA_TELEOP_SRC_BUTTON_EVENT_H_
 
+class JoystickNode;
 
-/**
- * ROS namespace for Robot Mitay's packages.
- * Actually namespace is defined in launch file.
- */
-#define RM_NAMESPACE ""
+typedef void (JoystickNode::* ButtonEventHandler)(bool state);
 
-/**
- * Topic name from package joy, joy_node.
- * Run "sudo apt-get install ros-kinetic-joy" to install package.
- */
-#define RM_JOY_TOPIC_NAME "joy"
+class ButtonEvent
+{
+public:
+  ButtonEvent(JoystickNode* joystickNode, ButtonEventHandler handler);
+  void update(bool currentState);
+private:
+  JoystickNode* joystickNode_;
+  bool previousState_;
+  ButtonEventHandler handler_;
+};
 
-#define RM_ARDUINO_NODE_NAME "arduino_node"
-#define RM_ARDUINO_OUTPUT_TOPIC_NAME "arduino_output"
-#define RM_ARDUINO_INPUT_TOPIC_NAME "arduino_input"
-
-#define RM_JOYSTICK_NODE_NAME "joystick_node"
-#define RM_DRIVE_TOPIC_NAME "drive"
-
-#define RM_LED_TOPIC_NAME "led"
-#define RM_DISTANCE_TOPIC_NAME "distance"
-#define RM_SPEED_TOPIC_NAME "speed"
-
-#define RM_HERKULEX_NODE_NAME "herkulex_node"
-#define RM_HEAD_POSITION_TOPIC_NAME "head_position"
-#define RM_HEAD_MOVE_TOPIC_NAME "head_move"
-#define RM_HERKULEX_OUTPUT_TOPIC_NAME "herkulex_output"
-#define RM_HERKULEX_INPUT_TOPIC_NAME "herkulex_input"
-
-
-#endif /* MITYA_TELEOP_SRC_CONSTS_H_ */
+#endif /* MITYA_TELEOP_SRC_BUTTON_EVENT_H_ */

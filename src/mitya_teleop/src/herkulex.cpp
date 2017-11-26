@@ -40,6 +40,16 @@
 HerkulexClass::HerkulexClass()
 {
   isPortOpened = false;
+  conta = 0;
+  ck1 = 0;
+  ck2 = 0;
+  cmd = 0;
+  fd = 0;
+  lengthString = 0;
+  pID = 0;
+  playTime = 0;
+  pSize = 0;
+  XOR = 0;
 }
 
 HerkulexClass::~HerkulexClass()

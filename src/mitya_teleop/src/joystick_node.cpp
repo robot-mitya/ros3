@@ -34,11 +34,13 @@
 #include "ros/ros.h"
 #include "mitya_teleop/Drive.h"
 #include "mitya_teleop/HeadPosition.h"
+#include "mitya_teleop/HeadMove.h"
 #include "std_msgs/String.h"
 #include <sensor_msgs/Joy.h>
 #include <math.h>
 #include "consts.h"
 #include "robo_com.h"
+#include "button_event.h"
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 
@@ -84,9 +86,16 @@ private:
   bool led2ButtonPrevState_;
   bool tailButtonPrevState_;
 
+  ButtonEvent *headJoystickButton_;
+  void headJoystickButtonHandler(bool state);
+
+//  ButtonEvent *headMoveLeftButton_;
+//  void headMoveLeftButtonHandler(bool state);
+
   ros::Subscriber joystickSubscriber_;
   ros::Publisher drivePublisher_;
   ros::Publisher headPositionPublisher_;
+  ros::Publisher headMovePublisher_;
   ros::Publisher arduinoInputPublisher_;
   void joystickCallback(const sensor_msgs::Joy::ConstPtr& joy);
   int8_t getSpeedValue(float joystickValue);
@@ -107,6 +116,9 @@ JoystickNode::JoystickNode()
 
   ros::NodeHandle headPositionNodeHandle(RM_NAMESPACE);
   headPositionPublisher_ = headPositionNodeHandle.advertise<mitya_teleop::HeadPosition>(RM_HEAD_POSITION_TOPIC_NAME, 1000);
+
+  ros::NodeHandle headMoveNodeHandle(RM_NAMESPACE);
+  headMovePublisher_ = headMoveNodeHandle.advertise<mitya_teleop::HeadMove>(RM_HEAD_MOVE_TOPIC_NAME, 1000);
 
   ros::NodeHandle arduinoInputNodeHandle(RM_NAMESPACE);
   arduinoInputPublisher_ = arduinoInputNodeHandle.advertise<std_msgs::String>(RM_ARDUINO_INPUT_TOPIC_NAME, 1000);
@@ -157,10 +169,7 @@ JoystickNode::JoystickNode()
   led2ButtonPrevState_ = false;
   tailButtonPrevState_ = false;
 
-//  std::string testValue;
-//  std::string defaultValue = "Default value";
-//  privateNodeHandle.param("test", testValue, defaultValue);
-//  ROS_INFO("test=%s", testValue.c_str());
+  headJoystickButton_ = new ButtonEvent(this, &JoystickNode::headJoystickButtonHandler);
 }
 
 void JoystickNode::joystickCallback(const sensor_msgs::Joy::ConstPtr& joy)
@@ -195,6 +204,8 @@ void JoystickNode::joystickCallback(const sensor_msgs::Joy::ConstPtr& joy)
   if (tailButtonState && !tailButtonPrevState_)
     publishSwingTailMessage();
   tailButtonPrevState_ = tailButtonState;
+
+  headJoystickButton_->update(joy->buttons[9] == 1);
 }
 
 int8_t JoystickNode::getSpeedValue(float joystickValue)
@@ -299,6 +310,11 @@ void JoystickNode::publishSwingTailMessage()
   std_msgs::String msg;
   msg.data = RoboCom::getSwingTailCommand();
   arduinoInputPublisher_.publish(msg);
+}
+
+void JoystickNode::headJoystickButtonHandler(bool state)
+{
+  ROS_INFO("headJoystickButtonHandler: %s", state ? "PRESSED" : "RELEASED");
 }
 
 int main(int argc, char **argv)
