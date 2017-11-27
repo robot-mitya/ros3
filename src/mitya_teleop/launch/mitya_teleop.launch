@@ -97,8 +97,11 @@ $ tail -f /proc/17821/fd/1
 				<param name="drive_invert_x" type="bool" value="true" />
 				<param name="drive_invert_y" type="bool" value="false" />
 				
+				<param name="head_mode_button" type="int" value="9" />
 				<param name="head_axis_x" type="int" value="0" />
 				<param name="head_axis_y" type="int" value="1" />
+				<param name="head_move_horizontal_axis" type="int" value="6" />
+				<param name="head_move_vertical_axis" type="int" value="7" />
 				<param name="head_invert_horizontal" type="bool" value="false" />
 				<param name="head_invert_vertical" type="bool" value="false" />
 				

@@ -34,11 +34,17 @@
 #include "ros/ros.h"
 #include "consts.h"
 #include "mitya_teleop/HeadPosition.h"
+#include "mitya_teleop/HeadMove.h"
 #include "diagnostic_msgs/KeyValue.h"
 #include "yaml-cpp/yaml.h"
 #include "std_msgs/String.h"
 #include "herkulex.h"
 #include <unistd.h>
+
+#define SERVO_H 1
+#define SERVO_V 2
+#define CORRECTION_DURATION 0
+#define SPEED 85
 
 class HerkulexNode
 {
@@ -69,6 +75,18 @@ private:
   // Topic RM_HEAD_POSITION_TOPIC_NAME ('head_position') subscriber:
   ros::Subscriber headPositionSubscriber_;
   void headPositionCallback(const mitya_teleop::HeadPosition::ConstPtr& msg);
+
+  // Topic RM_HEAD_MOVE_TOPIC_NAME ('head_move') subscriber:
+  ros::Subscriber headMoveSubscriber_;
+  void headMoveCallback(const mitya_teleop::HeadMove::ConstPtr& msg);
+
+  struct HeadMoveValues
+  {
+    int horizontal;
+    int vertical;
+  };
+  HeadMoveValues previousHeadMoveValues_;
+  int calculateDurationInMillis(float deltaAngle, float degreesPerSecond);
 };
 
 HerkulexNode::HerkulexNode()
@@ -77,6 +95,7 @@ HerkulexNode::HerkulexNode()
   herkulexInputSubscriber_ = nodeHandle.subscribe(RM_HERKULEX_INPUT_TOPIC_NAME, 1000, &HerkulexNode::herkulexInputCallback, this);
   herkulexOutputPublisher_ = nodeHandle.advertise<std_msgs::String>(RM_HERKULEX_OUTPUT_TOPIC_NAME, 1000);
   headPositionSubscriber_ = nodeHandle.subscribe(RM_HEAD_POSITION_TOPIC_NAME, 1000, &HerkulexNode::headPositionCallback, this);
+  headMoveSubscriber_ = nodeHandle.subscribe(RM_HEAD_MOVE_TOPIC_NAME, 1000, &HerkulexNode::headMoveCallback, this);
 
   ros::NodeHandle privateNodeHandle("~");
   privateNodeHandle.param("serial_port", serialPortName, (std::string) "/dev/ttyUSB0");
@@ -96,6 +115,9 @@ HerkulexNode::HerkulexNode()
   commonNodeHandle.param("head_vertical_min_degree", headVerticalMinDegree, -120.0f);
   commonNodeHandle.param("head_vertical_center_degree", headVerticalCenterDegree, -15.0f);
   commonNodeHandle.param("head_vertical_max_degree", headVerticalMaxDegree, 10.0f);
+
+  previousHeadMoveValues_.horizontal = 0;
+  previousHeadMoveValues_.vertical = 0;
 }
 
 void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
@@ -112,7 +134,7 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
     return;
   }
   int address = node["a"].as<int>();
-  if (address != 1 && address != 2 && address != 0xFE)
+  if (address != SERVO_H && address != SERVO_V && address != 0xFE)
   {
     ROS_ERROR("HerkuleX command (%s) processor error: unknown servo ID (%d)", commandName.c_str(), address);
     return;
@@ -172,7 +194,7 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
 
 void HerkulexNode::headPositionCallback(const mitya_teleop::HeadPosition::ConstPtr& msg)
 {
-  ROS_INFO("Received in %s.%s: %f, %f", RM_HERKULEX_NODE_NAME, RM_HEAD_POSITION_TOPIC_NAME, msg->horizontal, msg->vertical);
+  //ROS_INFO("Received in %s.%s: %f, %f", RM_HERKULEX_NODE_NAME, RM_HEAD_POSITION_TOPIC_NAME, msg->horizontal, msg->vertical);
 
   float angleH = msg->horizontal;
   if (angleH < headHorizontalMinDegree)
@@ -186,13 +208,62 @@ void HerkulexNode::headPositionCallback(const mitya_teleop::HeadPosition::ConstP
   else if (angleV > headVerticalMaxDegree)
     angleV = headVerticalMaxDegree;
 
-  herkulex.moveOneAngle(1, angleH, 0, 0);
-  herkulex.moveOneAngle(2, angleV, 0, 0);
+  herkulex.moveOneAngle(SERVO_H, angleH, 0, 0);
+  herkulex.moveOneAngle(SERVO_V, angleV, 0, 0);
+}
+
+void HerkulexNode::headMoveCallback(const mitya_teleop::HeadMove::ConstPtr& msg)
+{
+  //ROS_INFO("Received in %s.%s: %d, %d", RM_HERKULEX_NODE_NAME, RM_HEAD_MOVE_TOPIC_NAME, msg->horizontal, msg->vertical);
+
+  if (msg->horizontal != previousHeadMoveValues_.horizontal)
+  {
+    if (msg->horizontal != 0)
+    {
+      float currentAngle = herkulex.getAngle(SERVO_H);
+      float targetAngle = msg->horizontal > 0 ? headHorizontalMaxDegree : headHorizontalMinDegree;
+      int duration = calculateDurationInMillis(targetAngle - currentAngle, SPEED);
+      herkulex.moveOneAngle(SERVO_H, targetAngle, duration, 0);
+    }
+    else
+    {
+      herkulex.moveOneAngle(SERVO_H, herkulex.getAngle(SERVO_H), CORRECTION_DURATION, 0);
+    }
+    previousHeadMoveValues_.horizontal = msg->horizontal;
+  }
+
+  if (msg->vertical != previousHeadMoveValues_.vertical)
+  {
+    if (msg->vertical != 0)
+    {
+      float currentAngle = herkulex.getAngle(SERVO_V);
+      float targetAngle = msg->vertical > 0 ? headVerticalMaxDegree : headVerticalMinDegree;
+      int duration = calculateDurationInMillis(targetAngle - currentAngle, SPEED);
+      herkulex.moveOneAngle(SERVO_V, targetAngle, duration, 0);
+    }
+    else
+    {
+      herkulex.moveOneAngle(SERVO_V, herkulex.getAngle(SERVO_V), CORRECTION_DURATION, 0);
+    }
+    previousHeadMoveValues_.vertical = msg->vertical;
+  }
 }
 
 void HerkulexNode::logPosition()
 {
-  ROS_INFO("++++++ Angle=%.3f", herkulex.getAngle(1));
+  //ROS_INFO("++++++ Angle=%.3f", herkulex.getAngle(SERVO_H));
+}
+
+int HerkulexNode::calculateDurationInMillis(float deltaAngle, float degreesPerSecond)
+{
+  //todo calculate 85
+  // 85 is the max speed. Keep in mind that the longest single movement takes 2856 mS.
+  // The longest movement in our case is 240°: abs(headHorizontalMaxDegree_ - headHorizontalMinDegree_).
+  if (degreesPerSecond < 85)
+    degreesPerSecond = 85;
+
+  int result = (int)(deltaAngle * 1000.0f / degreesPerSecond);
+  return result >= 0 ? result : -result;
 }
 
 int main(int argc, char **argv)
