@@ -43,6 +43,7 @@
 
 #define SERVO_H 1
 #define SERVO_V 2
+#define SERVO_ALL 0xFE
 #define CORRECTION_DURATION 0
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
@@ -91,6 +92,8 @@ private:
   };
   HeadMoveValues previousHeadMoveValues_;
   int calculateDurationInMillis(float deltaAngle, float degreesPerSecond);
+
+  void headMoveCenter(int servoAddress);
 };
 
 HerkulexNode::HerkulexNode()
@@ -146,7 +149,7 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
     return;
   }
   int address = node["a"].as<int>();
-  if (address != SERVO_H && address != SERVO_V && address != 0xFE)
+  if (address != SERVO_H && address != SERVO_V && address != SERVO_ALL)
   {
     ROS_ERROR("HerkuleX command (%s) processor error: unknown servo ID (%d)", commandName.c_str(), address);
     return;
@@ -197,6 +200,16 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
     }
     herkulex.setLed(address, color);
   }
+  else if (commandName.compare("center") == 0)
+  {
+    if (address == SERVO_ALL)
+    {
+      headMoveCenter(SERVO_H);
+      headMoveCenter(SERVO_V);
+    }
+    else
+      headMoveCenter(address);
+  }
   else
   {
     ROS_ERROR("Unknown command name: \'%s\'", commandName.c_str());
@@ -235,6 +248,7 @@ void HerkulexNode::headMoveCallback(const mitya_teleop::HeadMove::ConstPtr& msg)
       float currentAngle = herkulex.getAngle(SERVO_H);
       float targetAngle = msg->horizontal > 0 ? headHorizontalMaxDegree : headHorizontalMinDegree;
       int duration = calculateDurationInMillis(targetAngle - currentAngle, headMoveSpeed_);
+//ROS_INFO("currentAngle=%.3f, targetAngle=%.3f, duration=%d", currentAngle, targetAngle, duration);
       herkulex.moveOneAngle(SERVO_H, targetAngle, duration, 0);
     }
     else
@@ -268,10 +282,19 @@ void HerkulexNode::logPosition()
 
 int HerkulexNode::calculateDurationInMillis(float deltaAngle, float degreesPerSecond)
 {
+  //ROS_INFO("++++++++++++++headMoveSpeed_=%.3f", headMoveSpeed_);
   if (degreesPerSecond < headMoveSpeed_)
     degreesPerSecond = headMoveSpeed_;
   int result = (int)(deltaAngle * 1000.0f / degreesPerSecond);
   return result >= 0 ? result : -result;
+}
+
+void HerkulexNode::headMoveCenter(int servoAddress)
+{
+  float currentAngle = herkulex.getAngle(servoAddress);
+  float targetAngle = servoAddress == SERVO_H ? headHorizontalCenterDegree : headVerticalCenterDegree;
+  int duration = calculateDurationInMillis(targetAngle - currentAngle, headMoveSpeed_);
+  herkulex.moveOneAngle(servoAddress, targetAngle, duration, 0);
 }
 
 int main(int argc, char **argv)

@@ -41,6 +41,7 @@
 #include "consts.h"
 #include "robo_com.h"
 #include "button_event.h"
+#include "yaml-cpp/yaml.h"
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 
@@ -116,6 +117,7 @@ private:
   ros::Publisher headPositionPublisher_;
   ros::Publisher headMovePublisher_;
   ros::Publisher arduinoInputPublisher_;
+  ros::Publisher herkulexInputPublisher_;
   void joystickCallback(const sensor_msgs::Joy::ConstPtr& joy);
   int8_t getSpeedValue(float joystickValue);
   void publishDriveMessage(float x, float y, float boost);
@@ -123,6 +125,7 @@ private:
   void publishSwitchLed1Message();
   void publishSwitchLed2Message();
   void publishSwingTailMessage();
+  void publishCenterHerkulex(uint8_t address);
 
   mitya_teleop::Drive driveMessage_;
   mitya_teleop::HeadMove headMoveMessage_;
@@ -147,6 +150,9 @@ JoystickNode::JoystickNode()
 
   ros::NodeHandle arduinoInputNodeHandle(RM_NAMESPACE);
   arduinoInputPublisher_ = arduinoInputNodeHandle.advertise<std_msgs::String>(RM_ARDUINO_INPUT_TOPIC_NAME, 1000);
+
+  ros::NodeHandle herkulexInputNodeHandle(RM_NAMESPACE);
+  herkulexInputPublisher_ = herkulexInputNodeHandle.advertise<std_msgs::String>(RM_HERKULEX_INPUT_TOPIC_NAME, 1000);
 
   ros::NodeHandle privateNodeHandle("~");
   privateNodeHandle.param("drive_axis_x", driveAxisX_, 3);
@@ -345,6 +351,21 @@ void JoystickNode::publishSwingTailMessage()
   std_msgs::String msg;
   msg.data = RoboCom::getSwingTailCommand();
   arduinoInputPublisher_.publish(msg);
+}
+
+void JoystickNode::publishCenterHerkulex(uint8_t address)
+{
+  YAML::Emitter out;
+  out << YAML::BeginMap;
+  out << YAML::Key << "n";
+  out << YAML::Value << "center";
+  out << YAML::Key << "a";
+  out << YAML::Value << (int) address;
+  out << YAML::EndMap;
+
+  std_msgs::String stringMessage;
+  stringMessage.data = out.c_str();
+  herkulexInputPublisher_.publish(stringMessage);
 }
 
 void JoystickNode::led1ButtonHandler(bool state)

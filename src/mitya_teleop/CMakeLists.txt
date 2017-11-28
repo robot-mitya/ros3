@@ -205,7 +205,7 @@ include_directories(
 include_directories(include ${catkin_INCLUDE_DIRS})
 
 add_executable(joystick_node src/joystick_node.cpp src/robo_com.cpp src/button_event.cpp)
-target_link_libraries(joystick_node ${catkin_LIBRARIES})
+target_link_libraries(joystick_node ${catkin_LIBRARIES} yaml-cpp)
 add_dependencies(joystick_node mitya_teleop_generate_messages_cpp)
 
 add_executable(arduino_node src/arduino_node.cpp src/robo_com.cpp)
