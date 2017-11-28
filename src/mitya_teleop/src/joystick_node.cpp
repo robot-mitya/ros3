@@ -68,9 +68,9 @@ private:
   int headMoveHorizontalAxis_;
   int headMoveVerticalAxis_;
 
-  int led1Button_;
-  int led2Button_;
-  int tailButton_;
+  int led1ButtonIndex_;
+  int led2ButtonIndex_;
+  int tailButtonIndex_;
 
   int driveMaxValue;
   bool driveInvertX;
@@ -89,9 +89,12 @@ private:
   float headHorizontalAmplitude;
   float headVerticalAmplitude;
 
-  bool led1ButtonPrevState_;
-  bool led2ButtonPrevState_;
-  bool tailButtonPrevState_;
+  ButtonEvent *led1Button_;
+  void led1ButtonHandler(bool state);
+  ButtonEvent *led2Button_;
+  void led2ButtonHandler(bool state);
+  ButtonEvent *tailButton_;
+  void tailButtonHandler(bool state);
 
   ButtonEvent *headModeButton_;
   void headModeButtonHandler(bool state);
@@ -120,6 +123,7 @@ private:
 
   mitya_teleop::Drive driveMessage_;
   mitya_teleop::HeadMove headMoveMessage_;
+  mitya_teleop::HeadPosition headPositionMessage_;
 };
 
 JoystickNode::JoystickNode()
@@ -162,9 +166,9 @@ JoystickNode::JoystickNode()
   privateNodeHandle.param("head_invert_horizontal", headInvertHorizontal, true);
   privateNodeHandle.param("head_invert_vertical", headInvertVertical, true);
 
-  privateNodeHandle.param("led1_button", led1Button_, 3);
-  privateNodeHandle.param("led2_button", led2Button_, 1);
-  privateNodeHandle.param("tail_button", tailButton_, 2);
+  privateNodeHandle.param("led1_button", led1ButtonIndex_, 3);
+  privateNodeHandle.param("led2_button", led2ButtonIndex_, 1);
+  privateNodeHandle.param("tail_button", tailButtonIndex_, 2);
 
   ros::NodeHandle commonNodeHandle("");
   commonNodeHandle.param("head_horizontal_min_degree", headHorizontalMinDegree, -120.0f);
@@ -186,9 +190,9 @@ JoystickNode::JoystickNode()
   if (headInvertVertical)
     headVerticalAmplitude *= -1.0f;
 
-  led1ButtonPrevState_ = false;
-  led2ButtonPrevState_ = false;
-  tailButtonPrevState_ = false;
+  led1Button_ = new ButtonEvent(this, &JoystickNode::led1ButtonHandler);
+  led2Button_ = new ButtonEvent(this, &JoystickNode::led2ButtonHandler);
+  tailButton_ = new ButtonEvent(this, &JoystickNode::tailButtonHandler);
 
   headModeButton_ = new ButtonEvent(this, &JoystickNode::headModeButtonHandler);
   headMoveLeftButton_ = new ButtonEvent(this, &JoystickNode::headMoveLeftButtonHandler);
@@ -222,20 +226,9 @@ void JoystickNode::joystickCallback(const sensor_msgs::Joy::ConstPtr& joy)
     publishHeadPositionMessage(joy->axes[headAxisX_], joy->axes[headAxisY_]);
   }
 
-  bool led1ButtonState = joy->buttons[led1Button_] == 1;
-  if (led1ButtonState && !led1ButtonPrevState_)
-    publishSwitchLed1Message();
-  led1ButtonPrevState_ = led1ButtonState;
-
-  bool led2ButtonState = joy->buttons[led2Button_] == 1;
-  if (led2ButtonState && !led2ButtonPrevState_)
-    publishSwitchLed2Message();
-  led2ButtonPrevState_ = led2ButtonState;
-
-  bool tailButtonState = joy->buttons[tailButton_] == 1;
-  if (tailButtonState && !tailButtonPrevState_)
-    publishSwingTailMessage();
-  tailButtonPrevState_ = tailButtonState;
+  led1Button_->update(joy->buttons[led1ButtonIndex_] == 1);
+  led2Button_->update(joy->buttons[led2ButtonIndex_] == 1);
+  tailButton_->update(joy->buttons[tailButtonIndex_] == 1);
 
   headModeButton_->update(joy->buttons[headModeButtonIndex_] == 1);
   if (headControlMode_ == HEAD_MOVE)
@@ -312,8 +305,6 @@ void JoystickNode::publishDriveMessage(float x, float y, float boost)
 
 void JoystickNode::publishHeadPositionMessage(float x, float y)
 {
-  mitya_teleop::HeadPosition headPositionMessage_;
-
   x *= headHorizontalAmplitude;
   x += headHorizontalCenterDegree;
   if (x < headHorizontalMinDegree) x = headHorizontalMinDegree;
@@ -348,6 +339,24 @@ void JoystickNode::publishSwingTailMessage()
   std_msgs::String msg;
   msg.data = RoboCom::getSwingTailCommand();
   arduinoInputPublisher_.publish(msg);
+}
+
+void JoystickNode::led1ButtonHandler(bool state)
+{
+  if (!state) return;
+  publishSwitchLed1Message();
+}
+
+void JoystickNode::led2ButtonHandler(bool state)
+{
+  if (!state) return;
+  publishSwitchLed2Message();
+}
+
+void JoystickNode::tailButtonHandler(bool state)
+{
+  if (!state) return;
+  publishSwingTailMessage();
 }
 
 void JoystickNode::headModeButtonHandler(bool state)
