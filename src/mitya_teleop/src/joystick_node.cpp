@@ -67,6 +67,7 @@ private:
   int headAxisY_;
   int headMoveHorizontalAxis_;
   int headMoveVerticalAxis_;
+  int headMoveCenterButtonIndex_;
 
   int led1ButtonIndex_;
   int led2ButtonIndex_;
@@ -107,6 +108,8 @@ private:
   void headMoveUpButtonHandler(bool state);
   ButtonEvent *headMoveDownButton_;
   void headMoveDownButtonHandler(bool state);
+  ButtonEvent *headMoveCenterButton_;
+  void headMoveCenterButtonHandler(bool state);
 
   ros::Subscriber joystickSubscriber_;
   ros::Publisher drivePublisher_;
@@ -165,6 +168,7 @@ JoystickNode::JoystickNode()
   privateNodeHandle.param("head_move_vertical_axis", headMoveVerticalAxis_, 7);
   privateNodeHandle.param("head_invert_horizontal", headInvertHorizontal, true);
   privateNodeHandle.param("head_invert_vertical", headInvertVertical, true);
+  privateNodeHandle.param("head_move_center_button", headMoveCenterButtonIndex_, 4);
 
   privateNodeHandle.param("led1_button", led1ButtonIndex_, 3);
   privateNodeHandle.param("led2_button", led2ButtonIndex_, 1);
@@ -199,6 +203,7 @@ JoystickNode::JoystickNode()
   headMoveRightButton_ = new ButtonEvent(this, &JoystickNode::headMoveRightButtonHandler);
   headMoveUpButton_ = new ButtonEvent(this, &JoystickNode::headMoveUpButtonHandler);
   headMoveDownButton_ = new ButtonEvent(this, &JoystickNode::headMoveDownButtonHandler);
+  headMoveCenterButton_ = new ButtonEvent(this, &JoystickNode::headMoveCenterButtonHandler);
 
   headMoveMessage_.horizontal = 0;
   headMoveMessage_.vertical = 0;
@@ -237,6 +242,7 @@ void JoystickNode::joystickCallback(const sensor_msgs::Joy::ConstPtr& joy)
     headMoveRightButton_->update(joy->axes[headMoveHorizontalAxis_] < 0);
     headMoveUpButton_->update(joy->axes[headMoveVerticalAxis_] > 0);
     headMoveDownButton_->update(joy->axes[headMoveVerticalAxis_] < 0);
+    headMoveCenterButton_->update(joy->buttons[headMoveCenterButtonIndex_] == 1);
   }
 }
 
@@ -398,6 +404,12 @@ void JoystickNode::headMoveDownButtonHandler(bool state)
   if (headInvertVertical)
     headMoveMessage_.vertical = -headMoveMessage_.vertical;
   headMovePublisher_.publish(headMoveMessage_);
+}
+
+void JoystickNode::headMoveCenterButtonHandler(bool state)
+{
+  if (!state) return;
+  //todo #8
 }
 
 int main(int argc, char **argv)
