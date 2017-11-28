@@ -44,7 +44,8 @@
 #define SERVO_H 1
 #define SERVO_V 2
 #define CORRECTION_DURATION 0
-#define SPEED 85
+
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
 
 class HerkulexNode
 {
@@ -64,6 +65,9 @@ private:
   float headVerticalMinDegree;
   float headVerticalCenterDegree;
   float headVerticalMaxDegree;
+  float headMoveMinSpeed_; // degrees per second
+
+  float headMoveSpeed_; // degrees per second
 
   // Topic RM_HERKULEX_INPUT_TOPIC_NAME ('herkulex_input') subscriber:
   ros::Subscriber herkulexInputSubscriber_;
@@ -115,6 +119,14 @@ HerkulexNode::HerkulexNode()
   commonNodeHandle.param("head_vertical_min_degree", headVerticalMinDegree, -120.0f);
   commonNodeHandle.param("head_vertical_center_degree", headVerticalCenterDegree, -15.0f);
   commonNodeHandle.param("head_vertical_max_degree", headVerticalMaxDegree, 10.0f);
+
+  // 2856 mSec is the longest duration for single movement of the Herkulex servo.
+  // To calculate to lowest speed we divide the longest path in degrees by this time.
+  // See herkulex.cpp (search "2856") for more information.
+  headMoveMinSpeed_ = floor(
+      MAX(abs(headHorizontalMaxDegree - headHorizontalMinDegree), abs(headVerticalMaxDegree - headVerticalMinDegree)) *
+      1000.0f / 2856.0f + 1);
+  headMoveSpeed_ = headMoveMinSpeed_;
 
   previousHeadMoveValues_.horizontal = 0;
   previousHeadMoveValues_.vertical = 0;
@@ -222,7 +234,7 @@ void HerkulexNode::headMoveCallback(const mitya_teleop::HeadMove::ConstPtr& msg)
     {
       float currentAngle = herkulex.getAngle(SERVO_H);
       float targetAngle = msg->horizontal > 0 ? headHorizontalMaxDegree : headHorizontalMinDegree;
-      int duration = calculateDurationInMillis(targetAngle - currentAngle, SPEED);
+      int duration = calculateDurationInMillis(targetAngle - currentAngle, headMoveSpeed_);
       herkulex.moveOneAngle(SERVO_H, targetAngle, duration, 0);
     }
     else
@@ -238,7 +250,7 @@ void HerkulexNode::headMoveCallback(const mitya_teleop::HeadMove::ConstPtr& msg)
     {
       float currentAngle = herkulex.getAngle(SERVO_V);
       float targetAngle = msg->vertical > 0 ? headVerticalMaxDegree : headVerticalMinDegree;
-      int duration = calculateDurationInMillis(targetAngle - currentAngle, SPEED);
+      int duration = calculateDurationInMillis(targetAngle - currentAngle, headMoveSpeed_);
       herkulex.moveOneAngle(SERVO_V, targetAngle, duration, 0);
     }
     else
@@ -256,12 +268,8 @@ void HerkulexNode::logPosition()
 
 int HerkulexNode::calculateDurationInMillis(float deltaAngle, float degreesPerSecond)
 {
-  //todo calculate 85
-  // 85 is the max speed. Keep in mind that the longest single movement takes 2856 mS.
-  // The longest movement in our case is 240°: abs(headHorizontalMaxDegree_ - headHorizontalMinDegree_).
-  if (degreesPerSecond < 85)
-    degreesPerSecond = 85;
-
+  if (degreesPerSecond < headMoveSpeed_)
+    degreesPerSecond = headMoveSpeed_;
   int result = (int)(deltaAngle * 1000.0f / degreesPerSecond);
   return result >= 0 ? result : -result;
 }

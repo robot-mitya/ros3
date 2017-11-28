@@ -118,6 +118,7 @@ private:
   void publishSwitchLed2Message();
   void publishSwingTailMessage();
 
+  mitya_teleop::Drive driveMessage_;
   mitya_teleop::HeadMove headMoveMessage_;
 };
 
@@ -304,29 +305,28 @@ void JoystickNode::publishDriveMessage(float x, float y, float boost)
   //ROS_INFO("x=%+5.3f y=%+5.3f R=%+5.3f A=%+8.3f    Left=%+6.3f Right=%+6.3f", x, y, radius, alpha, left, right);
   //ROS_INFO("Left=%+6.3f  Right=%+6.3f  Boost=%+6.3f  BoostFactor=%+6.3f", left, right, boost, boost_factor);
 
-  mitya_teleop::Drive msg;
-  msg.left = getSpeedValue(left);
-  msg.right = getSpeedValue(right);
-  drivePublisher_.publish(msg);
+  driveMessage_.left = getSpeedValue(left);
+  driveMessage_.right = getSpeedValue(right);
+  drivePublisher_.publish(driveMessage_);
 }
 
 void JoystickNode::publishHeadPositionMessage(float x, float y)
 {
-  mitya_teleop::HeadPosition msg;
+  mitya_teleop::HeadPosition headPositionMessage_;
 
   x *= headHorizontalAmplitude;
   x += headHorizontalCenterDegree;
   if (x < headHorizontalMinDegree) x = headHorizontalMinDegree;
   else if (x > headHorizontalMaxDegree) x = headHorizontalMaxDegree;
-  msg.horizontal = x;
+  headPositionMessage_.horizontal = x;
 
   y *= headVerticalAmplitude;
   y += headVerticalCenterDegree;
   if (y < headVerticalMinDegree) y = headVerticalMinDegree;
   else if (y > headVerticalMaxDegree) y = headVerticalMaxDegree;
-  msg.vertical = y;
+  headPositionMessage_.vertical = y;
 
-  headPositionPublisher_.publish(msg);
+  headPositionPublisher_.publish(headPositionMessage_);
 }
 
 void JoystickNode::publishSwitchLed1Message()
