@@ -430,7 +430,7 @@ void JoystickNode::headMoveDownButtonHandler(bool state)
 void JoystickNode::headMoveCenterButtonHandler(bool state)
 {
   if (!state) return;
-  //todo #8
+  publishCenterHerkulex(HEAD_BROADCAST_SERVO_ID);
 }
 
 int main(int argc, char **argv)

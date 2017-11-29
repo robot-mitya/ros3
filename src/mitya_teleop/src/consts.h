@@ -35,6 +35,10 @@
 #define MITYA_TELEOP_SRC_CONSTS_H_
 
 
+#define HEAD_HORIZONTAL_SERVO_ID 1
+#define HEAD_VERTICAL_SERVO_ID 2
+#define HEAD_BROADCAST_SERVO_ID 0xFE
+
 /**
  * ROS namespace for Robot Mitay's packages.
  * Actually namespace is defined in launch file.
