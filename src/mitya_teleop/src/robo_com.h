@@ -78,6 +78,7 @@ public:
   static char* getSwitchLed1Command();
   static char* getSwitchLed2Command();
   static char* getSwingTailCommand();
+  static char* getRebootCommand();
   static void parseMessage(const char* message, Command &command, int &param1, int &param2, int &param3);
 private:
   static char driveLeftMessage_[MAX_MESSAGE_SIZE];
@@ -85,6 +86,7 @@ private:
   static char led1Message_[MAX_MESSAGE_SIZE];
   static char led2Message_[MAX_MESSAGE_SIZE];
   static char tailMessage_[MAX_MESSAGE_SIZE];
+  static char rebootMessage_[MAX_MESSAGE_SIZE];
   static Command getCommand(char *text);
 };
 

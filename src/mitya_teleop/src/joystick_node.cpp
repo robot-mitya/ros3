@@ -132,6 +132,7 @@ private:
   void publishSwingTailMessage();
   void publishCenterHerkulex(uint8_t address);
   void publishRebootHerkulex();
+  void publishRebootArduino();
 
   mitya_teleop::Drive driveMessage_;
   mitya_teleop::HeadMove headMoveMessage_;
@@ -395,10 +396,18 @@ void JoystickNode::publishRebootHerkulex()
   herkulexInputPublisher_.publish(stringMessage);
 }
 
+void JoystickNode::publishRebootArduino()
+{
+  std_msgs::String msg;
+  msg.data = RoboCom::getRebootCommand();
+  arduinoInputPublisher_.publish(msg);
+}
+
 void JoystickNode::rebootButtonHandler(bool state)
 {
   if (!state) return;
   publishRebootHerkulex();
+  publishRebootArduino();
 }
 
 void JoystickNode::led1ButtonHandler(bool state)

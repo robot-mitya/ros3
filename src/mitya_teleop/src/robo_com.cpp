@@ -43,6 +43,7 @@ char RoboCom::driveRightMessage_[MAX_MESSAGE_SIZE];
 char RoboCom::led1Message_[MAX_MESSAGE_SIZE];
 char RoboCom::led2Message_[MAX_MESSAGE_SIZE];
 char RoboCom::tailMessage_[MAX_MESSAGE_SIZE];
+char RoboCom::rebootMessage_[MAX_MESSAGE_SIZE];
 
 static char charArray[2] = "\0";
 static char commandText[11] = "";
@@ -97,6 +98,12 @@ char* RoboCom::getSwingTailCommand()
 {
   sprintf(RoboCom::tailMessage_, "TLSA %d %d %d;", 300, 30, 10);
   return RoboCom::tailMessage_;
+}
+
+char* RoboCom::getRebootCommand()
+{
+  sprintf(RoboCom::rebootMessage_, "RST;");
+  return RoboCom::rebootMessage_;
 }
 
 void RoboCom::parseMessage(const char* message, Command &command, int &param1, int &param2, int &param3)
