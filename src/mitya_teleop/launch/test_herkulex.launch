@@ -52,6 +52,8 @@
 	
 			<!-- Axes -->
 			<node pkg="mitya_teleop" type="joystick_node" name="joystick">
+				<param name="reboot_button" type="int" value="8" />
+
 				<param name="drive_axis_x" type="int" value="3" />
 				<param name="drive_axis_y" type="int" value="4" />
 				<param name="drive_boost" type="int" value="2" />

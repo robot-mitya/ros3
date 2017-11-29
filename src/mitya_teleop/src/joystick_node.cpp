@@ -56,6 +56,8 @@ private:
 
   HeadControlMode headControlMode_;
 
+  int rebootButtonIndex_;
+
   int driveAxisX_;
   int driveAxisY_;
   int driveBoost_;
@@ -90,6 +92,9 @@ private:
   bool headInvertVertical;
   float headHorizontalAmplitude;
   float headVerticalAmplitude;
+
+  ButtonEvent *rebootButton_;
+  void rebootButtonHandler(bool state);
 
   ButtonEvent *led1Button_;
   void led1ButtonHandler(bool state);
@@ -126,6 +131,7 @@ private:
   void publishSwitchLed2Message();
   void publishSwingTailMessage();
   void publishCenterHerkulex(uint8_t address);
+  void publishRebootHerkulex();
 
   mitya_teleop::Drive driveMessage_;
   mitya_teleop::HeadMove headMoveMessage_;
@@ -155,6 +161,8 @@ JoystickNode::JoystickNode()
   herkulexInputPublisher_ = herkulexInputNodeHandle.advertise<std_msgs::String>(RM_HERKULEX_INPUT_TOPIC_NAME, 1000);
 
   ros::NodeHandle privateNodeHandle("~");
+  privateNodeHandle.param("reboot_button", rebootButtonIndex_, 8);
+
   privateNodeHandle.param("drive_axis_x", driveAxisX_, 3);
   privateNodeHandle.param("drive_axis_y", driveAxisY_, 4);
   privateNodeHandle.param("drive_boost", driveBoost_, 2);
@@ -200,6 +208,8 @@ JoystickNode::JoystickNode()
   if (headInvertVertical)
     headVerticalAmplitude *= -1.0f;
 
+  rebootButton_ = new ButtonEvent(this, &JoystickNode::rebootButtonHandler);
+
   led1Button_ = new ButtonEvent(this, &JoystickNode::led1ButtonHandler);
   led2Button_ = new ButtonEvent(this, &JoystickNode::led2ButtonHandler);
   tailButton_ = new ButtonEvent(this, &JoystickNode::tailButtonHandler);
@@ -236,6 +246,8 @@ void JoystickNode::joystickCallback(const sensor_msgs::Joy::ConstPtr& joy)
   {
     publishHeadPositionMessage(joy->axes[headAxisX_], joy->axes[headAxisY_]);
   }
+
+  rebootButton_->update(joy->buttons[rebootButtonIndex_] == 1);
 
   led1Button_->update(joy->buttons[led1ButtonIndex_] == 1);
   led2Button_->update(joy->buttons[led2ButtonIndex_] == 1);
@@ -366,6 +378,27 @@ void JoystickNode::publishCenterHerkulex(uint8_t address)
   std_msgs::String stringMessage;
   stringMessage.data = out.c_str();
   herkulexInputPublisher_.publish(stringMessage);
+}
+
+void JoystickNode::publishRebootHerkulex()
+{
+  YAML::Emitter out;
+  out << YAML::BeginMap;
+  out << YAML::Key << "n";
+  out << YAML::Value << "reboot";
+  out << YAML::Key << "a";
+  out << YAML::Value << (int) HEAD_BROADCAST_SERVO_ID;
+  out << YAML::EndMap;
+
+  std_msgs::String stringMessage;
+  stringMessage.data = out.c_str();
+  herkulexInputPublisher_.publish(stringMessage);
+}
+
+void JoystickNode::rebootButtonHandler(bool state)
+{
+  if (!state) return;
+  publishRebootHerkulex();
 }
 
 void JoystickNode::led1ButtonHandler(bool state)
