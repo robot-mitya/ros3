@@ -484,6 +484,7 @@ int HerkulexClass::getPosition(int servoID)
   delay(1);
   readData(13);
 
+  dataEx[2] = 13; // Fixing a firmware bug (DmitryDzz)
   pSize = dataEx[2]; // 3.Packet size 7-58
   pID = dataEx[3]; // 4. Servo ID
   cmd = dataEx[4]; // 5. CMD
