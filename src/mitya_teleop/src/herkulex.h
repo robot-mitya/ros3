@@ -107,8 +107,14 @@ public:
   void  moveOne(int servoID, int Goal, int pTime, int iLed);
   void  moveOneAngle(int servoID, float angle, int pTime, int iLed);
 
-  int   getPosition(int servoID);
-  float getAngle(int servoID);
+  int   getPosition(int servoID,
+                    uint8_t &b0, uint8_t &b1, uint8_t &b2, uint8_t &b3,
+                    uint8_t &b4, uint8_t &b5, uint8_t &b6, uint8_t &b7,
+                    uint8_t &b8, uint8_t &b9, uint8_t &b10, uint8_t &b11, uint8_t &b12);
+  float getAngle(int servoID,
+                 uint8_t &b0, uint8_t &b1, uint8_t &b2, uint8_t &b3,
+                 uint8_t &b4, uint8_t &b5, uint8_t &b6, uint8_t &b7,
+                 uint8_t &b8, uint8_t &b9, uint8_t &b10, uint8_t &b11, uint8_t &b12);
   int   getSpeed(int servoID);
 
   void  reboot(int servoID);

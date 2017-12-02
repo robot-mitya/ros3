@@ -156,63 +156,63 @@ void TestHerkulexNode::joystickCallback(const sensor_msgs::Joy::ConstPtr& joy)
   prevUpButtonState_ = downButtonState;
 
   //-------------------
-  bool leftButtonState = joy->axes[6] > 0;
-  if (leftButtonState && !prevLeftButtonState_)
-  {
-    ROS_INFO("Left was pressed");
-    float currentAngle = herkulex_.getAngle(SERVO_ID);
-    float targetAngle = headHorizontalMaxDegree_;
-    int duration = calculateDurationInMillis(targetAngle - currentAngle, SPEED);
-    herkulex_.moveOneAngle(SERVO_ID, targetAngle, duration, 0);
-  }
-  else if (!leftButtonState && prevLeftButtonState_)
-  {
+//  bool leftButtonState = joy->axes[6] > 0;
+//  if (leftButtonState && !prevLeftButtonState_)
+//  {
+//    ROS_INFO("Left was pressed");
 //    float currentAngle = herkulex_.getAngle(SERVO_ID);
-//    ROS_INFO("++ Left was released (currentAngle=%.3f)", currentAngle);
-//    herkulex_.moveOneAngle(SERVO_ID, currentAngle, 0, 0);
-    herkulex_.moveOneAngle(SERVO_ID, herkulex_.getAngle(SERVO_ID), CORRECTION_DURATION, 0);
-  }
-  prevLeftButtonState_ = leftButtonState;
-
-  bool rightButtonState = joy->axes[6] < 0;
-  if (rightButtonState && !prevRightButtonState_)
-  {
-    ROS_INFO("Right was pressed");
-    float currentAngle = herkulex_.getAngle(SERVO_ID);
-    float targetAngle = headHorizontalMinDegree_;
-    int duration = calculateDurationInMillis(targetAngle - currentAngle, SPEED);
-    herkulex_.moveOneAngle(SERVO_ID, targetAngle, duration, 0);
-  }
-  else if (!rightButtonState && prevRightButtonState_)
-  {
+//    float targetAngle = headHorizontalMaxDegree_;
+//    int duration = calculateDurationInMillis(targetAngle - currentAngle, SPEED);
+//    herkulex_.moveOneAngle(SERVO_ID, targetAngle, duration, 0);
+//  }
+//  else if (!leftButtonState && prevLeftButtonState_)
+//  {
+////    float currentAngle = herkulex_.getAngle(SERVO_ID);
+////    ROS_INFO("++ Left was released (currentAngle=%.3f)", currentAngle);
+////    herkulex_.moveOneAngle(SERVO_ID, currentAngle, 0, 0);
+//    herkulex_.moveOneAngle(SERVO_ID, herkulex_.getAngle(SERVO_ID), CORRECTION_DURATION, 0);
+//  }
+//  prevLeftButtonState_ = leftButtonState;
+//
+//  bool rightButtonState = joy->axes[6] < 0;
+//  if (rightButtonState && !prevRightButtonState_)
+//  {
+//    ROS_INFO("Right was pressed");
 //    float currentAngle = herkulex_.getAngle(SERVO_ID);
-//    ROS_INFO("++ Right was released (currentAngle=%.3f)", currentAngle);
-//    herkulex_.moveOneAngle(SERVO_ID, currentAngle, 0, 0);
-    herkulex_.moveOneAngle(SERVO_ID, herkulex_.getAngle(SERVO_ID), CORRECTION_DURATION, 0);
-  }
-  prevRightButtonState_ = rightButtonState;
-
-  //-------------------
-  bool powerButtonState = joy->buttons[8] != 0;
-  if (powerButtonState && !prevPowerButtonState_)
-  {
-    ROS_INFO("Power was pressed");
-    //herkulex_.reboot(SERVO_ID);
-    float currentAngle = herkulex_.getAngle(SERVO_ID);
-    ROS_INFO("++ currentAngle=%.3f", currentAngle);
-
-  }
-  prevPowerButtonState_ = powerButtonState;
+//    float targetAngle = headHorizontalMinDegree_;
+//    int duration = calculateDurationInMillis(targetAngle - currentAngle, SPEED);
+//    herkulex_.moveOneAngle(SERVO_ID, targetAngle, duration, 0);
+//  }
+//  else if (!rightButtonState && prevRightButtonState_)
+//  {
+////    float currentAngle = herkulex_.getAngle(SERVO_ID);
+////    ROS_INFO("++ Right was released (currentAngle=%.3f)", currentAngle);
+////    herkulex_.moveOneAngle(SERVO_ID, currentAngle, 0, 0);
+//    herkulex_.moveOneAngle(SERVO_ID, herkulex_.getAngle(SERVO_ID), CORRECTION_DURATION, 0);
+//  }
+//  prevRightButtonState_ = rightButtonState;
+//
+//  //-------------------
+//  bool powerButtonState = joy->buttons[8] != 0;
+//  if (powerButtonState && !prevPowerButtonState_)
+//  {
+//    ROS_INFO("Power was pressed");
+//    //herkulex_.reboot(SERVO_ID);
+//    float currentAngle = herkulex_.getAngle(SERVO_ID);
+//    ROS_INFO("++ currentAngle=%.3f", currentAngle);
+//
+//  }
+//  prevPowerButtonState_ = powerButtonState;
 }
 
 void TestHerkulexNode::logPosition()
 {
-  float angle = herkulex_.getAngle(SERVO_ID);
-  if (angle != prevReadAngle_)
-  {
-    ROS_INFO("Read angle: %.3f", angle);
-    prevReadAngle_ = angle;
-  }
+//  float angle = herkulex_.getAngle(SERVO_ID);
+//  if (angle != prevReadAngle_)
+//  {
+//    ROS_INFO("Read angle: %.3f", angle);
+//    prevReadAngle_ = angle;
+//  }
 }
 
 int TestHerkulexNode::calculateDurationInMillis(float deltaAngle, float degreesPerSecond)

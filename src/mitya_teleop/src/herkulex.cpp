@@ -454,7 +454,10 @@ void HerkulexClass::actionAll(int pTime)
 }
 
 // get Position
-int HerkulexClass::getPosition(int servoID)
+int HerkulexClass::getPosition(int servoID,
+       uint8_t &b0, uint8_t &b1, uint8_t &b2, uint8_t &b3,
+       uint8_t &b4, uint8_t &b5, uint8_t &b6, uint8_t &b7,
+       uint8_t &b8, uint8_t &b9, uint8_t &b10, uint8_t &b11, uint8_t &b12)
 {
   int Position = 0;
 
@@ -484,6 +487,20 @@ int HerkulexClass::getPosition(int servoID)
   delay(1);
   readData(13);
 
+  b0 = dataEx[0];
+  b1 = dataEx[1];
+  b2 = dataEx[2];
+  b3 = dataEx[3];
+  b4 = dataEx[4];
+  b5 = dataEx[5];
+  b6 = dataEx[6];
+  b7 = dataEx[7];
+  b8 = dataEx[8];
+  b9 = dataEx[9];
+  b10 = dataEx[10];
+  b11 = dataEx[11];
+  b12 = dataEx[12];
+
   pSize = dataEx[2]; // 3.Packet size 7-58
   pID = dataEx[3]; // 4. Servo ID
   cmd = dataEx[4]; // 5. CMD
@@ -507,9 +524,12 @@ int HerkulexClass::getPosition(int servoID)
   return Position;
 }
 
-float HerkulexClass::getAngle(int servoID)
+float HerkulexClass::getAngle(int servoID,
+                              uint8_t &b0, uint8_t &b1, uint8_t &b2, uint8_t &b3,
+                              uint8_t &b4, uint8_t &b5, uint8_t &b6, uint8_t &b7,
+                              uint8_t &b8, uint8_t &b9, uint8_t &b10, uint8_t &b11, uint8_t &b12)
 {
-  int pos = (int)getPosition(servoID);
+  int pos = (int)getPosition(servoID, b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12);
   return (pos - 512) * 0.325;
 }
 

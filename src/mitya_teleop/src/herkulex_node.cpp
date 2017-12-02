@@ -251,12 +251,13 @@ void HerkulexNode::headPositionCallback(const mitya_teleop::HeadPosition::ConstP
 void HerkulexNode::headMoveCallback(const mitya_teleop::HeadMove::ConstPtr& msg)
 {
   //ROS_INFO("Received in %s.%s: %d, %d", RM_HERKULEX_NODE_NAME, RM_HEAD_MOVE_TOPIC_NAME, msg->horizontal, msg->vertical);
+  uint8_t b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12;
 
   if (msg->horizontal != previousHeadMoveValues_.horizontal)
   {
     if (msg->horizontal != 0)
     {
-      float currentAngle = herkulex.getAngle(HEAD_HORIZONTAL_SERVO_ID);
+      float currentAngle = herkulex.getAngle(HEAD_HORIZONTAL_SERVO_ID, b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12);
       float targetAngle = msg->horizontal > 0 ? headHorizontalMaxDegree : headHorizontalMinDegree;
       int duration = calculateDurationInMillis(targetAngle - currentAngle, headMoveSpeed_);
 //ROS_INFO("currentAngle=%.3f, targetAngle=%.3f, duration=%d", currentAngle, targetAngle, duration);
@@ -264,8 +265,43 @@ void HerkulexNode::headMoveCallback(const mitya_teleop::HeadMove::ConstPtr& msg)
     }
     else
     {
-      herkulex.moveOneAngle(HEAD_HORIZONTAL_SERVO_ID, herkulex.getAngle(HEAD_HORIZONTAL_SERVO_ID), CORRECTION_DURATION, 0);
+      herkulex.moveOneAngle(HEAD_HORIZONTAL_SERVO_ID, herkulex.getAngle(HEAD_HORIZONTAL_SERVO_ID, b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12), CORRECTION_DURATION, 0);
     }
+
+    char b[3*13 + 1];
+    b[0] = ' ';
+    int p = 0;
+    sprintf(&b[p], " %02X", b0);
+    p += 3;
+    sprintf(&b[p], " %02X", b1);
+    p += 3;
+    sprintf(&b[p], " %02X", b2);
+    p += 3;
+    sprintf(&b[p], " %02X", b3);
+    p += 3;
+    sprintf(&b[p], " %02X", b4);
+    p += 3;
+    sprintf(&b[p], " %02X", b5);
+    p += 3;
+    sprintf(&b[p], " %02X", b6);
+    p += 3;
+    sprintf(&b[p], " %02X", b7);
+    p += 3;
+    sprintf(&b[p], " %02X", b8);
+    p += 3;
+    sprintf(&b[p], " %02X", b9);
+    p += 3;
+    sprintf(&b[p], " %02X", b10);
+    p += 3;
+    sprintf(&b[p], " %02X", b11);
+    p += 3;
+    sprintf(&b[p], " %02X", b12);
+    p += 3;
+//    for (int i=0;i<13;i++)
+//      b[i*3] = ' ';
+    b[3*13] = 0;
+    ROS_INFO(b);
+
     previousHeadMoveValues_.horizontal = msg->horizontal;
   }
 
@@ -273,14 +309,14 @@ void HerkulexNode::headMoveCallback(const mitya_teleop::HeadMove::ConstPtr& msg)
   {
     if (msg->vertical != 0)
     {
-      float currentAngle = herkulex.getAngle(HEAD_VERTICAL_SERVO_ID);
+      float currentAngle = herkulex.getAngle(HEAD_VERTICAL_SERVO_ID, b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12);
       float targetAngle = msg->vertical > 0 ? headVerticalMaxDegree : headVerticalMinDegree;
       int duration = calculateDurationInMillis(targetAngle - currentAngle, headMoveSpeed_);
       herkulex.moveOneAngle(HEAD_VERTICAL_SERVO_ID, targetAngle, duration, 0);
     }
     else
     {
-      herkulex.moveOneAngle(HEAD_VERTICAL_SERVO_ID, herkulex.getAngle(HEAD_VERTICAL_SERVO_ID), CORRECTION_DURATION, 0);
+      herkulex.moveOneAngle(HEAD_VERTICAL_SERVO_ID, herkulex.getAngle(HEAD_VERTICAL_SERVO_ID, b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12), CORRECTION_DURATION, 0);
     }
     previousHeadMoveValues_.vertical = msg->vertical;
   }
@@ -301,7 +337,8 @@ int HerkulexNode::calculateDurationInMillis(float deltaAngle, float degreesPerSe
 
 void HerkulexNode::headMoveCenter(int servoAddress)
 {
-  float currentAngle = herkulex.getAngle(servoAddress);
+  uint8_t b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12;
+  float currentAngle = herkulex.getAngle(servoAddress, b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12);
   float targetAngle = servoAddress == HEAD_HORIZONTAL_SERVO_ID ? headHorizontalCenterDegree : headVerticalCenterDegree;
   int duration = calculateDurationInMillis(targetAngle - currentAngle, headMoveSpeed_);
   herkulex.moveOneAngle(servoAddress, targetAngle, duration, 0);
