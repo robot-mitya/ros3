@@ -219,3 +219,7 @@ add_dependencies(herkulex_node mitya_teleop_generate_messages_cpp)
 add_executable(test_herkulex_node src/test_herkulex_node.cpp src/herkulex.cpp)
 target_link_libraries(test_herkulex_node ${catkin_LIBRARIES})
 add_dependencies(test_herkulex_node mitya_teleop_generate_messages_cpp)
+
+add_executable(mpu6050_node src/mpu6050_node.cpp)
+target_link_libraries(mpu6050_node ${catkin_LIBRARIES} wiringPi)
+add_dependencies(mpu6050_node mitya_teleop_generate_messages_cpp)
