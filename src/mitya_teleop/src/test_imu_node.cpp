@@ -1,5 +1,5 @@
 /*
- * consts.h
+ * test_imu_node.cpp
  * Copyright (c) 2017, Robot Mitya.
  * All rights reserved.
  * 
@@ -27,47 +27,47 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- *  Created on: Apr 24, 2017
+ *  Created on: Dec 3, 2017
  *      Author: Dmitry Dzakhov
  */
 
-#ifndef MITYA_TELEOP_SRC_CONSTS_H_
-#define MITYA_TELEOP_SRC_CONSTS_H_
+#include <ros/ros.h>
+#include <sensor_msgs/Imu.h>
+#include "consts.h"
 
+class TestImuNode
+{
+public:
+  TestImuNode();
+private:
+  ros::Subscriber imuSubscriber_;
+  void imuCallback(const sensor_msgs::Imu::ConstPtr& imu);
+};
 
-#define HEAD_HORIZONTAL_SERVO_ID 1
-#define HEAD_VERTICAL_SERVO_ID 2
-#define HEAD_BROADCAST_SERVO_ID 0xFE
+TestImuNode::TestImuNode()
+{
+  ros::NodeHandle nodeHandle(RM_NAMESPACE);
+  imuSubscriber_ = nodeHandle.subscribe<sensor_msgs::Imu>(RM_IMU_TOPIC_NAME, 1000, &TestImuNode::imuCallback, this);
+}
 
-/**
- * ROS namespace for Robot Mitay's packages.
- * Actually namespace is defined in launch file.
- */
-#define RM_NAMESPACE ""
+void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
+{
+  ROS_INFO("++++++++++++++");
+  //ROS_INFO("Angular velocity: %.3f, %.3f, %.3f", imu->angular_velocity.x, imu->angular_velocity.y, imu->angular_velocity.z);
+}
 
-/**
- * Topic name from package joy, joy_node.
- * Run "sudo apt-get install ros-kinetic-joy" to install package.
- */
-#define RM_JOY_TOPIC_NAME "joy"
+int main(int argc, char **argv)
+{
+  ros::init(argc, argv, "test_imu_node");
+  TestImuNode testImuNode;
+  //ros::spin();
+  ros::Rate loop_rate(100); // 100 Hz
+  while (ros::ok())
+  {
+    //ROS_INFO("++++++++++++++****************");
+    loop_rate.sleep();
+    ros::spinOnce();
+  }
 
-#define RM_ARDUINO_NODE_NAME "arduino_node"
-#define RM_ARDUINO_OUTPUT_TOPIC_NAME "arduino_output"
-#define RM_ARDUINO_INPUT_TOPIC_NAME "arduino_input"
-
-#define RM_JOYSTICK_NODE_NAME "joystick_node"
-#define RM_DRIVE_TOPIC_NAME "drive"
-
-#define RM_LED_TOPIC_NAME "led"
-#define RM_DISTANCE_TOPIC_NAME "distance"
-#define RM_SPEED_TOPIC_NAME "speed"
-#define RM_IMU_TOPIC_NAME "imu"
-
-#define RM_HERKULEX_NODE_NAME "herkulex_node"
-#define RM_HEAD_POSITION_TOPIC_NAME "head_position"
-#define RM_HEAD_MOVE_TOPIC_NAME "head_move"
-#define RM_HERKULEX_OUTPUT_TOPIC_NAME "herkulex_output"
-#define RM_HERKULEX_INPUT_TOPIC_NAME "herkulex_input"
-
-
-#endif /* MITYA_TELEOP_SRC_CONSTS_H_ */
+  return 0;
+}

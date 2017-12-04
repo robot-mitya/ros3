@@ -34,6 +34,7 @@
 #include <sensor_msgs/Imu.h>
 #include <wiringPi.h>
 #include <wiringPiI2C.h>
+#include "consts.h"
 
 using namespace std;
 
@@ -61,7 +62,7 @@ int main(int argc, char **argv) {
   // Start ROS node stuff.
   ros::init(argc, argv, "mpu6050");
   ros::NodeHandle node;
-  ros::Publisher pub = node.advertise<sensor_msgs::Imu>("imu", 10);
+  ros::Publisher pub = node.advertise<sensor_msgs::Imu>(RM_IMU_TOPIC_NAME, 10);
   ros::Rate rate(10);  // hz
 
   // Publish in loop.

@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  sensor_msgs
   message_generation
   joy
 )
@@ -74,6 +75,7 @@ add_message_files(
 generate_messages(
   DEPENDENCIES
   std_msgs
+  sensor_msgs
 )
 
 ################################################
@@ -223,3 +225,7 @@ add_dependencies(test_herkulex_node mitya_teleop_generate_messages_cpp)
 add_executable(mpu6050_node src/mpu6050_node.cpp)
 target_link_libraries(mpu6050_node ${catkin_LIBRARIES} wiringPi)
 add_dependencies(mpu6050_node mitya_teleop_generate_messages_cpp)
+
+add_executable(test_imu_node src/test_imu_node.cpp)
+target_link_libraries(test_imu_node ${catkin_LIBRARIES})
+add_dependencies(test_imu_node mitya_teleop_generate_messages_cpp)
