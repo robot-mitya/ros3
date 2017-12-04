@@ -47,19 +47,21 @@ private:
 TestImuNode::TestImuNode()
 {
   ros::NodeHandle nodeHandle(RM_NAMESPACE);
-  imuSubscriber_ = nodeHandle.subscribe<sensor_msgs::Imu>(RM_IMU_TOPIC_NAME, 1000, &TestImuNode::imuCallback, this);
+  imuSubscriber_ = nodeHandle.subscribe<sensor_msgs::Imu>(RM_IMU_TOPIC_NAME, 100, &TestImuNode::imuCallback, this);
 }
 
 void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
 {
-  ROS_INFO("++++++++++++++");
-  //ROS_INFO("Angular velocity: %.3f, %.3f, %.3f", imu->angular_velocity.x, imu->angular_velocity.y, imu->angular_velocity.z);
+  //ROS_INFO("++++++++++++++");
+  ROS_INFO("Angular velocity: %.3f, %.3f, %.3f", imu->angular_velocity.x, imu->angular_velocity.y, imu->angular_velocity.z);
 }
 
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "test_imu_node");
+
   TestImuNode testImuNode;
+
   //ros::spin();
   ros::Rate loop_rate(100); // 100 Hz
   while (ros::ok())

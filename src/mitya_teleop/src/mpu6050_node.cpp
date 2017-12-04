@@ -103,7 +103,7 @@ void Mpu6050Node::publishImu()
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "mpu6050");
+  ros::init(argc, argv, RM_MPU6050_NODE_NAME);
 
   Mpu6050Node mpu6050Node;
 

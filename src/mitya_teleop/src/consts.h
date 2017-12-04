@@ -61,6 +61,8 @@
 #define RM_LED_TOPIC_NAME "led"
 #define RM_DISTANCE_TOPIC_NAME "distance"
 #define RM_SPEED_TOPIC_NAME "speed"
+
+#define RM_MPU6050_NODE_NAME "mpu6050_node"
 #define RM_IMU_TOPIC_NAME "imu"
 
 #define RM_HERKULEX_NODE_NAME "herkulex_node"
