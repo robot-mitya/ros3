@@ -40,8 +40,10 @@ class Mpu6050Node
 {
 public:
   Mpu6050Node();
-  void publishImu();
+  void fillImuMessage(const sensor_msgs::ImuPtr& msg);
+  void publishImuMessage(const sensor_msgs::ImuPtr& msg);
 private:
+  int i2cAddress_;
   int fileDescriptor_;
   float readWord2c(int addr);
 
@@ -49,13 +51,15 @@ private:
   ros::Publisher imuPublisher_;
 };
 
-const int I2C_ADDR = 0x68;
 const int PWR_MGMT_1 = 0x6B;
 
 Mpu6050Node::Mpu6050Node()
 {
+  ros::NodeHandle privateNodeHandle("~");
+  privateNodeHandle.param("i2c_address", i2cAddress_, 0x68);
+
   // Connect to device.
-  fileDescriptor_ = wiringPiI2CSetup(I2C_ADDR);
+  fileDescriptor_ = wiringPiI2CSetup(i2cAddress_);
   if (fileDescriptor_ == -1)
   {
     ROS_ERROR("No i2c device found?");
@@ -76,28 +80,29 @@ float Mpu6050Node::readWord2c(int addr)
   return float((val >= 0x8000) ? -((65535 - val) + 1) : val);
 }
 
-void Mpu6050Node::publishImu()
+void Mpu6050Node::fillImuMessage(const sensor_msgs::ImuPtr& msg)
 {
-  sensor_msgs::Imu msg;
-  msg.header.stamp = ros::Time::now();
-  msg.header.frame_id = '0';  // no frame
+  msg->header.stamp = ros::Time::now();
+  msg->header.frame_id = '0';  // no frame
 
   // Read gyroscope values.
   // At default sensitivity of 250deg/s we need to scale by 131.
-  msg.angular_velocity.x = readWord2c(0x43) / 131;
-  msg.angular_velocity.y = readWord2c(0x45) / 131;
-  msg.angular_velocity.z = readWord2c(0x47) / 131;
+  msg->angular_velocity.x = readWord2c(0x43) / 131;
+  msg->angular_velocity.y = readWord2c(0x45) / 131;
+  msg->angular_velocity.z = readWord2c(0x47) / 131;
 
   // Read accelerometer values.
   // At default sensitivity of 2g we need to scale by 16384.
   // Note: at "level" x = y = 0 but z = 1 (i.e. gravity)
   // But! Imu message documentations say acceleration should be in m/2 so need to *9.807
   const float la_rescale = 16384.0 / 9.807;
-  msg.linear_acceleration.x = readWord2c(0x3b) / la_rescale;
-  msg.linear_acceleration.y = readWord2c(0x3d) / la_rescale;
-  msg.linear_acceleration.z = readWord2c(0x3f) / la_rescale;
+  msg->linear_acceleration.x = readWord2c(0x3b) / la_rescale;
+  msg->linear_acceleration.y = readWord2c(0x3d) / la_rescale;
+  msg->linear_acceleration.z = readWord2c(0x3f) / la_rescale;
+}
 
-  // Pub & sleep.
+void Mpu6050Node::publishImuMessage(const sensor_msgs::ImuPtr& msg)
+{
   imuPublisher_.publish(msg);
 }
 
@@ -106,11 +111,13 @@ int main(int argc, char **argv)
   ros::init(argc, argv, RM_MPU6050_NODE_NAME);
 
   Mpu6050Node mpu6050Node;
+  sensor_msgs::ImuPtr imuPrt(new sensor_msgs::Imu());
 
   ros::Rate rate(10);  // hz
-  // Publish in loop.
-  while(ros::ok()) {
-    mpu6050Node.publishImu();
+  while(ros::ok())
+  {
+    mpu6050Node.fillImuMessage(imuPrt);
+    mpu6050Node.publishImuMessage(imuPrt);
 
     ros::spinOnce();
     rate.sleep();

@@ -125,6 +125,7 @@ $ tail -f /proc/17821/fd/1
 
 			<!-- mpu6050 node -->
 			<node machine="mitya" pkg="mitya_teleop" type="mpu6050_node" name="mpu6050">
+				<param name="i2c_address" type="int" value="0x68" />
 			</node>
 		</group>
 	</group>
