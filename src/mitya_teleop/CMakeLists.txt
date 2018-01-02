@@ -204,7 +204,10 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-include_directories(include ${catkin_INCLUDE_DIRS})
+include_directories(
+  include/mitya_teleop
+  ${catkin_INCLUDE_DIRS}
+)
 
 add_executable(joystick_node src/joystick_node.cpp src/robo_com.cpp src/button_event.cpp)
 target_link_libraries(joystick_node ${catkin_LIBRARIES} yaml-cpp)
@@ -222,7 +225,16 @@ add_executable(test_herkulex_node src/test_herkulex_node.cpp src/herkulex.cpp)
 target_link_libraries(test_herkulex_node ${catkin_LIBRARIES})
 add_dependencies(test_herkulex_node mitya_teleop_generate_messages_cpp)
 
-add_executable(mpu6050_node src/mpu6050_node.cpp)
+add_executable(
+  mpu6050_node
+  include/mitya_teleop/I2Cdev.h
+  include/mitya_teleop/MPU6050.h
+  include/mitya_teleop/MPU6050_6Axis_MotionApps20.h
+  include/mitya_teleop/helper_3dmath.h
+  src/I2Cdev.cpp
+  src/MPU6050.cpp
+  src/mpu6050_node.cpp
+)
 target_link_libraries(mpu6050_node ${catkin_LIBRARIES} wiringPi)
 add_dependencies(mpu6050_node mitya_teleop_generate_messages_cpp)
 
