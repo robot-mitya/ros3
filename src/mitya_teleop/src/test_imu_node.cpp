@@ -53,7 +53,7 @@ TestImuNode::TestImuNode()
 void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
 {
   //ROS_INFO("++++++++++++++");
-  ROS_INFO("Angular velocity: %.3f, %.3f, %.3f", imu->angular_velocity.x, imu->angular_velocity.y, imu->angular_velocity.z);
+  //ROS_INFO("Angular velocity: %.3f, %.3f, %.3f", imu->angular_velocity.x, imu->angular_velocity.y, imu->angular_velocity.z);
 }
 
 int main(int argc, char **argv)

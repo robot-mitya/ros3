@@ -50,57 +50,58 @@ public:
   void setup();
   void loop(const sensor_msgs::ImuPtr& msg);
 private:
-  MPU6050 *mpu;
+  MPU6050 *mpu_;
 
-  int update_rate;
+  int update_rate_;
+  int i2cAddress_;
 
   // Topic RM_IMU_TOPIC_NAME ('imu') publisher:
   ros::Publisher imuPublisher_;
 
   // MPU control/status variants
-  bool dmpReady;  // set true if DMP initialization was successful
-  uint8_t mpuIntStatus;   // holds actual interrupt status byte from MPU
-  uint8_t devStatus;      // return status after each device operation (0 = success, !0 = error)
-  uint16_t packetSize;    // expected DMP packet size (default is 42 bytes)
-  uint16_t fifoCount;     // count of all bytes currently in FIFO
-  uint8_t fifoBuffer[64]; // FIFO storage buffer
+  bool dmpReady_;  // set true if DMP initialization was successful
+  uint8_t mpuIntStatus_;   // holds actual interrupt status byte from MPU
+  uint8_t devStatus_;      // return status after each device operation (0 = success, !0 = error)
+  uint16_t packetSize_;    // expected DMP packet size (default is 42 bytes)
+  uint16_t fifoCount_;     // count of all bytes currently in FIFO
+  uint8_t fifoBuffer_[64]; // FIFO storage buffer
 
   // orientation/motion variants
-  Quaternion q;           // [w, x, y, z]         quaternion container
-  VectorInt16 aa;         // [x, y, z]            accelerator sensor measurements
-  VectorInt16 aaReal;     // [x, y, z]            gravity-free accelerator sensor measurements
-  VectorInt16 aaWorld;    // [x, y, z]            world-frame accelerator sensor measurements
-  VectorFloat gravity;    // [x, y, z]            gravity vector
-  float ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
-  float last_ypr[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
-  ros::Publisher imu_pub;
-  boost::array<double, 9> linear_acceleration_cov;
-  boost::array<double, 9> angular_velocity_cov;
-  boost::array<double, 9> orientation_cov;
-  boost::array<double, 9> unk_orientation_cov;
-  boost::array<double, 9> magnetic_cov;
-  ros::Time last_update;
+  Quaternion q_;           // [w, x, y, z]         quaternion container
+  VectorInt16 aa_;         // [x, y, z]            accelerator sensor measurements
+  VectorInt16 aaReal_;     // [x, y, z]            gravity-free accelerator sensor measurements
+  VectorInt16 aaWorld_;    // [x, y, z]            world-frame accelerator sensor measurements
+  VectorFloat gravity_;    // [x, y, z]            gravity vector
+  float ypr_[3];           // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
+  float last_ypr_[3];      // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
+  ros::Publisher imu_pub_;
+  boost::array<double, 9> linear_acceleration_cov_;
+  boost::array<double, 9> angular_velocity_cov_;
+  boost::array<double, 9> orientation_cov_;
+  boost::array<double, 9> unk_orientation_cov_;
+  boost::array<double, 9> magnetic_cov_;
+  ros::Time last_update_;
 
   void setupCovariance(boost::array<double, 9> &cov, double stdev);
 };
 
 Mpu6050Node::Mpu6050Node()
 {
-  dmpReady = false;
+  dmpReady_ = false;
 
   ros::NodeHandle privateNodeHandle("~");
   int i2cAddress = 0x68;
-  privateNodeHandle.param("i2c_address", i2cAddress, 0x68);
+  privateNodeHandle.param("i2c_address", i2cAddress_, 0x68);
 
   double linear_stdev, angular_stdev, orientation_stdev;
   privateNodeHandle.param("linear_acceleration_stdev", linear_stdev, 0.0003);
   privateNodeHandle.param("angular_velocity_stdev", angular_stdev, 0.02 * (M_PI / 180.0));
   privateNodeHandle.param("orientation_stdev", orientation_stdev, 1.0);
-  privateNodeHandle.param("update_rate", update_rate, 100);
+  privateNodeHandle.param("update_rate", update_rate_, 100);
 
-  setupCovariance(linear_acceleration_cov, linear_stdev);
-  setupCovariance(angular_velocity_cov, angular_stdev);
-  setupCovariance(orientation_cov, orientation_stdev);
+  setupCovariance(linear_acceleration_cov_, linear_stdev);
+  setupCovariance(angular_velocity_cov_, angular_stdev);
+  setupCovariance(orientation_cov_, orientation_stdev);
 
   ros::NodeHandle nodeHandle(RM_NAMESPACE);
   imuPublisher_ = nodeHandle.advertise<sensor_msgs::Imu>(RM_IMU_TOPIC_NAME, 100);
@@ -118,9 +119,9 @@ void Mpu6050Node::setupCovariance(boost::array<double, 9> &cov, double stdev)
 void Mpu6050Node::prepareImuMessage(const sensor_msgs::ImuPtr& msg)
 {
   msg->header.frame_id = "imu";
-  msg->orientation_covariance = orientation_cov;
-  msg->angular_velocity_covariance = angular_velocity_cov;
-  msg->linear_acceleration_covariance = linear_acceleration_cov;
+  msg->orientation_covariance = orientation_cov_;
+  msg->angular_velocity_covariance = angular_velocity_cov_;
+  msg->linear_acceleration_covariance = linear_acceleration_cov_;
 }
 
 void Mpu6050Node::publishImuMessage(const sensor_msgs::ImuPtr& msg)
@@ -130,36 +131,38 @@ void Mpu6050Node::publishImuMessage(const sensor_msgs::ImuPtr& msg)
 
 void Mpu6050Node::setup()
 {
+  mpu_ = new MPU6050(i2cAddress_);
+
   // initialize device
   ROS_INFO("Initializing I2C devices...\n");
-  mpu->initialize();
+  mpu_->initialize();
 
   // verify connection
   ROS_INFO("Testing device connections...\n");
-  ROS_INFO(mpu->testConnection() ? "MPU6050 connection successful\n" : "MPU6050 connection failed\n");
+  ROS_INFO(mpu_->testConnection() ? "MPU6050 connection successful\n" : "MPU6050 connection failed\n");
 
   // load and configure the DMP
   ROS_INFO("Initializing DMP...\n");
-  devStatus = mpu->dmpInitialize();
+  devStatus_ = mpu_->dmpInitialize();
 
   // make sure it worked (returns 0 if so)
-  if (devStatus == 0)
+  if (devStatus_ == 0)
   {
     // turn on the DMP, now that it's ready
     ROS_INFO("Enabling DMP...\n");
-    mpu->setDMPEnabled(true);
+    mpu_->setDMPEnabled(true);
 
     // enable Arduino interrupt detection
     //Serial.println(F("Enabling interrupt detection (Arduino external interrupt 0)..."));
     //attachInterrupt(0, dmpDataReady, RISING);
-    mpuIntStatus = mpu->getIntStatus();
+    mpuIntStatus_ = mpu_->getIntStatus();
 
     // set our DMP Ready flag so the main loop() function knows it's okay to use it
     ROS_INFO("DMP ready!\n");
-    dmpReady = true;
+    dmpReady_ = true;
 
     // get expected DMP packet size for later comparison
-    packetSize = mpu->dmpGetFIFOPacketSize();
+    packetSize_ = mpu_->dmpGetFIFOPacketSize();
   }
   else
   {
@@ -167,47 +170,47 @@ void Mpu6050Node::setup()
     // 1 = initial memory load failed
     // 2 = DMP configuration updates failed
     // (if it's going to break, usually the code will be 1)
-    ROS_ERROR_STREAM("DMP Initialization failed (code " << devStatus <<")\n");
+    ROS_ERROR_STREAM("DMP Initialization failed (code " << devStatus_ <<")\n");
   }
 }
 
 void Mpu6050Node::loop(const sensor_msgs::ImuPtr& msg)
 {
   // if programming failed, don't try to do anything
-  if (!dmpReady) return;
+  if (!dmpReady_) return;
   // get current FIFO count
-  fifoCount = mpu->getFIFOCount();
+  fifoCount_ = mpu_->getFIFOCount();
 
-  if (fifoCount == 1024)
+  if (fifoCount_ == 1024)
   {
     // reset so we can continue cleanly
-    mpu->resetFIFO();
+    mpu_->resetFIFO();
     ROS_WARN("FIFO overflow!\n");
 
     // otherwise, check for DMP data ready interrupt (this should happen frequently)
   }
-  else if (fifoCount >= 42)
+  else if (fifoCount_ >= 42)
   {
     // read a packet from FIFO
-    mpu->getFIFOBytes(fifoBuffer, packetSize);
+    mpu_->getFIFOBytes(fifoBuffer_, packetSize_);
 
     ros::Time now = ros::Time::now();
     msg->header.stamp = now;
-    ros::Duration dt_r = now - last_update;
-    last_update = now;
+    ros::Duration dt_r = now - last_update_;
+    last_update_ = now;
 
     // display quaternion values in easy matrix form: w x y z
-    mpu->dmpGetQuaternion(&q, fifoBuffer);
-    msg->orientation.x = q.x;
-    msg->orientation.y = q.y;
-    msg->orientation.z = q.z;
-    msg->orientation.w = q.w;
+    mpu_->dmpGetQuaternion(&q_, fifoBuffer_);
+    msg->orientation.x = q_.x;
+    msg->orientation.y = q_.y;
+    msg->orientation.z = q_.z;
+    msg->orientation.w = q_.w;
 
-    mpu->dmpGetGravity(&gravity, &q);
-    mpu->dmpGetYawPitchRoll(ypr, &q, &gravity);
-    float yaw_ang_vel = ypr[0] - last_ypr[0] / dt_r.toSec();
-    float pitch_ang_vel = ypr[1] - last_ypr[1] / dt_r.toSec();
-    float roll_ang_vel = ypr[2] - last_ypr[2] / dt_r.toSec();
+    mpu_->dmpGetGravity(&gravity_, &q_);
+    mpu_->dmpGetYawPitchRoll(ypr_, &q_, &gravity_);
+    float yaw_ang_vel = ypr_[0] - last_ypr_[0] / dt_r.toSec();
+    float pitch_ang_vel = ypr_[1] - last_ypr_[1] / dt_r.toSec();
+    float roll_ang_vel = ypr_[2] - last_ypr_[2] / dt_r.toSec();
 
     msg->angular_velocity.x = roll_ang_vel;
     msg->angular_velocity.y = pitch_ang_vel;
@@ -215,12 +218,12 @@ void Mpu6050Node::loop(const sensor_msgs::ImuPtr& msg)
 
     // display initial world-frame acceleration, adjusted to remove gravity
     // and rotated based on known orientation from quaternion
-    mpu->dmpGetAccel(&aa, fifoBuffer);
-    mpu->dmpGetLinearAccelInWorld(&aaWorld, &aaReal, &q);
+    mpu_->dmpGetAccel(&aa_, fifoBuffer_);
+    mpu_->dmpGetLinearAccelInWorld(&aaWorld_, &aaReal_, &q_);
     //printf("aworld %6d %6d %6d    ", aaWorld.x, aaWorld.y, aaWorld.z);
-    msg->linear_acceleration.x = aaWorld.x;
-    msg->linear_acceleration.y = aaWorld.y;
-    msg->linear_acceleration.z = aaWorld.z;
+    msg->linear_acceleration.x = aaWorld_.x;
+    msg->linear_acceleration.y = aaWorld_.y;
+    msg->linear_acceleration.z = aaWorld_.z;
   }
 }
 
