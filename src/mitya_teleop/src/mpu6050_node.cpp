@@ -200,11 +200,20 @@ void Mpu6050Node::loop(const sensor_msgs::ImuPtr& msg)
     last_update_ = now;
 
     // display quaternion values in easy matrix form: w x y z
-    mpu_->dmpGetQuaternion(&q_, fifoBuffer_);
-    msg->orientation.x = q_.x;
-    msg->orientation.y = q_.y;
-    msg->orientation.z = q_.z;
-    msg->orientation.w = q_.w;
+    if (mpu_->dmpGetQuaternion(&q_, fifoBuffer_) == 0)
+    {
+      msg->orientation.x = q_.x;
+      msg->orientation.y = q_.y;
+      msg->orientation.z = q_.z;
+      msg->orientation.w = q_.w;
+    }
+    else
+    {
+      msg->orientation.x = 1;
+      msg->orientation.y = 0;
+      msg->orientation.z = 0;
+      msg->orientation.w = 0;
+    }
 
     mpu_->dmpGetGravity(&gravity_, &q_);
     mpu_->dmpGetYawPitchRoll(ypr_, &q_, &gravity_);
