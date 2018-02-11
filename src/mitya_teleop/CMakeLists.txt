@@ -227,12 +227,7 @@ add_dependencies(test_herkulex_node mitya_teleop_generate_messages_cpp)
 
 add_executable(
   mpu6050_node
-  include/mitya_teleop/I2Cdev.h
-  include/mitya_teleop/MPU6050.h
-  include/mitya_teleop/MPU6050_6Axis_MotionApps20.h
   include/mitya_teleop/helper_3dmath.h
-  src/I2Cdev.cpp
-  src/MPU6050.cpp
   src/mpu6050_node.cpp
 )
 target_link_libraries(mpu6050_node ${catkin_LIBRARIES} wiringPi)
