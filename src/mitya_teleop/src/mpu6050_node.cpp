@@ -33,9 +33,12 @@
 
 #include <ros/ros.h>
 #include <sensor_msgs/Imu.h>
+#include "std_msgs/String.h"
 #include <wiringPi.h>
 #include <wiringPiI2C.h>
 #include "consts.h"
+
+#define VALUES_TO_CALIBRATE 1000
 
 class Mpu6050Node
 {
@@ -50,6 +53,17 @@ private:
 
   // Topic RM_IMU_TOPIC_NAME ('imu') publisher:
   ros::Publisher imuPublisher_;
+
+  ros::Subscriber imuInputSubscriber_;
+  void imuInputCallback(const std_msgs::StringConstPtr& msg);
+
+//  float angularVelocitiesX[VALUES_TO_CALIBRATE];
+//  float angularVelocitiesY[VALUES_TO_CALIBRATE];
+//  float angularVelocitiesZ[VALUES_TO_CALIBRATE];
+//  float accelerationsX[VALUES_TO_CALIBRATE];
+//  float accelerationsY[VALUES_TO_CALIBRATE];
+//  float accelerationsZ[VALUES_TO_CALIBRATE];
+//  int arrayIndex;
 };
 
 const int PWR_MGMT_1 = 0x6B;
@@ -70,7 +84,9 @@ Mpu6050Node::Mpu6050Node()
   wiringPiI2CWriteReg16(fileDescriptor_, PWR_MGMT_1, 0);
 
   ros::NodeHandle nodeHandle(RM_NAMESPACE);
-  imuPublisher_ = nodeHandle.advertise<sensor_msgs::Imu>(RM_IMU_TOPIC_NAME, 100);
+  imuPublisher_ = nodeHandle.advertise<sensor_msgs::Imu>(RM_HEAD_IMU_OUTPUT_TOPIC_NAME, 100);
+
+  imuInputSubscriber_ = nodeHandle.subscribe(RM_HEAD_IMU_INPUT_TOPIC_NAME, 10, &Mpu6050Node::imuInputCallback, this);
 }
 
 float Mpu6050Node::readWord2c(int addr)
@@ -107,6 +123,14 @@ void Mpu6050Node::publishImuMessage(const sensor_msgs::ImuPtr& msg)
   imuPublisher_.publish(msg);
 }
 
+void Mpu6050Node::imuInputCallback(const std_msgs::StringConstPtr& msg)
+{
+  if (msg->data.compare("calibrate"))
+  {
+    ROS_INFO("Starting to calibrate head IMU...");
+  }
+}
+
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, RM_MPU6050_NODE_NAME);
@@ -114,7 +138,7 @@ int main(int argc, char **argv)
   Mpu6050Node mpu6050Node;
   sensor_msgs::ImuPtr imuPrt(new sensor_msgs::Imu());
 
-  ros::Rate rate(10);  // hz
+  ros::Rate rate(50);  // hz
   while(ros::ok())
   {
     mpu6050Node.fillImuMessage(imuPrt);

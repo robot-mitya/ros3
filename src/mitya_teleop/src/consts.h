@@ -63,7 +63,8 @@
 #define RM_SPEED_TOPIC_NAME "speed"
 
 #define RM_MPU6050_NODE_NAME "mpu6050_node"
-#define RM_IMU_TOPIC_NAME "imu"
+#define RM_HEAD_IMU_OUTPUT_TOPIC_NAME "head_imu_output"
+#define RM_HEAD_IMU_INPUT_TOPIC_NAME "head_imu_input"
 
 #define RM_HERKULEX_NODE_NAME "herkulex_node"
 #define RM_HEAD_POSITION_TOPIC_NAME "head_position"

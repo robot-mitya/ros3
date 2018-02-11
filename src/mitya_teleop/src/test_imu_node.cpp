@@ -47,7 +47,7 @@ private:
 TestImuNode::TestImuNode()
 {
   ros::NodeHandle nodeHandle(RM_NAMESPACE);
-  imuSubscriber_ = nodeHandle.subscribe<sensor_msgs::Imu>(RM_IMU_TOPIC_NAME, 100, &TestImuNode::imuCallback, this);
+  imuSubscriber_ = nodeHandle.subscribe<sensor_msgs::Imu>(RM_HEAD_IMU_OUTPUT_TOPIC_NAME, 100, &TestImuNode::imuCallback, this);
 }
 
 void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
