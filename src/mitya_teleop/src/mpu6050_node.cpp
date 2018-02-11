@@ -125,6 +125,7 @@ void Mpu6050Node::publishImuMessage(const sensor_msgs::ImuPtr& msg)
 
 void Mpu6050Node::imuInputCallback(const std_msgs::StringConstPtr& msg)
 {
+  ROS_INFO("In imuInputCallback()"); //TODO Remove this line!
   if (msg->data.compare("calibrate") == 0)
   {
     ROS_INFO("Starting to calibrate head IMU...");
