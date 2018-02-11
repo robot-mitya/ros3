@@ -125,9 +125,13 @@ void Mpu6050Node::publishImuMessage(const sensor_msgs::ImuPtr& msg)
 
 void Mpu6050Node::imuInputCallback(const std_msgs::StringConstPtr& msg)
 {
-  if (msg->data.compare("calibrate"))
+  if (msg->data.compare("calibrate") == 0)
   {
     ROS_INFO("Starting to calibrate head IMU...");
+  }
+  else
+  {
+    ROS_INFO("%s.%s: Unknown command \"%s\"", RM_MPU6050_NODE_NAME, RM_HEAD_IMU_INPUT_TOPIC_NAME, msg->data.c_str());
   }
 }
 
