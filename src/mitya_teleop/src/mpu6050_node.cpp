@@ -37,6 +37,7 @@
 #include <wiringPi.h>
 #include <wiringPiI2C.h>
 #include "consts.h"
+#include "mpu6050_helper.h"
 
 #define VALUES_TO_CALIBRATE 1000
 
@@ -44,7 +45,10 @@ class Mpu6050Node
 {
 public:
   Mpu6050Node();
-  void fillImuMessage(const sensor_msgs::ImuPtr& msg);
+  void readImuData(float *vX, float *vY, float *vZ, float *aX, float *aY, float *aZ);
+  bool performingCalibration(float vX, float vY, float vZ, float aX, float aY, float aZ);
+
+  void fillImuMessage(const sensor_msgs::ImuPtr& msg, float vX, float vY, float vZ, float aX, float aY, float aZ);
   void publishImuMessage(const sensor_msgs::ImuPtr& msg);
 private:
   int i2cAddress_;
@@ -57,13 +61,7 @@ private:
   ros::Subscriber imuInputSubscriber_;
   void imuInputCallback(const std_msgs::StringConstPtr& msg);
 
-//  float angularVelocitiesX[VALUES_TO_CALIBRATE];
-//  float angularVelocitiesY[VALUES_TO_CALIBRATE];
-//  float angularVelocitiesZ[VALUES_TO_CALIBRATE];
-//  float accelerationsX[VALUES_TO_CALIBRATE];
-//  float accelerationsY[VALUES_TO_CALIBRATE];
-//  float accelerationsZ[VALUES_TO_CALIBRATE];
-//  int arrayIndex;
+  MpuHelper mpuHelper_;
 };
 
 const int PWR_MGMT_1 = 0x6B;
@@ -72,6 +70,7 @@ Mpu6050Node::Mpu6050Node()
 {
   ros::NodeHandle privateNodeHandle("~");
   privateNodeHandle.param("i2c_address", i2cAddress_, 0x68);
+//  privateNodeHandle.
 
   // Connect to device.
   fileDescriptor_ = wiringPiI2CSetup(i2cAddress_);
@@ -97,25 +96,38 @@ float Mpu6050Node::readWord2c(int addr)
   return float((val >= 0x8000) ? -((65535 - val) + 1) : val);
 }
 
-void Mpu6050Node::fillImuMessage(const sensor_msgs::ImuPtr& msg)
+void Mpu6050Node::readImuData(float *vX, float *vY, float *vZ, float *aX, float *aY, float *aZ)
 {
-  msg->header.stamp = ros::Time::now();
-  msg->header.frame_id = '0';  // no frame
-
   // Read gyroscope values.
   // At default sensitivity of 250deg/s we need to scale by 131.
-  msg->angular_velocity.x = readWord2c(0x43) / 131;
-  msg->angular_velocity.y = readWord2c(0x45) / 131;
-  msg->angular_velocity.z = readWord2c(0x47) / 131;
+  *vX = readWord2c(0x43) / 131;
+  *vY = readWord2c(0x45) / 131;
+  *vZ = readWord2c(0x47) / 131;
 
   // Read accelerometer values.
   // At default sensitivity of 2g we need to scale by 16384.
   // Note: at "level" x = y = 0 but z = 1 (i.e. gravity)
   // But! Imu message documentations say acceleration should be in m/2 so need to *9.807
   const float la_rescale = 16384.0 / 9.807;
-  msg->linear_acceleration.x = readWord2c(0x3b) / la_rescale;
-  msg->linear_acceleration.y = readWord2c(0x3d) / la_rescale;
-  msg->linear_acceleration.z = readWord2c(0x3f) / la_rescale;
+  *aX = readWord2c(0x3b) / la_rescale;
+  *aY = readWord2c(0x3d) / la_rescale;
+  *aZ = readWord2c(0x3f) / la_rescale;
+
+  mpuHelper_.correctMpuData(vX, vY, vZ, aX, aY, aZ);
+}
+
+void Mpu6050Node::fillImuMessage(const sensor_msgs::ImuPtr& msg, float vX, float vY, float vZ, float aX, float aY, float aZ)
+{
+  msg->header.stamp = ros::Time::now();
+  msg->header.frame_id = '0';  // no frame
+
+  msg->angular_velocity.x = vX;
+  msg->angular_velocity.y = vY;
+  msg->angular_velocity.z = vZ;
+
+  msg->linear_acceleration.x = aX;
+  msg->linear_acceleration.y = aY;
+  msg->linear_acceleration.z = aZ;
 }
 
 void Mpu6050Node::publishImuMessage(const sensor_msgs::ImuPtr& msg)
@@ -125,15 +137,20 @@ void Mpu6050Node::publishImuMessage(const sensor_msgs::ImuPtr& msg)
 
 void Mpu6050Node::imuInputCallback(const std_msgs::StringConstPtr& msg)
 {
-  ROS_INFO("In imuInputCallback()"); //TODO Remove this line!
   if (msg->data.compare("calibrate") == 0)
   {
     ROS_INFO("Starting to calibrate head IMU...");
+    mpuHelper_.startCalibration();
   }
   else
   {
-    ROS_INFO("%s.%s: Unknown command \"%s\"", RM_MPU6050_NODE_NAME, RM_HEAD_IMU_INPUT_TOPIC_NAME, msg->data.c_str());
+    ROS_ERROR("%s.%s: Unknown command \"%s\"", RM_MPU6050_NODE_NAME, RM_HEAD_IMU_INPUT_TOPIC_NAME, msg->data.c_str());
   }
+}
+
+bool Mpu6050Node::performingCalibration(float vX, float vY, float vZ, float aX, float aY, float aZ)
+{
+  return mpuHelper_.processCalibration(vX, vY, vZ, aX, aY, aZ);
 }
 
 int main(int argc, char **argv)
@@ -143,11 +160,17 @@ int main(int argc, char **argv)
   Mpu6050Node mpu6050Node;
   sensor_msgs::ImuPtr imuPrt(new sensor_msgs::Imu());
 
+  float vX, vY, vZ, aX, aY, aZ;
   ros::Rate rate(50);  // hz
   while(ros::ok())
   {
-    mpu6050Node.fillImuMessage(imuPrt);
-    mpu6050Node.publishImuMessage(imuPrt);
+    mpu6050Node.readImuData(&vX, &vY, &vZ, &aX, &aY, &aZ);
+
+    if (!mpu6050Node.performingCalibration(vX, vY, vZ, aX, aY, aZ))
+    {
+      mpu6050Node.fillImuMessage(imuPrt, vX, vY, vZ, aX, aY, aZ);
+      mpu6050Node.publishImuMessage(imuPrt);
+    }
 
     ros::spinOnce();
     rate.sleep();
