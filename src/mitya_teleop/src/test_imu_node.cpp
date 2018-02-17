@@ -32,8 +32,11 @@
  */
 
 #include <ros/ros.h>
+#include <ros/platform.h>
+//#include <ros/package.h>
 #include <sensor_msgs/Imu.h>
 #include "consts.h"
+#include "mpu6050_helper.h"
 
 class TestImuNode
 {
@@ -42,12 +45,17 @@ public:
 private:
   ros::Subscriber imuSubscriber_;
   void imuCallback(const sensor_msgs::Imu::ConstPtr& imu);
+
+  MpuHelper *mpuHelper_;
 };
 
 TestImuNode::TestImuNode()
 {
   ros::NodeHandle nodeHandle(RM_NAMESPACE);
   imuSubscriber_ = nodeHandle.subscribe<sensor_msgs::Imu>(RM_HEAD_IMU_OUTPUT_TOPIC_NAME, 100, &TestImuNode::imuCallback, this);
+
+  mpuHelper_ = new MpuHelper();
+  ROS_INFO("+++++++++++ paramsFullFilename = %s", mpuHelper_->getParamsFullFilename().c_str());
 }
 
 void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
@@ -61,6 +69,15 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "test_imu_node");
 
   TestImuNode testImuNode;
+
+  ROS_INFO("+++++++++++ Hello world! ++++++++++++");
+  std::string rosHomePath;
+  ros::get_environment_variable(rosHomePath, "ROS_ETC_DIR");
+  ROS_INFO("+++++++++++ ROS_ETC_DIR = %s", rosHomePath.c_str());
+
+//  std::string packagePath = ros::package::getPath("mpu6050_node");
+//  ROS_INFO("+++++++++++ package::getPath = %s", packagePath.c_str());
+
 
   //ros::spin();
   ros::Rate loop_rate(100); // 100 Hz

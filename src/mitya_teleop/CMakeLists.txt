@@ -9,6 +9,7 @@ project(mitya_teleop)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+    # roslib
   rospy
   std_msgs
   sensor_msgs
@@ -231,9 +232,9 @@ add_executable(
   src/mpu6050_node.cpp
   src/mpu6050_helper.cpp
 )
-target_link_libraries(mpu6050_node ${catkin_LIBRARIES} wiringPi)
+target_link_libraries(mpu6050_node ${catkin_LIBRARIES} wiringPi yaml-cpp)
 add_dependencies(mpu6050_node mitya_teleop_generate_messages_cpp)
 
-add_executable(test_imu_node src/test_imu_node.cpp)
-target_link_libraries(test_imu_node ${catkin_LIBRARIES})
+add_executable(test_imu_node src/test_imu_node.cpp src/mpu6050_helper.cpp)
+target_link_libraries(test_imu_node ${catkin_LIBRARIES} yaml-cpp)
 add_dependencies(test_imu_node mitya_teleop_generate_messages_cpp)

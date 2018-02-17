@@ -34,6 +34,8 @@
 #ifndef MITYA_TELEOP_SRC_MPU6050_HELPER_H_
 #define MITYA_TELEOP_SRC_MPU6050_HELPER_H_
 
+#include <string>
+
 class MpuHelper
 {
 public:
@@ -41,9 +43,14 @@ public:
   void startCalibration();
   bool processCalibration(float vX, float vY, float vZ, float aX, float aY, float aZ);
   void correctMpuData(float *vX, float *vY, float *vZ, float *aX, float *aY, float *aZ);
+
+  std::string getParamsFullFilename() { return paramsFullFilename_; }
 private:
   static const int medianIndex = 500;
   static const int valuesCount = medianIndex * 2 + 1;
+  static const char *paramsFilename;
+
+  std::string paramsFullFilename_;
 
   float *angularVelocitiesX_;
   float *angularVelocitiesY_;

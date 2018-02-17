@@ -31,11 +31,22 @@
  *      Author: Dmitry Dzakhov
  */
 
+//#include <ros/ros.h> // REMOVE!!!!!!!!!!!
 #include "mpu6050_helper.h"
 #include <algorithm>
+#include <fstream>
+#include <ros/platform.h>
+#include "yaml-cpp/yaml.h"
+
+const char *MpuHelper::paramsFilename = "mpu6050-params.yaml";
 
 MpuHelper::MpuHelper()
 {
+  std::string rosEtcDir;
+  ros::get_environment_variable(rosEtcDir, "ROS_ETC_DIR");
+  // It's better to use $ROS_HOME instead of "":
+  paramsFullFilename_ = "" + std::string(MpuHelper::paramsFilename);
+
   arrayIndex_ = 0;
   calibrating_ = false;
 
@@ -57,6 +68,7 @@ MpuHelper::MpuHelper()
 
 void MpuHelper::correctMpuData(float *vX, float *vY, float *vZ, float *aX, float *aY, float *aZ)
 {
+  if (calibrating_) return;
   *vX -= deltaAngularVelocityX_;
   *vY -= deltaAngularVelocityY_;
   *vZ -= deltaAngularVelocityZ_;
@@ -110,12 +122,50 @@ float MpuHelper::calculateMedian(float values[])
   return values[medianIndex];
 }
 
+
 void MpuHelper::loadCalibrationParamsFromFile()
 {
-
+  try
+  {
+    YAML::Node node = YAML::LoadFile(paramsFullFilename_.c_str());
+    deltaAngularVelocityX_ = node["deltaAngularVelocityX"].as<float>();
+    deltaAngularVelocityY_ = node["deltaAngularVelocityY"].as<float>();
+    deltaAngularVelocityZ_ = node["deltaAngularVelocityZ"].as<float>();
+    deltaAccelerationX_ = node["deltaAccelerationX"].as<float>();
+    deltaAccelerationY_ = node["deltaAccelerationY"].as<float>();
+    deltaAccelerationZ_ = node["deltaAccelerationZ"].as<float>();
+  }
+  catch (...)
+  {
+    deltaAngularVelocityX_ = 0;
+    deltaAngularVelocityY_ = 0;
+    deltaAngularVelocityZ_ = 0;
+    deltaAccelerationX_ = 0;
+    deltaAccelerationY_ = 0;
+    deltaAccelerationZ_ = 0;
+    saveCalibrationParamsToFile();
+  }
 }
 
 void MpuHelper::saveCalibrationParamsToFile()
 {
+  YAML::Emitter out;
+  out << YAML::BeginMap;
+  out << YAML::Key << "deltaAngularVelocityX";
+  out << YAML::Value << deltaAngularVelocityX_;
+  out << YAML::Key << "deltaAngularVelocityY";
+  out << YAML::Value << deltaAngularVelocityY_;
+  out << YAML::Key << "deltaAngularVelocityZ";
+  out << YAML::Value << deltaAngularVelocityZ_;
+  out << YAML::Key << "deltaAccelerationX";
+  out << YAML::Value << deltaAccelerationX_;
+  out << YAML::Key << "deltaAccelerationY";
+  out << YAML::Value << deltaAccelerationY_;
+  out << YAML::Key << "deltaAccelerationZ";
+  out << YAML::Value << deltaAccelerationZ_;
+  out << YAML::EndMap;
 
+  std::ofstream paramsFile(paramsFullFilename_.c_str());
+  paramsFile << out.c_str();
+  paramsFile.close();
 }
