@@ -77,10 +77,8 @@ $ tail -f /proc/17821/fd/1
 		</node>
 	
 		<!-- Test IMU node -->
-		<!--
 		<node pkg="mitya_teleop" type="test_imu_node" name="test_imu">
 		</node>
-		-->
 
 		<group>
 		    <param name="head_horizontal_min_degree" type="double" value="-120.0" />

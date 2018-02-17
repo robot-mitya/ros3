@@ -33,10 +33,10 @@
 
 #include <ros/ros.h>
 #include <ros/platform.h>
-//#include <ros/package.h>
 #include <sensor_msgs/Imu.h>
 #include "consts.h"
 #include "mpu6050_helper.h"
+#include "madgwick.h"
 
 class TestImuNode
 {
@@ -46,7 +46,7 @@ private:
   ros::Subscriber imuSubscriber_;
   void imuCallback(const sensor_msgs::Imu::ConstPtr& imu);
 
-  MpuHelper *mpuHelper_;
+  ros::Time prevStamp_;
 };
 
 TestImuNode::TestImuNode()
@@ -54,14 +54,36 @@ TestImuNode::TestImuNode()
   ros::NodeHandle nodeHandle(RM_NAMESPACE);
   imuSubscriber_ = nodeHandle.subscribe<sensor_msgs::Imu>(RM_HEAD_IMU_OUTPUT_TOPIC_NAME, 100, &TestImuNode::imuCallback, this);
 
-  mpuHelper_ = new MpuHelper();
-  ROS_INFO("+++++++++++ paramsFullFilename = %s", mpuHelper_->getParamsFullFilename().c_str());
+  prevStamp_ = ros::Time::now();
 }
 
 void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
 {
-  //ROS_INFO("++++++++++++++");
-  //ROS_INFO("Angular velocity: %.3f, %.3f, %.3f", imu->angular_velocity.x, imu->angular_velocity.y, imu->angular_velocity.z);
+  ros::Duration deltaTime = imu->header.stamp - prevStamp_;
+  prevStamp_ = imu->header.stamp;
+
+//  float vx = imu->angular_velocity.x * 131;
+//  float vy = imu->angular_velocity.y * 131;
+//  float vz = imu->angular_velocity.z * 131;
+//  float ax = imu->linear_acceleration.x / 16384.0 * 9.807;
+//  float ay = imu->linear_acceleration.y / 16384.0 * 9.807;
+//  float az = imu->linear_acceleration.z / 16384.0 * 9.807;
+  float vx = imu->angular_velocity.x;
+  float vy = imu->angular_velocity.y;
+  float vz = imu->angular_velocity.z;
+  float ax = imu->linear_acceleration.x;
+  float ay = imu->linear_acceleration.y;
+  float az = imu->linear_acceleration.z;
+
+  ROS_INFO("Time: %.3f; Angular velocity: %.3f, %.3f, %.3f; Acceleration: %.3f, %.3f, %.3f", deltaTime.toSec(), vx, vy, vz, ax, ay, az);
+
+  float dt = deltaTime.toSec();
+//  MadgwickAHRSupdateIMU(dt, vx, vy, vz, ax, ay, az);
+  MadgwickAHRSupdateIMU(dt, -vz, vy, vx, -az, ay, ax);
+
+  ROS_INFO("Quaternion: %.3f, %.3f, %.3f, %.3f", q0, q1, q2, q3);
+  float toDeg = 180.0 / 3.1416;
+  ROS_INFO("Roll/Pitch/Yaw: %.3f, %.3f, %.3f", roll * toDeg, pitch * toDeg, yaw * toDeg);
 }
 
 int main(int argc, char **argv)
@@ -70,20 +92,9 @@ int main(int argc, char **argv)
 
   TestImuNode testImuNode;
 
-  ROS_INFO("+++++++++++ Hello world! ++++++++++++");
-  std::string rosHomePath;
-  ros::get_environment_variable(rosHomePath, "ROS_ETC_DIR");
-  ROS_INFO("+++++++++++ ROS_ETC_DIR = %s", rosHomePath.c_str());
-
-//  std::string packagePath = ros::package::getPath("mpu6050_node");
-//  ROS_INFO("+++++++++++ package::getPath = %s", packagePath.c_str());
-
-
-  //ros::spin();
   ros::Rate loop_rate(100); // 100 Hz
   while (ros::ok())
   {
-    //ROS_INFO("++++++++++++++****************");
     loop_rate.sleep();
     ros::spinOnce();
   }
