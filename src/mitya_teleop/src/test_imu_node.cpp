@@ -81,9 +81,8 @@ void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
 //  MadgwickAHRSupdateIMU(dt, vx, vy, vz, ax, ay, az);
   MadgwickAHRSupdateIMU(dt, -vz, vy, vx, -az, ay, ax);
 
-  ROS_INFO("Quaternion: %.3f, %.3f, %.3f, %.3f", q0, q1, q2, q3);
-  float toDeg = 180.0 / 3.1416;
-  ROS_INFO("Roll/Pitch/Yaw: %.3f, %.3f, %.3f", roll * toDeg, pitch * toDeg, yaw * toDeg);
+  ROS_INFO("Quaternion: %.3f, %.3f, %.3f, %.3f", q1, q2, q3, q4);
+  ROS_INFO("Roll/Pitch/Yaw: %.3f, %.3f, %.3f", roll, pitch, yaw);
 }
 
 int main(int argc, char **argv)
