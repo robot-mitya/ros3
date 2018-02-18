@@ -41,8 +41,8 @@ class MpuHelper
 public:
   MpuHelper();
   void startCalibration();
-  bool processCalibration(float vX, float vY, float vZ, float aX, float aY, float aZ);
-  void correctMpuData(float *vX, float *vY, float *vZ, float *aX, float *aY, float *aZ);
+  bool processCalibration(float vX, float vY, float vZ);
+  void correctMpuData(float *vX, float *vY, float *vZ);
 
   std::string getParamsFullFilename() { return paramsFullFilename_; }
 private:
@@ -55,9 +55,6 @@ private:
   float *angularVelocitiesX_;
   float *angularVelocitiesY_;
   float *angularVelocitiesZ_;
-  float *accelerationsX_;
-  float *accelerationsY_;
-  float *accelerationsZ_;
 
   int arrayIndex_;
   bool calibrating_;
@@ -65,9 +62,6 @@ private:
   float deltaAngularVelocityX_;
   float deltaAngularVelocityY_;
   float deltaAngularVelocityZ_;
-  float deltaAccelerationX_;
-  float deltaAccelerationY_;
-  float deltaAccelerationZ_;
 
   float calculateMedian(float values[]);
 

@@ -53,28 +53,19 @@ MpuHelper::MpuHelper()
   angularVelocitiesX_ = new float[valuesCount];
   angularVelocitiesY_ = new float[valuesCount];
   angularVelocitiesZ_ = new float[valuesCount];
-  accelerationsX_ = new float[valuesCount];
-  accelerationsY_ = new float[valuesCount];
-  accelerationsZ_ = new float[valuesCount];
 
   deltaAngularVelocityX_ = 0;
   deltaAngularVelocityY_ = 0;
   deltaAngularVelocityZ_ = 0;
-  deltaAccelerationX_ = 0;
-  deltaAccelerationY_ = 0;
-  deltaAccelerationZ_ = 0;
   loadCalibrationParamsFromFile();
 }
 
-void MpuHelper::correctMpuData(float *vX, float *vY, float *vZ, float *aX, float *aY, float *aZ)
+void MpuHelper::correctMpuData(float *vX, float *vY, float *vZ)
 {
   if (calibrating_) return;
   *vX -= deltaAngularVelocityX_;
   *vY -= deltaAngularVelocityY_;
   *vZ -= deltaAngularVelocityZ_;
-  *aX -= deltaAccelerationX_;
-  *aY -= deltaAccelerationY_;
-  *aZ -= deltaAccelerationZ_;
 }
 
 void MpuHelper::startCalibration()
@@ -84,21 +75,15 @@ void MpuHelper::startCalibration()
   deltaAngularVelocityX_ = 0;
   deltaAngularVelocityY_ = 0;
   deltaAngularVelocityZ_ = 0;
-  deltaAccelerationX_ = 0;
-  deltaAccelerationY_ = 0;
-  deltaAccelerationZ_ = 0;
 }
 
-bool MpuHelper::processCalibration(float vX, float vY, float vZ, float aX, float aY, float aZ)
+bool MpuHelper::processCalibration(float vX, float vY, float vZ)
 {
   if (!calibrating_) return false;
 
   angularVelocitiesX_[arrayIndex_] = vX;
   angularVelocitiesY_[arrayIndex_] = vY;
   angularVelocitiesZ_[arrayIndex_] = vZ;
-  accelerationsX_[arrayIndex_] = aX;
-  accelerationsY_[arrayIndex_] = aY;
-  accelerationsZ_[arrayIndex_] = aZ;
 
   arrayIndex_++;
 
@@ -107,9 +92,6 @@ bool MpuHelper::processCalibration(float vX, float vY, float vZ, float aX, float
     deltaAngularVelocityX_ = calculateMedian(angularVelocitiesX_);
     deltaAngularVelocityY_ = calculateMedian(angularVelocitiesY_);
     deltaAngularVelocityZ_ = calculateMedian(angularVelocitiesZ_);
-    deltaAccelerationX_ = calculateMedian(accelerationsX_);
-    deltaAccelerationY_ = calculateMedian(accelerationsY_);
-    deltaAccelerationZ_ = calculateMedian(accelerationsZ_);
     calibrating_ = false;
     saveCalibrationParamsToFile();
   }
@@ -131,18 +113,12 @@ void MpuHelper::loadCalibrationParamsFromFile()
     deltaAngularVelocityX_ = node["deltaAngularVelocityX"].as<float>();
     deltaAngularVelocityY_ = node["deltaAngularVelocityY"].as<float>();
     deltaAngularVelocityZ_ = node["deltaAngularVelocityZ"].as<float>();
-    deltaAccelerationX_ = node["deltaAccelerationX"].as<float>();
-    deltaAccelerationY_ = node["deltaAccelerationY"].as<float>();
-    deltaAccelerationZ_ = node["deltaAccelerationZ"].as<float>();
   }
   catch (...)
   {
     deltaAngularVelocityX_ = 0;
     deltaAngularVelocityY_ = 0;
     deltaAngularVelocityZ_ = 0;
-    deltaAccelerationX_ = 0;
-    deltaAccelerationY_ = 0;
-    deltaAccelerationZ_ = 0;
     saveCalibrationParamsToFile();
   }
 }
@@ -157,12 +133,6 @@ void MpuHelper::saveCalibrationParamsToFile()
   out << YAML::Value << deltaAngularVelocityY_;
   out << YAML::Key << "deltaAngularVelocityZ";
   out << YAML::Value << deltaAngularVelocityZ_;
-  out << YAML::Key << "deltaAccelerationX";
-  out << YAML::Value << deltaAccelerationX_;
-  out << YAML::Key << "deltaAccelerationY";
-  out << YAML::Value << deltaAccelerationY_;
-  out << YAML::Key << "deltaAccelerationZ";
-  out << YAML::Value << deltaAccelerationZ_;
   out << YAML::EndMap;
 
   std::ofstream paramsFile(paramsFullFilename_.c_str());

@@ -46,7 +46,7 @@ class Mpu6050Node
 public:
   Mpu6050Node();
   void readImuData(float *vX, float *vY, float *vZ, float *aX, float *aY, float *aZ);
-  bool performingCalibration(float vX, float vY, float vZ, float aX, float aY, float aZ);
+  bool performingCalibration(float vX, float vY, float vZ);
 
   void fillImuMessage(const sensor_msgs::ImuPtr& msg, float vX, float vY, float vZ, float aX, float aY, float aZ);
   void publishImuMessage(const sensor_msgs::ImuPtr& msg);
@@ -113,7 +113,7 @@ void Mpu6050Node::readImuData(float *vX, float *vY, float *vZ, float *aX, float 
   *aY = readWord2c(0x3d) / la_rescale;
   *aZ = readWord2c(0x3f) / la_rescale;
 
-  mpuHelper_.correctMpuData(vX, vY, vZ, aX, aY, aZ);
+  mpuHelper_.correctMpuData(vX, vY, vZ);
 }
 
 void Mpu6050Node::fillImuMessage(const sensor_msgs::ImuPtr& msg, float vX, float vY, float vZ, float aX, float aY, float aZ)
@@ -148,9 +148,9 @@ void Mpu6050Node::imuInputCallback(const std_msgs::StringConstPtr& msg)
   }
 }
 
-bool Mpu6050Node::performingCalibration(float vX, float vY, float vZ, float aX, float aY, float aZ)
+bool Mpu6050Node::performingCalibration(float vX, float vY, float vZ)
 {
-  return mpuHelper_.processCalibration(vX, vY, vZ, aX, aY, aZ);
+  return mpuHelper_.processCalibration(vX, vY, vZ);
 }
 
 int main(int argc, char **argv)
@@ -166,7 +166,7 @@ int main(int argc, char **argv)
   {
     mpu6050Node.readImuData(&vX, &vY, &vZ, &aX, &aY, &aZ);
 
-    if (!mpu6050Node.performingCalibration(vX, vY, vZ, aX, aY, aZ))
+    if (!mpu6050Node.performingCalibration(vX, vY, vZ))
     {
       mpu6050Node.fillImuMessage(imuPrt, vX, vY, vZ, aX, aY, aZ);
       mpu6050Node.publishImuMessage(imuPrt);
