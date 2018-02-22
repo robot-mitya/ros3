@@ -50,7 +50,8 @@ float getRoll(float x, float y, float z, float w);
 float getPitch(float x, float y, float z, float w);
 float getYaw(float x, float y, float z, float w);
 
-void MadgwickAHRSupdateIMU(float deltaTime, float gx, float gy, float gz, float ax, float ay, float az)
+void MadgwickAHRSupdateIMU(float deltaTime, float gx, float gy, float gz, float ax, float ay, float az,
+                           float *qW, float *qX, float *qY, float *qZ)
 {
   float recipNorm;
   float s1, s2, s3, s4;
@@ -119,9 +120,17 @@ void MadgwickAHRSupdateIMU(float deltaTime, float gx, float gy, float gz, float 
   q3 *= recipNorm;
   q4 *= recipNorm;
 
-  roll = getRoll(q2, q3, q4, q1);
-  pitch = getPitch(q2, q3, q4, q1);
-  yaw = getYaw(q2, q3, q4, q1);
+  *qW = q1;
+  *qX = q2;
+  *qY = q3;
+  *qZ = q4;
+}
+
+void getEulerAngles(float qW, float qX, float qY, float qZ, float *roll, float *pitch, float *yaw)
+{
+  *roll = getRoll(qX, qY, qZ, qW);
+  *pitch = getPitch(qX, qY, qZ, qW);
+  *yaw = getYaw(qX, qY, qZ, qW);
 }
 
 /**
@@ -130,13 +139,14 @@ void MadgwickAHRSupdateIMU(float deltaTime, float gx, float gy, float gz, float 
  */
 float invSqrt(float x)
 {
-  float halfx = 0.5f * x;
-  float y = x;
-  long i = *(long*)&y;
-  i = 0x5f3759df - (i >> 1);
-  y = *(float*)&i;
-  y = y * (1.5f - (halfx * y * y));
-  return y;
+//  float halfx = 0.5f * x;
+//  float y = x;
+//  long i = *(long*)&y;
+//  i = 0x5f3759df - (i >> 1);
+//  y = *(float*)&i;
+//  y = y * (1.5f - (halfx * y * y));
+//  return y;
+  return 1.0f / sqrt(x);
 }
 
 float clamp(float value, float min, float max)

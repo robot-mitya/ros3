@@ -34,9 +34,12 @@
 #include <ros/ros.h>
 #include <ros/platform.h>
 #include <sensor_msgs/Imu.h>
+#include <std_msgs/String.h>
 #include "consts.h"
 #include "mpu6050_helper.h"
 #include "madgwick.h"
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Transform.h>
 
 class TestImuNode
 {
@@ -46,15 +49,40 @@ private:
   ros::Subscriber imuSubscriber_;
   void imuCallback(const sensor_msgs::Imu::ConstPtr& imu);
 
+  ros::Subscriber inputSubscriber_;
+  void inputCallback(const std_msgs::StringConstPtr& command);
+
   ros::Time prevStamp_;
+  tf2::Quaternion q_;
+  tf2::Quaternion qSrc_;
+  tf2::Quaternion qZero_;
+  tf2::Vector3 x_;
+  tf2::Vector3 y_;
+  tf2::Vector3 z_;
+  tf2::Vector3 zero3_;
+  tf2::Transform t_;
+
+  tf2::Vector3 acc_;
+  tf2::Vector3 vel_;
 };
 
 TestImuNode::TestImuNode()
 {
   ros::NodeHandle nodeHandle(RM_NAMESPACE);
   imuSubscriber_ = nodeHandle.subscribe<sensor_msgs::Imu>(RM_HEAD_IMU_OUTPUT_TOPIC_NAME, 100, &TestImuNode::imuCallback, this);
+  inputSubscriber_ = nodeHandle.subscribe<std_msgs::String>("test_imu_input", 100, &TestImuNode::inputCallback, this);
 
   prevStamp_ = ros::Time::now();
+  q_ = tf2::Quaternion::getIdentity();
+  qSrc_ = tf2::Quaternion::getIdentity();
+  qZero_ = tf2::Quaternion::getIdentity();
+
+  x_.setValue(1, 0, 0);
+  y_.setValue(0, 1, 0);
+  z_.setValue(0, 0, 1);
+  zero3_.setValue(0, 0, 0);
+  t_.setRotation(qZero_);
+  t_.setOrigin(zero3_);
 }
 
 void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
@@ -62,27 +90,57 @@ void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
   ros::Duration deltaTime = imu->header.stamp - prevStamp_;
   prevStamp_ = imu->header.stamp;
 
-//  float vx = imu->angular_velocity.x * 131;
-//  float vy = imu->angular_velocity.y * 131;
-//  float vz = imu->angular_velocity.z * 131;
-//  float ax = imu->linear_acceleration.x / 16384.0 * 9.807;
-//  float ay = imu->linear_acceleration.y / 16384.0 * 9.807;
-//  float az = imu->linear_acceleration.z / 16384.0 * 9.807;
   float vx = imu->angular_velocity.x;
   float vy = imu->angular_velocity.y;
   float vz = imu->angular_velocity.z;
   float ax = imu->linear_acceleration.x;
   float ay = imu->linear_acceleration.y;
   float az = imu->linear_acceleration.z;
+  tf2::Vector3 vel(-vz, vy, vx);
+  tf2::Vector3 acc(-az, ay, ax);
 
-  ROS_INFO("Time: %.3f; Angular velocity: %.3f, %.3f, %.3f; Acceleration: %.3f, %.3f, %.3f", deltaTime.toSec(), vx, vy, vz, ax, ay, az);
+  ROS_INFO("Time: %.3f; Angular vel: %.3f, %.3f, %.3f; Linear acc: %.3f, %.3f, %.3f", deltaTime.toSec(),
+           vel.m_floats[0], vel.m_floats[1], vel.m_floats[2],
+           acc.m_floats[0], acc.m_floats[1], acc.m_floats[2]);
 
   float dt = deltaTime.toSec();
-//  MadgwickAHRSupdateIMU(dt, vx, vy, vz, ax, ay, az);
-  MadgwickAHRSupdateIMU(dt, -vz, vy, vx, -az, ay, ax);
+  float qW, qX, qY, qZ;
+  MadgwickAHRSupdateIMU(dt,
+                        //vel.m_floats[0], vel.m_floats[1], vel.m_floats[2],
+                        //0, 0, 0,
+                        vel.m_floats[0], 0, vel.m_floats[2],
+                        acc.m_floats[0], acc.m_floats[1], acc.m_floats[2],
+                        &qW, &qX, &qY, &qZ);
+  qSrc_.setValue(qX, qY, qZ, qW);
+  q_ = qSrc_ * qZero_;
+  ROS_INFO("Quaternion: %.3f, %.3f, %.3f, %.3f", q_.w(), q_.x(), q_.y(), q_.z());
 
-  ROS_INFO("Quaternion: %.3f, %.3f, %.3f, %.3f", q1, q2, q3, q4);
+  float roll, pitch, yaw;
+  //getEulerAngles(qW, qX, qY, qZ, &roll, &pitch, &yaw);
+  getEulerAngles(q_.w(), q_.x(), q_.y(), q_.z(), &roll, &pitch, &yaw);
   ROS_INFO("Roll/Pitch/Yaw: %.3f, %.3f, %.3f", roll, pitch, yaw);
+
+  t_.setRotation(q_);
+  tf2::Vector3 y = t_ * y_;
+  ROS_INFO("Vector y: %.3f, %.3f, %.3f", y.x(), y.y(), y.z());
+
+  vel_ = vel_.lerp(vel, 0.02f);
+  ROS_INFO("Velocity: %.3f, %.3f, %.3f", vel_.x(), vel_.y(), vel_.z());
+  acc_ = acc_.lerp(acc, 0.02f);
+  ROS_INFO("Acceleration: %.3f, %.3f, %.3f", acc_.x(), acc_.y(), acc_.z());
+}
+
+void TestImuNode::inputCallback(const std_msgs::StringConstPtr& command)
+{
+  if (command->data.compare("zero") == 0)
+  {
+    ROS_INFO("Setting head zero orientation...");
+    qZero_ = qSrc_.inverse();
+  }
+  else
+  {
+    ROS_ERROR("Unknown command \"%s\"", command->data.c_str());
+  }
 }
 
 int main(int argc, char **argv)
