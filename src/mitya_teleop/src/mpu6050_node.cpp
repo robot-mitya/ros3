@@ -88,14 +88,14 @@ Mpu6050Node::Mpu6050Node()
 
   imuInputSubscriber_ = nodeHandle.subscribe(RM_HEAD_IMU_INPUT_TOPIC_NAME, 10, &Mpu6050Node::imuInputCallback, this);
 }
-
-//float Mpu6050Node::readWord2c(int addr)
-//{
-//  int high = wiringPiI2CReadReg8(fileDescriptor_, addr);
-//  int low = wiringPiI2CReadReg8(fileDescriptor_, addr + 1);
-//  int val = (high << 8) + low;
-//  return float((val >= 0x8000) ? -((65535 - val) + 1) : val);
-//}
+/*
+float Mpu6050Node::readWord2c(int addr)
+{
+  int high = wiringPiI2CReadReg8(fileDescriptor_, addr);
+  int low = wiringPiI2CReadReg8(fileDescriptor_, addr + 1);
+  int val = (high << 8) + low;
+  return float((val >= 0x8000) ? -((65535 - val) + 1) : val);
+}
 
 union twobytes
 {
@@ -106,15 +106,13 @@ union twobytes
     uint8_t LoByte;
   } Bytes;
 };
-
+*/
 float Mpu6050Node::readWord2c(int addr)
 {
-  twobytes data;
-  data.Word = wiringPiI2CReadReg16(fileDescriptor_, addr);
-//  int high = data.Bytes.HiByte;
-//  int low = data.Bytes.LoByte;
-//  int val = (high << 8) + low;
-  return float((data.Word >= 0x8000) ? -((65535 - data.Word) + 1) : data.Word);
+  uint16_t val = wiringPiI2CReadReg16(fileDescriptor_, addr);
+  uint16_t swapped = (val >> 8) | (val << 8);
+  val = swapped;
+  return float((val >= 0x8000) ? -((65535 - val) + 1) : val);
 }
 
 void Mpu6050Node::readImuData(float *vX, float *vY, float *vZ, float *aX, float *aY, float *aZ)
