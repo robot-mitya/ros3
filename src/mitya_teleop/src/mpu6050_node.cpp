@@ -88,49 +88,30 @@ Mpu6050Node::Mpu6050Node()
 
   imuInputSubscriber_ = nodeHandle.subscribe(RM_HEAD_IMU_INPUT_TOPIC_NAME, 10, &Mpu6050Node::imuInputCallback, this);
 }
-/*
-float Mpu6050Node::readWord2c(int addr)
-{
-  int high = wiringPiI2CReadReg8(fileDescriptor_, addr);
-  int low = wiringPiI2CReadReg8(fileDescriptor_, addr + 1);
-  int val = (high << 8) + low;
-  return float((val >= 0x8000) ? -((65535 - val) + 1) : val);
-}
 
-union twobytes
-{
-  uint16_t Word;
-  struct
-  {
-    uint8_t HiByte;
-    uint8_t LoByte;
-  } Bytes;
-};
-*/
 float Mpu6050Node::readWord2c(int addr)
 {
   uint16_t val = wiringPiI2CReadReg16(fileDescriptor_, addr);
-  uint16_t swapped = (val >> 8) | (val << 8);
-  val = swapped;
-  return float((val >= 0x8000) ? -((65535 - val) + 1) : val);
+  uint16_t swappedVal = (val >> 8) | (val << 8);
+  return float((swappedVal >= 0x8000) ? -((65535 - swappedVal) + 1) : swappedVal);
 }
 
 void Mpu6050Node::readImuData(float *vX, float *vY, float *vZ, float *aX, float *aY, float *aZ)
 {
   // Read gyroscope values.
   // At default sensitivity of 250deg/s we need to scale by 131.
-  *vX = readWord2c(0x43) / 131;
-  *vY = readWord2c(0x45) / 131;
-  *vZ = readWord2c(0x47) / 131;
+  *vX = -readWord2c(0x47) / 131; // -z (caused by chip orientation in robot)
+  *vY = readWord2c(0x45) / 131;  // y
+  *vZ = readWord2c(0x43) / 131;  // x (caused by chip orientation in robot)
 
   // Read accelerometer values.
   // At default sensitivity of 2g we need to scale by 16384.
   // Note: at "level" x = y = 0 but z = 1 (i.e. gravity)
   // But! Imu message documentations say acceleration should be in m/2 so need to *9.807
   const float la_rescale = 16384.0 / 9.807;
-  *aX = readWord2c(0x3b) / la_rescale;
-  *aY = readWord2c(0x3d) / la_rescale;
-  *aZ = readWord2c(0x3f) / la_rescale;
+  *aX = -readWord2c(0x3f) / la_rescale; // -z (caused by chip orientation in robot)
+  *aY = readWord2c(0x3d) / la_rescale; // y
+  *aZ = readWord2c(0x3b) / la_rescale; // x (caused by chip orientation in robot)
 
   mpuHelper_.correctMpuData(vX, vY, vZ);
 }

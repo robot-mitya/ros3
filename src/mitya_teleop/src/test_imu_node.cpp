@@ -96,38 +96,36 @@ void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
   float ax = imu->linear_acceleration.x;
   float ay = imu->linear_acceleration.y;
   float az = imu->linear_acceleration.z;
-  tf2::Vector3 vel(-vz, vy, vx);
-  tf2::Vector3 acc(-az, ay, ax);
+  tf2::Vector3 vel(vx, vy, vz);
+  tf2::Vector3 acc(ax, ay, az);
 
-  ROS_INFO("Time: %.3f; Angular vel: %.3f, %.3f, %.3f; Linear acc: %.3f, %.3f, %.3f", deltaTime.toSec(),
-           vel.m_floats[0], vel.m_floats[1], vel.m_floats[2],
-           acc.m_floats[0], acc.m_floats[1], acc.m_floats[2]);
+//  ROS_INFO("Time: %.3f; Angular vel: %.3f, %.3f, %.3f; Linear acc: %.3f, %.3f, %.3f", deltaTime.toSec(),
+//           vel.m_floats[0], vel.m_floats[1], vel.m_floats[2],
+//           acc.m_floats[0], acc.m_floats[1], acc.m_floats[2]);
 
   float dt = deltaTime.toSec();
   float qW, qX, qY, qZ;
   MadgwickAHRSupdateIMU(dt,
-                        //vel.m_floats[0], vel.m_floats[1], vel.m_floats[2],
-                        //0, 0, 0,
-                        vel.m_floats[0], 0, vel.m_floats[2],
+                        vel.m_floats[0], vel.m_floats[1], vel.m_floats[2],
                         acc.m_floats[0], acc.m_floats[1], acc.m_floats[2],
                         &qW, &qX, &qY, &qZ);
   qSrc_.setValue(qX, qY, qZ, qW);
   q_ = qSrc_ * qZero_;
   ROS_INFO("Quaternion: %.3f, %.3f, %.3f, %.3f", q_.w(), q_.x(), q_.y(), q_.z());
 
-  float roll, pitch, yaw;
+//  float roll, pitch, yaw;
   //getEulerAngles(qW, qX, qY, qZ, &roll, &pitch, &yaw);
-  getEulerAngles(q_.w(), q_.x(), q_.y(), q_.z(), &roll, &pitch, &yaw);
-  ROS_INFO("Roll/Pitch/Yaw: %.3f, %.3f, %.3f", roll, pitch, yaw);
+//  getEulerAngles(q_.w(), q_.x(), q_.y(), q_.z(), &roll, &pitch, &yaw);
+//  ROS_INFO("Roll/Pitch/Yaw: %.3f, %.3f, %.3f", roll, pitch, yaw);
 
   t_.setRotation(q_);
   tf2::Vector3 y = t_ * y_;
   ROS_INFO("Vector y: %.3f, %.3f, %.3f", y.x(), y.y(), y.z());
 
-  vel_ = vel_.lerp(vel, 0.02f);
-  ROS_INFO("Velocity: %.3f, %.3f, %.3f", vel_.x(), vel_.y(), vel_.z());
-  acc_ = acc_.lerp(acc, 0.02f);
-  ROS_INFO("Acceleration: %.3f, %.3f, %.3f", acc_.x(), acc_.y(), acc_.z());
+//  vel_ = vel_.lerp(vel, 0.02f);
+//  ROS_INFO("Velocity: %.3f, %.3f, %.3f", vel_.x(), vel_.y(), vel_.z());
+//  acc_ = acc_.lerp(acc, 0.02f);
+//  ROS_INFO("Acceleration: %.3f, %.3f, %.3f", acc_.x(), acc_.y(), acc_.z());
 }
 
 void TestImuNode::inputCallback(const std_msgs::StringConstPtr& command)
