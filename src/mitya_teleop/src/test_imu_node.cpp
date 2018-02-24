@@ -104,19 +104,18 @@ void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
 //           acc.m_floats[0], acc.m_floats[1], acc.m_floats[2]);
 
   float dt = deltaTime.toSec();
-  float qW, qX, qY, qZ;
   MadgwickAHRSupdateIMU(dt,
                         vel.m_floats[0], vel.m_floats[1], vel.m_floats[2],
                         acc.m_floats[0], acc.m_floats[1], acc.m_floats[2],
-                        &qW, &qX, &qY, &qZ);
-  qSrc_.setValue(qX, qY, qZ, qW);
+                        &qSrc_);
   q_ = qSrc_ * qZero_;
-  ROS_INFO("Quaternion: %.3f, %.3f, %.3f, %.3f", q_.w(), q_.x(), q_.y(), q_.z());
+//  ROS_INFO("Quaternion: %.3f, %.3f, %.3f, %.3f", q_.w(), q_.x(), q_.y(), q_.z());
+  ROS_INFO("Quaternion: %.3f, %.3f, %.3f, %.3f", qSrc_.w(), qSrc_.x(), qSrc_.y(), qSrc_.z());
 
-//  float roll, pitch, yaw;
-  //getEulerAngles(qW, qX, qY, qZ, &roll, &pitch, &yaw);
+  float roll, pitch, yaw;
 //  getEulerAngles(q_.w(), q_.x(), q_.y(), q_.z(), &roll, &pitch, &yaw);
-//  ROS_INFO("Roll/Pitch/Yaw: %.3f, %.3f, %.3f", roll, pitch, yaw);
+  getEulerAngles(qSrc_.w(), qSrc_.x(), qSrc_.y(), qSrc_.z(), &roll, &pitch, &yaw);
+  ROS_INFO("Roll/Pitch/Yaw: %.3f, %.3f, %.3f", roll, pitch, yaw);
 
   t_.setRotation(q_);
   tf2::Vector3 y = t_ * y_;

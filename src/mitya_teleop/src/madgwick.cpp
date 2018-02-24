@@ -36,6 +36,8 @@
 #include <math.h>
 #include "madgwick.h"
 
+#include <ros/ros.h> //TODO REMOVE!!!!!!!!!!!
+
 //#define betaDef	0.1f		// 2 * proportional gain
 #define betaDef 0.075574974f
 #define PI 3.141592654f
@@ -50,13 +52,21 @@ float getRoll(float x, float y, float z, float w);
 float getPitch(float x, float y, float z, float w);
 float getYaw(float x, float y, float z, float w);
 
+/*
 void MadgwickAHRSupdateIMU(float deltaTime, float gx, float gy, float gz, float ax, float ay, float az,
                            float *qW, float *qX, float *qY, float *qZ)
 {
+  //ROS_INFO("Time: %.3f; Angular vel: %.3f, %.3f, %.3f; Linear acc: %.3f, %.3f, %.3f", deltaTime, gx, gy, gz, ax, ay, az);
+
   float recipNorm;
   float s1, s2, s3, s4;
   float qDot1, qDot2, qDot3, qDot4;
   float _2q1, _2q2, _2q3, _2q4, _4q1, _4q2, _4q3, _8q2, _8q3, q1q1, q2q2, q3q3, q4q4;
+
+  q1 = *qW;
+  q2 = *qX;
+  q3 = *qY;
+  q4 = *qZ;
 
   // Rate of change of quaternion from gyroscope
   qDot1 = 0.5f * (-q2 * gx - q3 * gy - q4 * gz);
@@ -125,8 +135,75 @@ void MadgwickAHRSupdateIMU(float deltaTime, float gx, float gy, float gz, float 
   *qY = q3;
   *qZ = q4;
 }
+*/
+void MadgwickAHRSupdateIMU(float deltaTime,
+                           float gx, float gy, float gz,
+                           float ax, float ay, float az,
+                           tf2::Quaternion *q)
+{
+  float q1 = q->w();
+  float q2 = q->x();
+  float q3 = q->y();
+  float q4 = q->z();
+  float norm;
+  float s1, s2, s3, s4;
+  float qDot1, qDot2, qDot3, qDot4;
 
-void getEulerAngles(float qW, float qX, float qY, float qZ, float *roll, float *pitch, float *yaw)
+  // Auxiliary variables to avoid repeated arithmetic
+  float _2q1 = 2.0f * q1;
+  float _2q2 = 2.0f * q2;
+  float _2q3 = 2.0f * q3;
+  float _2q4 = 2.0f * q4;
+  float _4q1 = 4.0f * q1;
+  float _4q2 = 4.0f * q2;
+  float _4q3 = 4.0f * q3;
+  float _8q2 = 8.0f * q2;
+  float _8q3 = 8.0f * q3;
+  float q1q1 = q1 * q1;
+  float q2q2 = q2 * q2;
+  float q3q3 = q3 * q3;
+  float q4q4 = q4 * q4;
+
+  // Normalize accelerometer measurement
+  norm = (float) sqrt(ax * ax + ay * ay + az * az);
+  if (norm < 0.0001f) return; // handle NaN
+  norm = 1.0f / norm;         // use reciprocal for division
+  ax *= norm;
+  ay *= norm;
+  az *= norm;
+
+  // Gradient decent algorithm corrective step
+  s1 = _4q1 * q3q3 + _2q3 * ax + _4q1 * q2q2 - _2q2 * ay;
+  s2 = _4q2 * q4q4 - _2q4 * ax + 4.0f * q1q1 * q2 - _2q1 * ay - _4q2 + _8q2 * q2q2 + _8q2 * q3q3 + _4q2 * az;
+  s3 = 4.0f * q1q1 * q3 + _2q1 * ax + _4q3 * q4q4 - _2q4 * ay - _4q3 + _8q3 * q2q2 + _8q3 * q3q3 + _4q3 * az;
+  s4 = 4.0f * q2q2 * q4 - _2q2 * ax + 4.0f * q3q3 * q4 - _2q3 * ay;
+  norm = 1.0f / (float) sqrt(s1 * s1 + s2 * s2 + s3 * s3 + s4 * s4);    // normalize step magnitude
+  s1 *= norm;
+  s2 *= norm;
+  s3 *= norm;
+  s4 *= norm;
+
+  // Compute rate of change of quaternion
+  qDot1 = 0.5f * (-q2 * gx - q3 * gy - q4 * gz) - beta * s1;
+  qDot2 = 0.5f * (q1 * gx + q3 * gz - q4 * gy) - beta * s2;
+  qDot3 = 0.5f * (q1 * gy - q2 * gz + q4 * gx) - beta * s3;
+  qDot4 = 0.5f * (q1 * gz + q2 * gy - q3 * gx) - beta * s4;
+
+  // Integrate to yield quaternion
+  q1 += qDot1 * deltaTime;
+  q2 += qDot2 * deltaTime;
+  q3 += qDot3 * deltaTime;
+  q4 += qDot4 * deltaTime;
+  norm = 1.0f / (float) sqrt(q1 * q1 + q2 * q2 + q3 * q3 + q4 * q4);    // normalize quaternion
+  q1 *= norm;
+  q2 *= norm;
+  q3 *= norm;
+  q4 *= norm;
+  q->setValue(q2, q3, q4, q1);
+}
+
+void getEulerAngles(float qW, float qX, float qY, float qZ,
+                    float *roll, float *pitch, float *yaw)
 {
   *roll = getRoll(qX, qY, qZ, qW);
   *pitch = getPitch(qX, qY, qZ, qW);

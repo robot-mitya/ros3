@@ -36,12 +36,18 @@
 #ifndef MITYA_TELEOP_SRC_MADGWICK_H_
 #define MITYA_TELEOP_SRC_MADGWICK_H_
 
+#include <tf2/LinearMath/Quaternion.h>
+
 extern volatile float beta;		// algorithm gain
 //extern volatile float q1, q2, q3, q4;	// quaternion of sensor frame relative to auxiliary frame
 //extern volatile float roll, pitch, yaw;
 
-void MadgwickAHRSupdateIMU(float deltaTime, float gx, float gy, float gz, float ax, float ay, float az,
-                           float *qW, float *qX, float *qY, float *qZ);
-void getEulerAngles(float qW, float qX, float qY, float qZ, float *roll, float *pitch, float *yaw);
+void MadgwickAHRSupdateIMU(float deltaTime,
+                           float gx, float gy, float gz,
+                           float ax, float ay, float az,
+                           tf2::Quaternion *q);
+
+void getEulerAngles(float qW, float qX, float qY, float qZ,
+                    float *roll, float *pitch, float *yaw);
 
 #endif
