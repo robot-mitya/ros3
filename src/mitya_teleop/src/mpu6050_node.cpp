@@ -63,6 +63,8 @@ private:
   void imuInputCallback(const std_msgs::StringConstPtr& msg);
 
   MpuHelper mpuHelper_;
+
+  uint32_t seq_;
 };
 
 const int PWR_MGMT_1 = 0x6B;
@@ -87,6 +89,8 @@ Mpu6050Node::Mpu6050Node()
   imuPublisher_ = nodeHandle.advertise<sensor_msgs::Imu>(RM_HEAD_IMU_OUTPUT_TOPIC_NAME, 100);
 
   imuInputSubscriber_ = nodeHandle.subscribe(RM_HEAD_IMU_INPUT_TOPIC_NAME, 10, &Mpu6050Node::imuInputCallback, this);
+
+  seq_ = 0;
 }
 
 float Mpu6050Node::readWord2c(int addr)
@@ -119,6 +123,7 @@ void Mpu6050Node::readImuData(float *vX, float *vY, float *vZ, float *aX, float 
 void Mpu6050Node::fillImuMessage(const sensor_msgs::ImuPtr& msg, float vX, float vY, float vZ, float aX, float aY, float aZ)
 {
   msg->header.stamp = ros::Time::now();
+  msg->header.seq = seq_++;
   msg->header.frame_id = '0';  // no frame
 
   msg->angular_velocity.x = vX;

@@ -136,7 +136,7 @@ void MadgwickAHRSupdateIMU(float deltaTime, float gx, float gy, float gz, float 
   *qZ = q4;
 }
 */
-void MadgwickAHRSupdateIMU(float deltaTime,
+void madgwickAHRSupdateIMU(float deltaTime,
                            float gx, float gy, float gz,
                            float ax, float ay, float az,
                            tf2::Quaternion *q)
@@ -285,4 +285,18 @@ float getYawRad(float x, float y, float z, float w)
 float getYaw(float x, float y, float z, float w)
 {
   return getYawRad(x, y, z, w) * toDeg;
+}
+
+//--------------------
+void testCPP(float dx, float dy, float dz, float dw, tf2::Quaternion *q)
+{
+  float q1 = q->w();
+  float q2 = q->x();
+  float q3 = q->y();
+  float q4 = q->z();
+  q1 += dw;
+  q2 += dx;
+  q3 += dy;
+  q4 += dz;
+  q->setValue(q2, q3, q4, q1);
 }

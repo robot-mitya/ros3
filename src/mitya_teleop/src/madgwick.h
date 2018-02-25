@@ -42,12 +42,15 @@ extern volatile float beta;		// algorithm gain
 //extern volatile float q1, q2, q3, q4;	// quaternion of sensor frame relative to auxiliary frame
 //extern volatile float roll, pitch, yaw;
 
-void MadgwickAHRSupdateIMU(float deltaTime,
+void madgwickAHRSupdateIMU(float deltaTime,
                            float gx, float gy, float gz,
                            float ax, float ay, float az,
                            tf2::Quaternion *q);
 
 void getEulerAngles(float qW, float qX, float qY, float qZ,
                     float *roll, float *pitch, float *yaw);
+
+
+void testCPP(float dx, float dy, float dz, float dw, tf2::Quaternion *q);
 
 #endif
