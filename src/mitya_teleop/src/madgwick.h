@@ -45,12 +45,12 @@ extern volatile float beta;		// algorithm gain
 void madgwickAHRSupdateIMU(float deltaTime,
                            float gx, float gy, float gz,
                            float ax, float ay, float az,
-                           tf2::Quaternion *q);
+                           tf2::Quaternion & q);
 
 void getEulerAngles(float qW, float qX, float qY, float qZ,
                     float *roll, float *pitch, float *yaw);
 
 
-void testCPP(float dx, float dy, float dz, float dw, tf2::Quaternion *q);
+void testCPP(float dx, float dy, float dz, float dw, tf2::Quaternion & q);
 
 #endif

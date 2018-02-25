@@ -139,12 +139,12 @@ void MadgwickAHRSupdateIMU(float deltaTime, float gx, float gy, float gz, float 
 void madgwickAHRSupdateIMU(float deltaTime,
                            float gx, float gy, float gz,
                            float ax, float ay, float az,
-                           tf2::Quaternion *q)
+                           tf2::Quaternion & q)
 {
-  float q1 = q->w();
-  float q2 = q->x();
-  float q3 = q->y();
-  float q4 = q->z();
+  float q1 = q.w();
+  float q2 = q.x();
+  float q3 = q.y();
+  float q4 = q.z();
   float norm;
   float s1, s2, s3, s4;
   float qDot1, qDot2, qDot3, qDot4;
@@ -199,7 +199,7 @@ void madgwickAHRSupdateIMU(float deltaTime,
   q2 *= norm;
   q3 *= norm;
   q4 *= norm;
-  q->setValue(q2, q3, q4, q1);
+  q.setValue(q2, q3, q4, q1);
 }
 
 void getEulerAngles(float qW, float qX, float qY, float qZ,
@@ -288,15 +288,15 @@ float getYaw(float x, float y, float z, float w)
 }
 
 //--------------------
-void testCPP(float dx, float dy, float dz, float dw, tf2::Quaternion *q)
+void testCPP(float dx, float dy, float dz, float dw, tf2::Quaternion & q)
 {
-  float q1 = q->w();
-  float q2 = q->x();
-  float q3 = q->y();
-  float q4 = q->z();
+  float q1 = q.w();
+  float q2 = q.x();
+  float q3 = q.y();
+  float q4 = q.z();
   q1 += dw;
   q2 += dx;
   q3 += dy;
   q4 += dz;
-  q->setValue(q2, q3, q4, q1);
+  q.setValue(q2, q3, q4, q1);
 }

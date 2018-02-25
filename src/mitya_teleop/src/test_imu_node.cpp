@@ -54,16 +54,16 @@ private:
 
   ros::Time prevStamp_;
   uint32_t prevSeq_;
-  tf2::Quaternion q_;
-  tf2::Quaternion qSrc_;
-  tf2::Quaternion qZero_;
+  tf2::Quaternion qResult_;
+  tf2::Quaternion qSensor_;
+  tf2::Quaternion qCenter_;
   tf2::Vector3 x_;
   tf2::Vector3 y_;
   tf2::Vector3 z_;
   tf2::Vector3 zero3_;
   tf2::Transform t_;
 
-  tf2::Quaternion quaternion_;
+  tf2::Quaternion qTest_;
 };
 
 TestImuNode::TestImuNode()
@@ -74,18 +74,21 @@ TestImuNode::TestImuNode()
 
   prevStamp_ = ros::Time::now();
   prevSeq_ = 0;
-  q_ = tf2::Quaternion::getIdentity();
-  qSrc_ = tf2::Quaternion::getIdentity();
-  qZero_ = tf2::Quaternion::getIdentity();
+  qResult_.setValue(0, 0, 0, 1);
+  qSensor_.setValue(0, 0, 0, 1);
+  qCenter_.setValue(0, 0, 0, 1);
+  qTest_.setValue(0, 0, 0, 1);
+  //qResult_ = tf2::Quaternion::getIdentity();
+  //qSensor_ = tf2::Quaternion::getIdentity();
+  //qCenter_ = tf2::Quaternion::getIdentity();
+  //qTest_ = tf2::Quaternion::getIdentity();
 
   x_.setValue(1, 0, 0);
   y_.setValue(0, 1, 0);
   z_.setValue(0, 0, 1);
   zero3_.setValue(0, 0, 0);
-  t_.setRotation(qZero_);
+  t_.setRotation(qCenter_);
   t_.setOrigin(zero3_);
-
-  quaternion_ = tf2::Quaternion::getIdentity();
 }
 
 void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
@@ -96,6 +99,10 @@ void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
   if (imu->header.seq - prevSeq_ != 1)
   {
     ROS_INFO("seq=%d  prevSeq=%d", imu->header.seq, prevSeq_);
+  }
+  else
+  {
+    ROS_INFO("seq ok: %d", imu->header.seq);
   }
   prevSeq_ = imu->header.seq;
 
@@ -108,48 +115,38 @@ void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
   madgwickAHRSupdateIMU(dt,
                         imu->angular_velocity.x, imu->angular_velocity.y, imu->angular_velocity.z,
                         imu->linear_acceleration.x, imu->linear_acceleration.y, imu->linear_acceleration.z,
-                        &qSrc_);
-  q_ = qSrc_ * qZero_;
+                        qSensor_);
+  qResult_ = qCenter_ * qSensor_;
 //  ROS_INFO("Quaternion: %.3f, %.3f, %.3f, %.3f", q_.w(), q_.x(), q_.y(), q_.z());
-  ROS_INFO("Quaternion: %.3f, %.3f, %.3f, %.3f", qSrc_.w(), qSrc_.x(), qSrc_.y(), qSrc_.z());
+  ROS_INFO("Quaternion: %.3f, %.3f, %.3f, %.3f", qResult_.w(), qResult_.x(), qResult_.y(), qResult_.z());
 
   float roll, pitch, yaw;
-  getEulerAngles(qSrc_.w(), qSrc_.x(), qSrc_.y(), qSrc_.z(), &roll, &pitch, &yaw);
+  getEulerAngles(qResult_.w(), qResult_.x(), qResult_.y(), qResult_.z(), &roll, &pitch, &yaw);
   ROS_INFO("Roll/Pitch/Yaw: %.3f, %.3f, %.3f", roll, pitch, yaw);
 
-  t_.setRotation(q_);
+  t_.setRotation(qResult_);
   tf2::Vector3 y = t_ * y_;
   ROS_INFO("Vector y: %.3f, %.3f, %.3f", y.x(), y.y(), y.z());
 }
 
 void TestImuNode::inputCallback(const std_msgs::StringConstPtr& command)
 {
-  if (command->data.compare("zero") == 0)
+  if (command->data.compare("center") == 0)
   {
     ROS_INFO("Setting head zero orientation...");
-    qZero_ = qSrc_.inverse();
+    qCenter_ = qSensor_.inverse();
   }
   else if (command->data.compare("test") == 0)
   {
-//    ROS_INFO("Test: x=%.3f  y=%.3f  z=%.3f  w=%.3f", quaternion_.x(), quaternion_.y(), quaternion_.z(), quaternion_.w());
-//    testCPP(0.1f, 0.2f, 0.3f, 0.4f, &quaternion_);
-//    ROS_INFO("Test: x=%.3f  y=%.3f  z=%.3f  w=%.3f", quaternion_.x(), quaternion_.y(), quaternion_.z(), quaternion_.w());
-//    testCPP(0.1f, 0.2f, 0.3f, 0.4f, &quaternion_);
-//    ROS_INFO("Test: x=%.3f  y=%.3f  z=%.3f  w=%.3f", quaternion_.x(), quaternion_.y(), quaternion_.z(), quaternion_.w());
-//    testCPP(0.1f, 0.2f, 0.3f, 0.4f, &quaternion_);
-//    ROS_INFO("Test: x=%.3f  y=%.3f  z=%.3f  w=%.3f", quaternion_.x(), quaternion_.y(), quaternion_.z(), quaternion_.w());
-//    testCPP(0.1f, 0.2f, 0.3f, 0.4f, &quaternion_);
-//    ROS_INFO("Test: x=%.3f  y=%.3f  z=%.3f  w=%.3f", quaternion_.x(), quaternion_.y(), quaternion_.z(), quaternion_.w());
-//    quaternion_ = tf2::Quaternion::getIdentity();
-    ROS_INFO("Test: x=%.3f  y=%.3f  z=%.3f  w=%.3f", quaternion_.x(), quaternion_.y(), quaternion_.z(), quaternion_.w());
-    madgwickAHRSupdateIMU(0.02f, 5.0f, 3.0f, 1.0f, 0.1f, 0.2f, 0.8f, &quaternion_);
-    ROS_INFO("Test: x=%.3f  y=%.3f  z=%.3f  w=%.3f", quaternion_.x(), quaternion_.y(), quaternion_.z(), quaternion_.w());
-    madgwickAHRSupdateIMU(0.02f, 5.0f, 3.0f, 1.0f, 0.1f, 0.2f, 0.8f, &quaternion_);
-    ROS_INFO("Test: x=%.3f  y=%.3f  z=%.3f  w=%.3f", quaternion_.x(), quaternion_.y(), quaternion_.z(), quaternion_.w());
-    madgwickAHRSupdateIMU(0.02f, 5.0f, 3.0f, 1.0f, 0.1f, 0.2f, 0.8f, &quaternion_);
-    ROS_INFO("Test: x=%.3f  y=%.3f  z=%.3f  w=%.3f", quaternion_.x(), quaternion_.y(), quaternion_.z(), quaternion_.w());
+    ROS_INFO("Test: x=%.3f  y=%.3f  z=%.3f  w=%.3f", qTest_.x(), qTest_.y(), qTest_.z(), qTest_.w());
+    madgwickAHRSupdateIMU(0.02f, 5.0f, 3.0f, 1.0f, 0.1f, 0.2f, 0.8f, qTest_);
+    ROS_INFO("Test: x=%.3f  y=%.3f  z=%.3f  w=%.3f", qTest_.x(), qTest_.y(), qTest_.z(), qTest_.w());
+    madgwickAHRSupdateIMU(0.02f, 5.0f, 3.0f, 1.0f, 0.1f, 0.2f, 0.8f, qTest_);
+    ROS_INFO("Test: x=%.3f  y=%.3f  z=%.3f  w=%.3f", qTest_.x(), qTest_.y(), qTest_.z(), qTest_.w());
+    madgwickAHRSupdateIMU(0.02f, 5.0f, 3.0f, 1.0f, 0.1f, 0.2f, 0.8f, qTest_);
+    ROS_INFO("Test: x=%.3f  y=%.3f  z=%.3f  w=%.3f", qTest_.x(), qTest_.y(), qTest_.z(), qTest_.w());
 
-    quaternion_ = tf2::Quaternion::getIdentity();
+    qTest_.setValue(0, 0, 0, 1);
   }
   else
   {
