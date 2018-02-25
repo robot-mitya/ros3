@@ -147,6 +147,12 @@ void Mpu6050Node::imuInputCallback(const std_msgs::StringConstPtr& msg)
     ROS_INFO("Starting to calibrate head IMU...");
     mpuHelper_.startCalibration();
   }
+  else if (msg->data.compare("configuration") == 0)
+  {
+    uint8_t gyroConfig = wiringPiI2CReadReg8(fileDescriptor_, 27);
+    uint8_t accConfig = wiringPiI2CReadReg8(fileDescriptor_, 28);
+    ROS_INFO("GYRO_CONFIG (register 27) = %d    ACCEL_CONFIG (register 28) = %d", gyroConfig, accConfig);
+  }
   else
   {
     ROS_ERROR("%s.%s: Unknown command \"%s\"", RM_MPU6050_NODE_NAME, RM_HEAD_IMU_INPUT_TOPIC_NAME, msg->data.c_str());
