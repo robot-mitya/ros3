@@ -54,6 +54,7 @@ private:
   int i2cAddress_;
   int fileDescriptor_;
   uint8_t buffer_[14];
+  float gyroFactor_;
   float readWord2c(int addr);
 
   // Topic RM_IMU_TOPIC_NAME ('imu') publisher:
@@ -91,6 +92,7 @@ Mpu6050Node::Mpu6050Node()
   imuInputSubscriber_ = nodeHandle.subscribe(RM_HEAD_IMU_INPUT_TOPIC_NAME, 10, &Mpu6050Node::imuInputCallback, this);
 
   seq_ = 0;
+  gyroFactor_ = 3.141592654f / 180 / 131;
 }
 
 float Mpu6050Node::readWord2c(int addr)
@@ -104,9 +106,9 @@ void Mpu6050Node::readImuData(float *vX, float *vY, float *vZ, float *aX, float 
 {
   // Read gyroscope values.
   // At default sensitivity of 250deg/s we need to scale by 131.
-  *vX = -readWord2c(0x47) / 131; // -z (caused by chip orientation in robot)
-  *vY = readWord2c(0x45) / 131;  // y
-  *vZ = readWord2c(0x43) / 131;  // x (caused by chip orientation in robot)
+  *vX = -readWord2c(0x47) * gyroFactor_; // -z (caused by chip orientation in robot)
+  *vY = readWord2c(0x45) * gyroFactor_;  // y
+  *vZ = readWord2c(0x43) * gyroFactor_;  // x (caused by chip orientation in robot)
 
   // Read accelerometer values.
   // At default sensitivity of 2g we need to scale by 16384.
