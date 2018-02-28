@@ -239,7 +239,7 @@ float clamp(float value, float min, float max)
  * @return positive (+1) for north pole, negative (-1) for south pole, zero (0) when no gimbal lock */
 int getGimbalPole(float x, float y, float z, float w)
 {
-  float t = y * x + z * w;
+  float t = z * x - y * w;
   return t > 0.499f ? 1 : (t < -0.499f ? -1 : 0);
 }
 
@@ -248,7 +248,7 @@ int getGimbalPole(float x, float y, float z, float w)
 float getRollRad(float x, float y, float z, float w)
 {
   int pole = getGimbalPole(x, y, z, w);
-  return pole == 0 ? atan2(2.0f * (w * z + y * x), 1.0f - 2.0f * (x * x + z * z)) : (float)pole * 2.0f * atan2(y, w);
+  return pole == 0 ? atan2(2.0f * (-w * y + z * x), 1.0f - 2.0f * (x * x + y * y)) : (float)pole * 2.0f * atan2(z, w);
 }
 
 /** Get the roll euler angle in degrees, which is the rotation around the z axis. Requires that this quaternion is normalized.
@@ -263,7 +263,7 @@ float getRoll(float x, float y, float z, float w)
 float getPitchRad(float x, float y, float z, float w)
 {
   int pole = getGimbalPole(x, y, z, w);
-  return pole == 0 ? (float)asin(clamp(2.0f * (w * x - z * y), -1.0f, 1.0f)) : (float)pole * PI * 0.5f;
+  return pole == 0 ? (float)asin(clamp(2.0f * (w * x + y * z), -1.0f, 1.0f)) : (float)pole * PI * 0.5f;
 }
 
 /** Get the pitch euler angle in degrees, which is the rotation around the x axis. Requires that this quaternion is normalized.
@@ -277,7 +277,7 @@ float getPitch(float x, float y, float z, float w)
  * @return the rotation around the y axis in radians (between -PI and +PI) */
 float getYawRad(float x, float y, float z, float w)
 {
-  return getGimbalPole(x, y, z, w) == 0 ? atan2(2.0f * (y * w + x * z), 1.0f - 2.0f * (y * y + x * x)) : 0.0f;
+  return getGimbalPole(x, y, z, w) == 0 ? atan2(2.0f * (z * w - x * y), 1.0f - 2.0f * (z * z + x * x)) : 0.0f;
 }
 
 /** Get the yaw euler angle in degrees, which is the rotation around the y axis. Requires that this quaternion is normalized.
