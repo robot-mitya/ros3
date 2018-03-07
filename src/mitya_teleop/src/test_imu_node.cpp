@@ -111,15 +111,19 @@ void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
   ROS_INFO("Quaternion: %.3f, %.3f, %.3f, %.3f", qSensor_.w(), qSensor_.x(), qSensor_.y(), qSensor_.z());
 
   float roll, pitch, yaw;
-  getEulerAngles(qSensor_.w(), qSensor_.x(), qSensor_.y(), qSensor_.z(), &roll, &pitch, &yaw);
-  ROS_INFO("Roll/Pitch/Yaw: %.3f, %.3f, %.3f", roll, pitch, yaw);
+  int pole;
+  getEulerAngles(qSensor_.w(), qSensor_.x(), qSensor_.y(), qSensor_.z(), &roll, &pitch, &yaw, &pole);
+  ROS_INFO("Roll/Pitch/Yaw/Pole: %.3f, %.3f, %.3f %s", roll, pitch, yaw, pole == 0 ? "" : "+++++++++++++");
 
   t_.setRotation(qSensor_);
   tf2::Vector3 x = t_ * x_;
   tf2::Vector3 y = t_ * y_;
   tf2::Vector3 z = t_ * z_;
-  ROS_INFO("Vector x: %.3f, %.3f, %.3f    Vector y: %.3f, %.3f, %.3f    Vector z: %.3f, %.3f, %.3f",
-           x.x(), x.y(), x.z(), y.x(), y.y(), y.z(), z.x(), z.y(), z.z());
+  int branch;
+  float result2;
+  float ya = getYaw(x, y, z, &branch, &result2);
+  ROS_INFO("Vector x: %.3f, %.3f, %.3f    Vector y: %.3f, %.3f, %.3f    Vector z: %.3f, %.3f, %.3f    Yaw: %.3f / %.3f (%d)",
+           x.x(), x.y(), x.z(), y.x(), y.y(), y.z(), z.x(), z.y(), z.z(), ya, result2, branch);
 }
 
 void TestImuNode::inputCallback(const std_msgs::StringConstPtr& command)
