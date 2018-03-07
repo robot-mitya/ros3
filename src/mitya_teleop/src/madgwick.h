@@ -49,11 +49,7 @@ void madgwickAHRSupdateIMU(float deltaTime,
                            float ax, float ay, float az,
                            tf2::Quaternion & q);
 
-void getEulerAngles(float qW, float qX, float qY, float qZ,
-                    float *roll, float *pitch, float *yaw, int *pole);
-
-float getYaw(tf2::Vector3 x, tf2::Vector3 y, tf2::Vector3 z, int *branch, float *result2);
-float getPitch(tf2::Vector3 y, tf2::Vector3 z);
-
+void getEulerAngles(tf2::Quaternion & q,
+                    float *roll, float *pitch, float *yaw);
 
 #endif

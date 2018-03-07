@@ -55,13 +55,6 @@ private:
   ros::Time prevStamp_;
   uint32_t prevSeq_;
   tf2::Quaternion qSensor_;
-  tf2::Vector3 x_;
-  tf2::Vector3 y_;
-  tf2::Vector3 z_;
-  tf2::Vector3 zero3_;
-  tf2::Transform t_;
-
-  tf2::Quaternion qTest_;
 };
 
 TestImuNode::TestImuNode()
@@ -73,14 +66,6 @@ TestImuNode::TestImuNode()
   prevStamp_ = ros::Time::now();
   prevSeq_ = 0;
   qSensor_.setValue(0, 0, 0, 1);
-  qTest_.setValue(0, 0, 0, 1);
-
-  x_.setValue(1, 0, 0);
-  y_.setValue(0, 1, 0);
-  z_.setValue(0, 0, 1);
-  zero3_.setValue(0, 0, 0);
-  t_.setRotation(tf2::Quaternion::getIdentity());
-  t_.setOrigin(zero3_);
 }
 
 void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
@@ -111,19 +96,8 @@ void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
   ROS_INFO("Quaternion: %.3f, %.3f, %.3f, %.3f", qSensor_.w(), qSensor_.x(), qSensor_.y(), qSensor_.z());
 
   float roll, pitch, yaw;
-  int pole;
-  getEulerAngles(qSensor_.w(), qSensor_.x(), qSensor_.y(), qSensor_.z(), &roll, &pitch, &yaw, &pole);
-  ROS_INFO("Roll/Pitch/Yaw/Pole: %.3f, %.3f, %.3f %s", roll, pitch, yaw, pole == 0 ? "" : "+++++++++++++");
-
-  t_.setRotation(qSensor_);
-  tf2::Vector3 x = t_ * x_;
-  tf2::Vector3 y = t_ * y_;
-  tf2::Vector3 z = t_ * z_;
-  int branch;
-  float result2;
-  float ya = getYaw(x, y, z, &branch, &result2);
-  ROS_INFO("Vector x: %.3f, %.3f, %.3f    Vector y: %.3f, %.3f, %.3f    Vector z: %.3f, %.3f, %.3f    Yaw: %.3f / %.3f (%d)",
-           x.x(), x.y(), x.z(), y.x(), y.y(), y.z(), z.x(), z.y(), z.z(), ya, result2, branch);
+  getEulerAngles(qSensor_, &roll, &pitch, &yaw);
+  ROS_INFO("Roll/Pitch/Yaw: %.3f, %.3f, %.3f", roll, pitch, yaw);
 }
 
 void TestImuNode::inputCallback(const std_msgs::StringConstPtr& command)
@@ -132,18 +106,6 @@ void TestImuNode::inputCallback(const std_msgs::StringConstPtr& command)
   {
     ROS_INFO("Setting head zero orientation...");
     qSensor_.setValue(0, 0, 0, 1);
-  }
-  else if (command->data.compare("test") == 0)
-  {
-    ROS_INFO("Test: x=%.3f  y=%.3f  z=%.3f  w=%.3f", qTest_.x(), qTest_.y(), qTest_.z(), qTest_.w());
-    madgwickAHRSupdateIMU(0.02f, 5.0f, 3.0f, 1.0f, 0.1f, 0.2f, 0.8f, qTest_);
-    ROS_INFO("Test: x=%.3f  y=%.3f  z=%.3f  w=%.3f", qTest_.x(), qTest_.y(), qTest_.z(), qTest_.w());
-    madgwickAHRSupdateIMU(0.02f, 5.0f, 3.0f, 1.0f, 0.1f, 0.2f, 0.8f, qTest_);
-    ROS_INFO("Test: x=%.3f  y=%.3f  z=%.3f  w=%.3f", qTest_.x(), qTest_.y(), qTest_.z(), qTest_.w());
-    madgwickAHRSupdateIMU(0.02f, 5.0f, 3.0f, 1.0f, 0.1f, 0.2f, 0.8f, qTest_);
-    ROS_INFO("Test: x=%.3f  y=%.3f  z=%.3f  w=%.3f", qTest_.x(), qTest_.y(), qTest_.z(), qTest_.w());
-
-    qTest_.setValue(0, 0, 0, 1);
   }
   else
   {

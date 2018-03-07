@@ -42,18 +42,12 @@
 #define betaDef 0.075574974f
 #define PI 3.141592654f
 #define toDeg 57.295779513f
-#define TINY 0.05f
-#define SMALL 0.3f
 
 volatile float beta = betaDef; // 2 * proportional gain (Kp)
 volatile float q1 = 1.0f, q2 = 0.0f, q3 = 0.0f, q4 = 0.0f; // quaternion of sensor frame relative to auxiliary frame
 volatile float roll = 0, pitch = 0, yaw = 0;
 
 float invSqrt(float x);
-float getRoll(float x, float y, float z, float w);
-float getPitch(float x, float y, float z, float w);
-float getYaw(float x, float y, float z, float w);
-int getGimbalPole(float x, float y, float z, float w);
 
 /*
 void MadgwickAHRSupdateIMU(float deltaTime, float gx, float gy, float gz, float ax, float ay, float az,
@@ -205,10 +199,9 @@ void madgwickAHRSupdateIMU(float deltaTime,
   q.setValue(q2, q3, q4, q1);
 }
 
-void getEulerAngles(float qW, float qX, float qY, float qZ,
-                    float *roll, float *pitch, float *yaw, int *pole)
+void getEulerAngles(tf2::Quaternion & q,
+                    float *roll, float *pitch, float *yaw)
 {
-  tf2::Quaternion q(qX, qY, qZ, qW);
   tf2::Matrix3x3 m(q);
   tf2Scalar y, p, r;
   m.getEulerYPR(y, p, r, 1);
@@ -231,124 +224,4 @@ float invSqrt(float x)
 //  y = y * (1.5f - (halfx * y * y));
 //  return y;
   return 1.0f / sqrt(x);
-}
-
-float clamp(float value, float min, float max)
-{
-  if (value < min)
-    return min;
-  if (value > max)
-    return max;
-  return value;
-}
-
-/** Get the pole of the gimbal lock, if any.
- * @return positive (+1) for north pole, negative (-1) for south pole, zero (0) when no gimbal lock */
-int getGimbalPole(float x, float y, float z, float w)
-{
-  float t = z * x - y * w;
-  return t > 0.499f ? 1 : (t < -0.499f ? -1 : 0);
-}
-
-/** Get the roll euler angle in radians, which is the rotation around the z axis. Requires that this quaternion is normalized.
- * @return the rotation around the z axis in radians (between -PI and +PI) */
-float getRollRad(float x, float y, float z, float w)
-{
-  int pole = getGimbalPole(x, y, z, w);
-  return pole == 0 ? atan2(2.0f * (-w * y + z * x), 1.0f - 2.0f * (x * x + y * y)) : (float)pole * 2.0f * atan2(z, w);
-}
-
-/** Get the roll euler angle in degrees, which is the rotation around the z axis. Requires that this quaternion is normalized.
- * @return the rotation around the z axis in degrees (between -180 and +180) */
-float getRoll(float x, float y, float z, float w)
-{
-  return getRollRad(x, y, z, w) * toDeg;
-}
-
-/** Get the pitch euler angle in radians, which is the rotation around the x axis. Requires that this quaternion is normalized.
- * @return the rotation around the x axis in radians (between -(PI/2) and +(PI/2)) */
-float getPitchRad(float x, float y, float z, float w)
-{
-  int pole = getGimbalPole(x, y, z, w);
-  return pole == 0 ? (float)asin(clamp(2.0f * (w * x + y * z), -1.0f, 1.0f)) : (float)pole * PI * 0.5f;
-}
-
-/** Get the pitch euler angle in degrees, which is the rotation around the x axis. Requires that this quaternion is normalized.
- * @return the rotation around the x axis in degrees (between -90 and +90) */
-float getPitch(float x, float y, float z, float w)
-{
-  return getPitchRad(x, y, z, w) * toDeg;
-}
-
-/** Get the yaw euler angle in radians, which is the rotation around the y axis. Requires that this quaternion is normalized.
- * @return the rotation around the y axis in radians (between -PI and +PI) */
-float getYawRad(float x, float y, float z, float w)
-{
-  return getGimbalPole(x, y, z, w) == 0 ? atan2(2.0f * (z * w - x * y), 1.0f - 2.0f * (z * z + x * x)) : 0.0f;
-}
-
-/** Get the yaw euler angle in degrees, which is the rotation around the y axis. Requires that this quaternion is normalized.
- * @return the rotation around the y axis in degrees (between -180 and +180) */
-float getYaw(float x, float y, float z, float w)
-{
-  return getYawRad(x, y, z, w) * toDeg;
-}
-
-float getYaw(tf2::Vector3 x, tf2::Vector3 y, tf2::Vector3 z, int *branch, float *result2)
-{
-  *branch = 0;
-  float result;
-//  if (z.m_floats[2] > 0)
-//  {
-    if (fabs(y.m_floats[0]) < TINY && fabs(y.m_floats[1]) < TINY)
-    {
-      result = atan2(z.m_floats[1], z.m_floats[0]) * toDeg - 270.0f;
-      *branch = 1;
-    }
-    else
-    {
-      tf2::Vector3 y2 = tf2::tf2Cross(z * 1000.0f, x * 1000.0f);
-      result = atan2(y2.m_floats[1], y2.m_floats[0]) * toDeg - 90.0f;
-
-      *result2 = atan2(y.m_floats[1], y.m_floats[0]) * toDeg - 90.0f;
-
-      *branch = 2;
-    }
-    /*
-    else if (fabs(y.m_floats[0]) < SMALL && fabs(y.m_floats[1]) < SMALL)
-    {
-      tf2::Vector3 y2 = tf2::tf2Cross(z * 1000.0f, x * 1000.0f);
-      result = atan2(y2.m_floats[1], y2.m_floats[0]) * toDeg - 90.0f;
-      *branch = 2;
-    }
-    else
-    {
-      result = atan2(y.m_floats[1], y.m_floats[0]) * toDeg - 90.0f;
-      *branch = 3;
-    }
-    */
-    if (result < -180)
-      result += 360;
-//  }
-//  else
-//  {
-//    if (y.m_floats[2] < z.m_floats[2])
-//    {
-//      result = atan2(z.m_floats[1], z.m_floats[0]) * toDeg - 270.0f;
-//      *branch = 3;
-//    }
-//    else
-//    {
-//      result = atan2(y.m_floats[1], y.m_floats[0]) * toDeg - 90.0f;
-//      *branch = 4;
-//    }
-//    if (result < -180)
-//      result += 360;
-//  }
-
-  return result;
-}
-
-float getPitch(tf2::Vector3 y, tf2::Vector3 z)
-{
 }
