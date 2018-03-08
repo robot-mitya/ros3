@@ -55,6 +55,7 @@ private:
   ros::Time prevStamp_;
   uint32_t prevSeq_;
   MadgwickImu madgwick_;
+  tf2::Quaternion q;
 };
 
 TestImuNode::TestImuNode()
@@ -88,6 +89,12 @@ void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
            imu->angular_velocity.x, imu->angular_velocity.y, imu->angular_velocity.z,
            imu->linear_acceleration.x, imu->linear_acceleration.y, imu->linear_acceleration.z);
 
+  q.setValue(imu->orientation.x, imu->orientation.y, imu->orientation.z, imu->orientation.w);
+  tf2Scalar yaw, pitch, roll;
+  MadgwickImu::getEulerYPR(q, yaw, pitch, roll);
+  ROS_INFO("Roll/Pitch/Yaw: %.3f, %.3f, %.3f", roll, pitch, yaw);
+
+/*
   float dt = deltaTime.toSec();
   madgwick_.update(dt,
                    imu->angular_velocity.x, imu->angular_velocity.y, imu->angular_velocity.z,
@@ -100,6 +107,7 @@ void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
   tf2Scalar yaw, pitch, roll;
   madgwick_.getEulerYPR(yaw, pitch, roll);
   ROS_INFO("Roll/Pitch/Yaw: %.3f, %.3f, %.3f", roll, pitch, yaw);
+*/
 }
 
 void TestImuNode::inputCallback(const std_msgs::StringConstPtr& command)

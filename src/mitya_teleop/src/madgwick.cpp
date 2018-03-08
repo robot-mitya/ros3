@@ -43,6 +43,8 @@
 //#define PI 3.141592654f
 #define toDeg 57.295779513f
 
+static tf2::Matrix3x3 m_;
+
 MadgwickImu::MadgwickImu()
 {
   q_.setValue(0, 0, 0, 1);
@@ -126,13 +128,18 @@ void MadgwickImu::getQuaternion(tf2Scalar& x, tf2Scalar& y, tf2Scalar& z, tf2Sca
   w = q_.w();
 }
 
-void MadgwickImu::getEulerYPR(tf2Scalar& yaw, tf2Scalar& pitch, tf2Scalar& roll)
+void MadgwickImu::getEulerYPR(tf2::Quaternion & quaternion, tf2Scalar& yaw, tf2Scalar& pitch, tf2Scalar& roll)
 {
-  m_.setRotation(q_);
+  m_.setRotation(quaternion);
   m_.getEulerYPR(yaw, pitch, roll, 1);
   yaw *= toDeg;
   pitch *= toDeg;
   roll *= toDeg;
+}
+
+void MadgwickImu::getEulerYPR(tf2Scalar& yaw, tf2Scalar& pitch, tf2Scalar& roll)
+{
+  MadgwickImu::getEulerYPR(q_, yaw, pitch, roll);
 }
 
 /**
@@ -150,88 +157,3 @@ float MadgwickImu::invSqrt(float x)
 //  return y;
   return 1.0f / sqrt(x);
 }
-
-/*
-void MadgwickAHRSupdateIMU(float deltaTime, float gx, float gy, float gz, float ax, float ay, float az,
-                           float *qW, float *qX, float *qY, float *qZ)
-{
-  //ROS_INFO("Time: %.3f; Angular vel: %.3f, %.3f, %.3f; Linear acc: %.3f, %.3f, %.3f", deltaTime, gx, gy, gz, ax, ay, az);
-
-  float recipNorm;
-  float s1, s2, s3, s4;
-  float qDot1, qDot2, qDot3, qDot4;
-  float _2q1, _2q2, _2q3, _2q4, _4q1, _4q2, _4q3, _8q2, _8q3, q1q1, q2q2, q3q3, q4q4;
-
-  q1 = *qW;
-  q2 = *qX;
-  q3 = *qY;
-  q4 = *qZ;
-
-  // Rate of change of quaternion from gyroscope
-  qDot1 = 0.5f * (-q2 * gx - q3 * gy - q4 * gz);
-  qDot2 = 0.5f * (q1 * gx + q3 * gz - q4 * gy);
-  qDot3 = 0.5f * (q1 * gy - q2 * gz + q4 * gx);
-  qDot4 = 0.5f * (q1 * gz + q2 * gy - q3 * gx);
-
-  // Compute feedback only if accelerometer measurement valid (avoids NaN in accelerometer normalization)
-  if (!((ax == 0.0f) && (ay == 0.0f) && (az == 0.0f)))
-  {
-
-    // Normalize accelerometer measurement
-    recipNorm = invSqrt(ax * ax + ay * ay + az * az);
-    ax *= recipNorm;
-    ay *= recipNorm;
-    az *= recipNorm;
-
-    // Auxiliary variables to avoid repeated arithmetic
-    _2q1 = 2.0f * q1;
-    _2q2 = 2.0f * q2;
-    _2q3 = 2.0f * q3;
-    _2q4 = 2.0f * q4;
-    _4q1 = 4.0f * q1;
-    _4q2 = 4.0f * q2;
-    _4q3 = 4.0f * q3;
-    _8q2 = 8.0f * q2;
-    _8q3 = 8.0f * q3;
-    q1q1 = q1 * q1;
-    q2q2 = q2 * q2;
-    q3q3 = q3 * q3;
-    q4q4 = q4 * q4;
-
-    // Gradient decent algorithm corrective step
-    s1 = _4q1 * q3q3 + _2q3 * ax + _4q1 * q2q2 - _2q2 * ay;
-    s2 = _4q2 * q4q4 - _2q4 * ax + 4.0f * q1q1 * q2 - _2q1 * ay - _4q2 + _8q2 * q2q2 + _8q2 * q3q3 + _4q2 * az;
-    s3 = 4.0f * q1q1 * q3 + _2q1 * ax + _4q3 * q4q4 - _2q4 * ay - _4q3 + _8q3 * q2q2 + _8q3 * q3q3 + _4q3 * az;
-    s4 = 4.0f * q2q2 * q4 - _2q2 * ax + 4.0f * q3q3 * q4 - _2q3 * ay;
-    recipNorm = invSqrt(s1 * s1 + s2 * s2 + s3 * s3 + s4 * s4); // Normalize step magnitude
-    s1 *= recipNorm;
-    s2 *= recipNorm;
-    s3 *= recipNorm;
-    s4 *= recipNorm;
-
-    // Apply feedback step
-    qDot1 -= beta * s1;
-    qDot2 -= beta * s2;
-    qDot3 -= beta * s3;
-    qDot4 -= beta * s4;
-  }
-
-  // Integrate rate of change of quaternion to yield quaternion
-  q1 += qDot1 * deltaTime;
-  q2 += qDot2 * deltaTime;
-  q3 += qDot3 * deltaTime;
-  q4 += qDot4 * deltaTime;
-
-  // Normalize quaternion
-  recipNorm = invSqrt(q1 * q1 + q2 * q2 + q3 * q3 + q4 * q4);
-  q1 *= recipNorm;
-  q2 *= recipNorm;
-  q3 *= recipNorm;
-  q4 *= recipNorm;
-
-  *qW = q1;
-  *qX = q2;
-  *qY = q3;
-  *qZ = q4;
-}
-*/

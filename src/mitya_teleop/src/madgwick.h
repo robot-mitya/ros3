@@ -49,9 +49,9 @@ public:
               float ax, float ay, float az);
   void getQuaternion(tf2Scalar& x, tf2Scalar& y, tf2Scalar& z, tf2Scalar& w);
   void getEulerYPR(tf2Scalar& yaw, tf2Scalar& pitch, tf2Scalar& roll);
+  static void getEulerYPR(tf2::Quaternion & quaternion, tf2Scalar& yaw, tf2Scalar& pitch, tf2Scalar& roll);
 private:
   tf2::Quaternion q_;
-  tf2::Matrix3x3 m_;
   float invSqrt(float x);
 
   static const float BETA = 0.075574974f;

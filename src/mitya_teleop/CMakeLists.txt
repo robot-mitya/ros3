@@ -231,6 +231,7 @@ add_executable(
   include/mitya_teleop/helper_3dmath.h
   src/mpu6050_node.cpp
   src/mpu6050_helper.cpp
+  src/madgwick.cpp
 )
 target_link_libraries(mpu6050_node ${catkin_LIBRARIES} wiringPi yaml-cpp)
 add_dependencies(mpu6050_node mitya_teleop_generate_messages_cpp)

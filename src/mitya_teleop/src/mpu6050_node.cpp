@@ -38,6 +38,7 @@
 #include <wiringPiI2C.h>
 #include "consts.h"
 #include "mpu6050_helper.h"
+#include "madgwick.h"
 
 #define VALUES_TO_CALIBRATE 1000
 
@@ -55,6 +56,7 @@ private:
   int fileDescriptor_;
   uint8_t buffer_[14];
   float gyroFactor_;
+
   float readWord2c(int addr);
 
   // Topic RM_IMU_TOPIC_NAME ('imu') publisher:
@@ -64,6 +66,10 @@ private:
   void imuInputCallback(const std_msgs::StringConstPtr& msg);
 
   MpuHelper mpuHelper_;
+
+  ros::Time prevStamp_;
+  uint32_t prevSeq_;
+  MadgwickImu madgwick_;
 
   uint32_t seq_;
 };
@@ -93,6 +99,10 @@ Mpu6050Node::Mpu6050Node()
 
   seq_ = 0;
   gyroFactor_ = 3.141592654f / 180 / 131;
+
+  prevStamp_ = ros::Time::now();
+  prevSeq_ = 0;
+  madgwick_.center();
 }
 
 float Mpu6050Node::readWord2c(int addr)
@@ -135,6 +145,17 @@ void Mpu6050Node::fillImuMessage(const sensor_msgs::ImuPtr& msg, float vX, float
   msg->linear_acceleration.x = aX;
   msg->linear_acceleration.y = aY;
   msg->linear_acceleration.z = aZ;
+
+  ros::Duration deltaTime = msg->header.stamp - prevStamp_;
+  prevStamp_ = msg->header.stamp;
+  madgwick_.update(deltaTime.toSec(), vX, vY, vZ, aX, aY, aZ);
+
+  tf2Scalar qX, qY, qZ, qW;
+  madgwick_.getQuaternion(qX, qY, qZ, qW);
+  msg->orientation.x = qX;
+  msg->orientation.y = qY;
+  msg->orientation.z = qZ;
+  msg->orientation.w = qW;
 }
 
 void Mpu6050Node::publishImuMessage(const sensor_msgs::ImuPtr& msg)
@@ -148,6 +169,11 @@ void Mpu6050Node::imuInputCallback(const std_msgs::StringConstPtr& msg)
   {
     ROS_INFO("Starting to calibrate head IMU...");
     mpuHelper_.startCalibration();
+  }
+  else if (msg->data.compare("center") == 0)
+  {
+    ROS_INFO("Center head IMU...");
+    madgwick_.center();
   }
   else if (msg->data.compare("configuration") == 0)
   {
