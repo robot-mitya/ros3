@@ -35,13 +35,12 @@
 #define MITYA_TELEOP_SRC_MPU6050_HELPER_H_
 
 #include <string>
-#include "madgwick.h"
 
 class MpuHelper
 {
 public:
   MpuHelper();
-  void startCalibration(MadgwickImu *madgwick);
+  void startCalibration();
   bool processCalibration(float vX, float vY, float vZ);
   void correctMpuData(float *vX, float *vY, float *vZ);
 
@@ -63,8 +62,6 @@ private:
   float deltaAngularVelocityX_;
   float deltaAngularVelocityY_;
   float deltaAngularVelocityZ_;
-
-  MadgwickImu *madgwick_;
 
   float calculateMedian(float values[]);
 

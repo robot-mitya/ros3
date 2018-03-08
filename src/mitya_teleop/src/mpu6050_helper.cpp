@@ -68,14 +68,13 @@ void MpuHelper::correctMpuData(float *vX, float *vY, float *vZ)
   *vZ -= deltaAngularVelocityZ_;
 }
 
-void MpuHelper::startCalibration(MadgwickImu *madgwick)
+void MpuHelper::startCalibration()
 {
   arrayIndex_ = 0;
   calibrating_ = true;
   deltaAngularVelocityX_ = 0;
   deltaAngularVelocityY_ = 0;
   deltaAngularVelocityZ_ = 0;
-  madgwick_ = madgwick;
 }
 
 bool MpuHelper::processCalibration(float vX, float vY, float vZ)
@@ -95,8 +94,6 @@ bool MpuHelper::processCalibration(float vX, float vY, float vZ)
     deltaAngularVelocityZ_ = calculateMedian(angularVelocitiesZ_);
     calibrating_ = false;
     saveCalibrationParamsToFile();
-    if (madgwick_ != NULL)
-      madgwick_->center();
   }
   return true;
 }
