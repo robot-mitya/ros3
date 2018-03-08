@@ -217,13 +217,16 @@ int main(int argc, char **argv)
     performingCalibration = mpu6050Node.performingCalibration(vX, vY, vZ);
     if (!performingCalibration)
     {
-      mpu6050Node.fillImuMessage(imuPrt, vX, vY, vZ, aX, aY, aZ);
-      mpu6050Node.publishImuMessage(imuPrt);
-    }
-    else if (prevPerformingCalibration && !performingCalibration)
-    {
-      // Calibration is over:
-      mpu6050Node.center();
+      if (prevPerformingCalibration)
+      {
+        // Calibration is over:
+        mpu6050Node.center();
+      }
+      else
+      {
+        mpu6050Node.fillImuMessage(imuPrt, vX, vY, vZ, aX, aY, aZ);
+        mpu6050Node.publishImuMessage(imuPrt);
+      }
     }
     prevPerformingCalibration = performingCalibration;
 
