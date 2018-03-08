@@ -76,6 +76,16 @@ private:
 };
 
 const int PWR_MGMT_1 = 0x6B;
+const int GYRO_CONFIG_ADDR = 27;
+const int ACC_CONFIG_ADDR = 28;
+
+enum GyroScale
+{
+  GYRO_FS_250DPS = 0,
+  GYRO_FS_500DPS,
+  GYRO_FS_1000DPS,
+  GYRO_FS_2000DPS
+};
 
 Mpu6050Node::Mpu6050Node()
 {
@@ -93,14 +103,38 @@ Mpu6050Node::Mpu6050Node()
   // Device starts in sleep mode so wake it up.
   wiringPiI2CWriteReg16(fileDescriptor_, PWR_MGMT_1, 0);
 
+  // Setting gyroscope full scale range:
+  GyroScale gyroScale = GYRO_FS_500DPS;
+  // Range selects FS_SEL and AFS_SEL are 0 - 3, so 2-bit values are left-shifted into positions 4:3
+  uint8_t gyroConfig = wiringPiI2CReadReg8(fileDescriptor_, GYRO_CONFIG_ADDR);
+  gyroConfig &= ~0xE0; // Clear self-test bits [7:5]
+  gyroConfig &= ~0x18; // Clear FS bits [4:3]
+  gyroConfig |= gyroScale << 3; // Set full scale range for the gyroscope
+  wiringPiI2CWriteReg8(fileDescriptor_, GYRO_CONFIG_ADDR, gyroConfig);
+  // Setting gyroscope factor:
+  gyroFactor_ = 3.141592654f / 180.0f;
+  switch (gyroScale)
+  {
+    case GYRO_FS_500DPS:
+      gyroFactor_ /= 500.0f / 32768.0f;
+      break;
+    case GYRO_FS_1000DPS:
+      gyroFactor_ /= 1000.0f / 32768.0f;
+      break;
+    case GYRO_FS_2000DPS:
+      gyroFactor_ /= 2000.0f / 32768.0f;
+      break;
+    default:
+      gyroFactor_ /= 250.0f / 32768.0f;
+      break;
+  }
+
   ros::NodeHandle nodeHandle(RM_NAMESPACE);
   imuPublisher_ = nodeHandle.advertise<sensor_msgs::Imu>(RM_HEAD_IMU_OUTPUT_TOPIC_NAME, 100);
 
   imuInputSubscriber_ = nodeHandle.subscribe(RM_HEAD_IMU_INPUT_TOPIC_NAME, 10, &Mpu6050Node::imuInputCallback, this);
 
   seq_ = 0;
-  gyroFactor_ = 3.141592654f / 180 / 131;
-
   prevSeq_ = 0;
   prevStamp_ = ros::Time::now();
   madgwick_.center();
@@ -178,9 +212,9 @@ void Mpu6050Node::imuInputCallback(const std_msgs::StringConstPtr& msg)
   }
   else if (msg->data.compare("configuration") == 0)
   {
-    uint8_t gyroConfig = wiringPiI2CReadReg8(fileDescriptor_, 27);
-    uint8_t accConfig = wiringPiI2CReadReg8(fileDescriptor_, 28);
-    ROS_INFO("GYRO_CONFIG (register 27) = %d    ACCEL_CONFIG (register 28) = %d", gyroConfig, accConfig);
+    uint8_t gyroConfig = wiringPiI2CReadReg8(fileDescriptor_, GYRO_CONFIG_ADDR);
+    uint8_t accConfig = wiringPiI2CReadReg8(fileDescriptor_, ACC_CONFIG_ADDR);
+    ROS_INFO("GYRO_CONFIG (register %d) = %d    ACCEL_CONFIG (register %d) = %d", GYRO_CONFIG_ADDR, gyroConfig, ACC_CONFIG_ADDR, accConfig);
   }
   else
   {

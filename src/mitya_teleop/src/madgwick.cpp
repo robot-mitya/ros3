@@ -36,8 +36,6 @@
 #include <math.h>
 #include "madgwick.h"
 
-#define toDeg 57.295779513f
-
 static tf2::Matrix3x3 m_;
 
 MadgwickImu::MadgwickImu()
@@ -127,9 +125,9 @@ void MadgwickImu::getEulerYPR(tf2::Quaternion & quaternion, tf2Scalar& yaw, tf2S
 {
   m_.setRotation(quaternion);
   m_.getEulerYPR(yaw, pitch, roll, 1);
-  yaw *= toDeg;
-  pitch *= toDeg;
-  roll *= toDeg;
+  yaw *= TO_DEG;
+  pitch *= TO_DEG;
+  roll *= TO_DEG;
 }
 
 void MadgwickImu::getEulerYPR(tf2Scalar& yaw, tf2Scalar& pitch, tf2Scalar& roll)

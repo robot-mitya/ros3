@@ -55,6 +55,7 @@ private:
   float invSqrt(float x);
 
   static const float BETA = 0.075574974f;
+  static const float TO_DEG = 57.295779513f;
 };
 
 #endif
