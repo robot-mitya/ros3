@@ -54,7 +54,7 @@ private:
 
   ros::Time prevStamp_;
   uint32_t prevSeq_;
-  tf2::Quaternion qSensor_;
+  MadgwickImu madgwick_;
 };
 
 TestImuNode::TestImuNode()
@@ -65,7 +65,7 @@ TestImuNode::TestImuNode()
 
   prevStamp_ = ros::Time::now();
   prevSeq_ = 0;
-  qSensor_.setValue(0, 0, 0, 1);
+  madgwick_.center();
 }
 
 void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
@@ -89,14 +89,16 @@ void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
            imu->linear_acceleration.x, imu->linear_acceleration.y, imu->linear_acceleration.z);
 
   float dt = deltaTime.toSec();
-  madgwickAHRSupdateIMU(dt,
-                        imu->angular_velocity.x, imu->angular_velocity.y, imu->angular_velocity.z,
-                        imu->linear_acceleration.x, imu->linear_acceleration.y, imu->linear_acceleration.z,
-                        qSensor_);
-  ROS_INFO("Quaternion: %.3f, %.3f, %.3f, %.3f", qSensor_.w(), qSensor_.x(), qSensor_.y(), qSensor_.z());
+  madgwick_.update(dt,
+                   imu->angular_velocity.x, imu->angular_velocity.y, imu->angular_velocity.z,
+                   imu->linear_acceleration.x, imu->linear_acceleration.y, imu->linear_acceleration.z);
 
-  float roll, pitch, yaw;
-  getEulerAngles(qSensor_, &roll, &pitch, &yaw);
+  tf2Scalar x, y, z, w;
+  madgwick_.getQuaternion(x, y, z, w);
+  ROS_INFO("Quaternion: %.3f, %.3f, %.3f, %.3f", x, y, z, w);
+
+  tf2Scalar yaw, pitch, roll;
+  madgwick_.getEulerYPR(yaw, pitch, roll);
   ROS_INFO("Roll/Pitch/Yaw: %.3f, %.3f, %.3f", roll, pitch, yaw);
 }
 
@@ -105,7 +107,7 @@ void TestImuNode::inputCallback(const std_msgs::StringConstPtr& command)
   if (command->data.compare("center") == 0)
   {
     ROS_INFO("Setting head zero orientation...");
-    qSensor_.setValue(0, 0, 0, 1);
+    madgwick_.center();
   }
   else
   {

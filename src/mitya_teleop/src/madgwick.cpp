@@ -39,15 +39,117 @@
 #include <ros/ros.h> //TODO REMOVE!!!!!!!!!!!
 
 //#define betaDef	0.1f		// 2 * proportional gain
-#define betaDef 0.075574974f
-#define PI 3.141592654f
+//#define betaDef 0.075574974f
+//#define PI 3.141592654f
 #define toDeg 57.295779513f
 
-volatile float beta = betaDef; // 2 * proportional gain (Kp)
-volatile float q1 = 1.0f, q2 = 0.0f, q3 = 0.0f, q4 = 0.0f; // quaternion of sensor frame relative to auxiliary frame
-volatile float roll = 0, pitch = 0, yaw = 0;
+MadgwickImu::MadgwickImu()
+{
+  q_.setValue(0, 0, 0, 1);
+}
 
-float invSqrt(float x);
+void MadgwickImu::center()
+{
+  q_.setValue(0, 0, 0, 1);
+}
+
+void MadgwickImu::update(float deltaTime,
+            float gx, float gy, float gz,
+            float ax, float ay, float az)
+{
+  float q1 = q_.w();
+  float q2 = q_.x();
+  float q3 = q_.y();
+  float q4 = q_.z();
+  float norm;
+  float s1, s2, s3, s4;
+  float qDot1, qDot2, qDot3, qDot4;
+
+  // Auxiliary variables to avoid repeated arithmetic
+  float _2q1 = 2.0f * q1;
+  float _2q2 = 2.0f * q2;
+  float _2q3 = 2.0f * q3;
+  float _2q4 = 2.0f * q4;
+  float _4q1 = 4.0f * q1;
+  float _4q2 = 4.0f * q2;
+  float _4q3 = 4.0f * q3;
+  float _8q2 = 8.0f * q2;
+  float _8q3 = 8.0f * q3;
+  float q1q1 = q1 * q1;
+  float q2q2 = q2 * q2;
+  float q3q3 = q3 * q3;
+  float q4q4 = q4 * q4;
+
+  // Normalize accelerometer measurement
+  norm = (float) sqrt(ax * ax + ay * ay + az * az);
+  if (norm < 0.0001f) return; // handle NaN
+  norm = 1.0f / norm;         // use reciprocal for division
+  ax *= norm;
+  ay *= norm;
+  az *= norm;
+
+  // Gradient decent algorithm corrective step
+  s1 = _4q1 * q3q3 + _2q3 * ax + _4q1 * q2q2 - _2q2 * ay;
+  s2 = _4q2 * q4q4 - _2q4 * ax + 4.0f * q1q1 * q2 - _2q1 * ay - _4q2 + _8q2 * q2q2 + _8q2 * q3q3 + _4q2 * az;
+  s3 = 4.0f * q1q1 * q3 + _2q1 * ax + _4q3 * q4q4 - _2q4 * ay - _4q3 + _8q3 * q2q2 + _8q3 * q3q3 + _4q3 * az;
+  s4 = 4.0f * q2q2 * q4 - _2q2 * ax + 4.0f * q3q3 * q4 - _2q3 * ay;
+  norm = 1.0f / (float) sqrt(s1 * s1 + s2 * s2 + s3 * s3 + s4 * s4);    // normalize step magnitude
+  s1 *= norm;
+  s2 *= norm;
+  s3 *= norm;
+  s4 *= norm;
+
+  // Compute rate of change of quaternion
+  qDot1 = 0.5f * (-q2 * gx - q3 * gy - q4 * gz) - BETA * s1;
+  qDot2 = 0.5f * (q1 * gx + q3 * gz - q4 * gy) - BETA * s2;
+  qDot3 = 0.5f * (q1 * gy - q2 * gz + q4 * gx) - BETA * s3;
+  qDot4 = 0.5f * (q1 * gz + q2 * gy - q3 * gx) - BETA * s4;
+
+  // Integrate to yield quaternion
+  q1 += qDot1 * deltaTime;
+  q2 += qDot2 * deltaTime;
+  q3 += qDot3 * deltaTime;
+  q4 += qDot4 * deltaTime;
+  norm = 1.0f / (float) sqrt(q1 * q1 + q2 * q2 + q3 * q3 + q4 * q4);    // normalize quaternion
+  q1 *= norm;
+  q2 *= norm;
+  q3 *= norm;
+  q4 *= norm;
+  q_.setValue(q2, q3, q4, q1);
+}
+
+void MadgwickImu::getQuaternion(tf2Scalar& x, tf2Scalar& y, tf2Scalar& z, tf2Scalar& w)
+{
+  x = q_.x();
+  y = q_.y();
+  z = q_.z();
+  w = q_.w();
+}
+
+void MadgwickImu::getEulerYPR(tf2Scalar& yaw, tf2Scalar& pitch, tf2Scalar& roll)
+{
+  m_.setRotation(q_);
+  m_.getEulerYPR(yaw, pitch, roll, 1);
+  yaw *= toDeg;
+  pitch *= toDeg;
+  roll *= toDeg;
+}
+
+/**
+ * Fast inverse square-root
+ * See: http://en.wikipedia.org/wiki/Fast_inverse_square_root
+ */
+float MadgwickImu::invSqrt(float x)
+{
+//  float halfx = 0.5f * x;
+//  float y = x;
+//  long i = *(long*)&y;
+//  i = 0x5f3759df - (i >> 1);
+//  y = *(float*)&i;
+//  y = y * (1.5f - (halfx * y * y));
+//  return y;
+  return 1.0f / sqrt(x);
+}
 
 /*
 void MadgwickAHRSupdateIMU(float deltaTime, float gx, float gy, float gz, float ax, float ay, float az,
@@ -133,95 +235,3 @@ void MadgwickAHRSupdateIMU(float deltaTime, float gx, float gy, float gz, float 
   *qZ = q4;
 }
 */
-void madgwickAHRSupdateIMU(float deltaTime,
-                           float gx, float gy, float gz,
-                           float ax, float ay, float az,
-                           tf2::Quaternion & q)
-{
-  float q1 = q.w();
-  float q2 = q.x();
-  float q3 = q.y();
-  float q4 = q.z();
-  float norm;
-  float s1, s2, s3, s4;
-  float qDot1, qDot2, qDot3, qDot4;
-
-  // Auxiliary variables to avoid repeated arithmetic
-  float _2q1 = 2.0f * q1;
-  float _2q2 = 2.0f * q2;
-  float _2q3 = 2.0f * q3;
-  float _2q4 = 2.0f * q4;
-  float _4q1 = 4.0f * q1;
-  float _4q2 = 4.0f * q2;
-  float _4q3 = 4.0f * q3;
-  float _8q2 = 8.0f * q2;
-  float _8q3 = 8.0f * q3;
-  float q1q1 = q1 * q1;
-  float q2q2 = q2 * q2;
-  float q3q3 = q3 * q3;
-  float q4q4 = q4 * q4;
-
-  // Normalize accelerometer measurement
-  norm = (float) sqrt(ax * ax + ay * ay + az * az);
-  if (norm < 0.0001f) return; // handle NaN
-  norm = 1.0f / norm;         // use reciprocal for division
-  ax *= norm;
-  ay *= norm;
-  az *= norm;
-
-  // Gradient decent algorithm corrective step
-  s1 = _4q1 * q3q3 + _2q3 * ax + _4q1 * q2q2 - _2q2 * ay;
-  s2 = _4q2 * q4q4 - _2q4 * ax + 4.0f * q1q1 * q2 - _2q1 * ay - _4q2 + _8q2 * q2q2 + _8q2 * q3q3 + _4q2 * az;
-  s3 = 4.0f * q1q1 * q3 + _2q1 * ax + _4q3 * q4q4 - _2q4 * ay - _4q3 + _8q3 * q2q2 + _8q3 * q3q3 + _4q3 * az;
-  s4 = 4.0f * q2q2 * q4 - _2q2 * ax + 4.0f * q3q3 * q4 - _2q3 * ay;
-  norm = 1.0f / (float) sqrt(s1 * s1 + s2 * s2 + s3 * s3 + s4 * s4);    // normalize step magnitude
-  s1 *= norm;
-  s2 *= norm;
-  s3 *= norm;
-  s4 *= norm;
-
-  // Compute rate of change of quaternion
-  qDot1 = 0.5f * (-q2 * gx - q3 * gy - q4 * gz) - beta * s1;
-  qDot2 = 0.5f * (q1 * gx + q3 * gz - q4 * gy) - beta * s2;
-  qDot3 = 0.5f * (q1 * gy - q2 * gz + q4 * gx) - beta * s3;
-  qDot4 = 0.5f * (q1 * gz + q2 * gy - q3 * gx) - beta * s4;
-
-  // Integrate to yield quaternion
-  q1 += qDot1 * deltaTime;
-  q2 += qDot2 * deltaTime;
-  q3 += qDot3 * deltaTime;
-  q4 += qDot4 * deltaTime;
-  norm = 1.0f / (float) sqrt(q1 * q1 + q2 * q2 + q3 * q3 + q4 * q4);    // normalize quaternion
-  q1 *= norm;
-  q2 *= norm;
-  q3 *= norm;
-  q4 *= norm;
-  q.setValue(q2, q3, q4, q1);
-}
-
-void getEulerAngles(tf2::Quaternion & q,
-                    float *roll, float *pitch, float *yaw)
-{
-  tf2::Matrix3x3 m(q);
-  tf2Scalar y, p, r;
-  m.getEulerYPR(y, p, r, 1);
-  *roll = r * toDeg;
-  *pitch = p * toDeg;
-  *yaw = y * toDeg;
-}
-
-/**
- * Fast inverse square-root
- * See: http://en.wikipedia.org/wiki/Fast_inverse_square_root
- */
-float invSqrt(float x)
-{
-//  float halfx = 0.5f * x;
-//  float y = x;
-//  long i = *(long*)&y;
-//  i = 0x5f3759df - (i >> 1);
-//  y = *(float*)&i;
-//  y = y * (1.5f - (halfx * y * y));
-//  return y;
-  return 1.0f / sqrt(x);
-}
