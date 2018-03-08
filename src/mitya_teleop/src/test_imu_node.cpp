@@ -32,14 +32,11 @@
  */
 
 #include <ros/ros.h>
-#include <ros/platform.h>
 #include <sensor_msgs/Imu.h>
 #include <std_msgs/String.h>
 #include "consts.h"
-#include "mpu6050_helper.h"
 #include "madgwick.h"
 #include <tf2/LinearMath/Quaternion.h>
-#include <tf2/LinearMath/Transform.h>
 
 class TestImuNode
 {
@@ -52,9 +49,6 @@ private:
   ros::Subscriber inputSubscriber_;
   void inputCallback(const std_msgs::StringConstPtr& command);
 
-  ros::Time prevStamp_;
-  uint32_t prevSeq_;
-  MadgwickImu madgwick_;
   tf2::Quaternion q;
 };
 
@@ -63,64 +57,27 @@ TestImuNode::TestImuNode()
   ros::NodeHandle nodeHandle(RM_NAMESPACE);
   imuSubscriber_ = nodeHandle.subscribe<sensor_msgs::Imu>(RM_HEAD_IMU_OUTPUT_TOPIC_NAME, 100, &TestImuNode::imuCallback, this);
   inputSubscriber_ = nodeHandle.subscribe<std_msgs::String>("test_imu_input", 100, &TestImuNode::inputCallback, this);
-
-  prevStamp_ = ros::Time::now();
-  prevSeq_ = 0;
-  madgwick_.center();
 }
 
 void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
 {
-  ros::Duration deltaTime = imu->header.stamp - prevStamp_;
-  prevStamp_ = imu->header.stamp;
-
-  if (imu->header.seq - prevSeq_ != 1)
-  {
-    ROS_INFO("seq=%d  prevSeq=%d", imu->header.seq, prevSeq_);
-  }
-  else
-  {
-    ROS_INFO("seq ok: %d", imu->header.seq);
-  }
-  prevSeq_ = imu->header.seq;
-
-  ROS_INFO("Time: %.3f; Velocities: %.3f, %.3f, %.3f; Accelerations: %.3f, %.3f, %.3f",
-           deltaTime.toSec(),
-           imu->angular_velocity.x, imu->angular_velocity.y, imu->angular_velocity.z,
-           imu->linear_acceleration.x, imu->linear_acceleration.y, imu->linear_acceleration.z);
-
   q.setValue(imu->orientation.x, imu->orientation.y, imu->orientation.z, imu->orientation.w);
   tf2Scalar yaw, pitch, roll;
   MadgwickImu::getEulerYPR(q, yaw, pitch, roll);
   ROS_INFO("Roll/Pitch/Yaw: %.3f, %.3f, %.3f", roll, pitch, yaw);
-
-/*
-  float dt = deltaTime.toSec();
-  madgwick_.update(dt,
-                   imu->angular_velocity.x, imu->angular_velocity.y, imu->angular_velocity.z,
-                   imu->linear_acceleration.x, imu->linear_acceleration.y, imu->linear_acceleration.z);
-
-  tf2Scalar x, y, z, w;
-  madgwick_.getQuaternion(x, y, z, w);
-  ROS_INFO("Quaternion: %.3f, %.3f, %.3f, %.3f", x, y, z, w);
-
-  tf2Scalar yaw, pitch, roll;
-  madgwick_.getEulerYPR(yaw, pitch, roll);
-  ROS_INFO("Roll/Pitch/Yaw: %.3f, %.3f, %.3f", roll, pitch, yaw);
-*/
 }
 
 void TestImuNode::inputCallback(const std_msgs::StringConstPtr& command)
 {
-  if (command->data.compare("center") == 0)
-  {
-    ROS_INFO("Setting head zero orientation...");
-    madgwick_.center();
-  }
-  else
-  {
-    ROS_ERROR("Unknown command \"%s\"", command->data.c_str());
-  }
+//  if (command->data.compare("center") == 0)
+//  {
+//    ROS_INFO("Setting head zero orientation...");
+//    madgwick_.center();
+//  }
+//  else
+//  {
+//    ROS_ERROR("Unknown command \"%s\"", command->data.c_str());
+//  }
 }
 
 int main(int argc, char **argv)

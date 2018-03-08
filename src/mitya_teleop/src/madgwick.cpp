@@ -36,11 +36,6 @@
 #include <math.h>
 #include "madgwick.h"
 
-#include <ros/ros.h> //TODO REMOVE!!!!!!!!!!!
-
-//#define betaDef	0.1f		// 2 * proportional gain
-//#define betaDef 0.075574974f
-//#define PI 3.141592654f
 #define toDeg 57.295779513f
 
 static tf2::Matrix3x3 m_;
@@ -148,12 +143,12 @@ void MadgwickImu::getEulerYPR(tf2Scalar& yaw, tf2Scalar& pitch, tf2Scalar& roll)
  */
 float MadgwickImu::invSqrt(float x)
 {
-//  float halfx = 0.5f * x;
-//  float y = x;
-//  long i = *(long*)&y;
-//  i = 0x5f3759df - (i >> 1);
-//  y = *(float*)&i;
-//  y = y * (1.5f - (halfx * y * y));
-//  return y;
-  return 1.0f / sqrt(x);
+  float halfx = 0.5f * x;
+  float y = x;
+  long i = *(long*)&y;
+  i = 0x5f3759df - (i >> 1);
+  y = *(float*)&i;
+  y = y * (1.5f - (halfx * y * y));
+  return y;
+//  return 1.0f / sqrt(x);
 }
