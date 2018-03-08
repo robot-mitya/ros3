@@ -51,6 +51,7 @@ public:
 
   void fillImuMessage(const sensor_msgs::ImuPtr& msg, float vX, float vY, float vZ, float aX, float aY, float aZ);
   void publishImuMessage(const sensor_msgs::ImuPtr& msg);
+  void center();
 private:
   int i2cAddress_;
   int fileDescriptor_;
@@ -169,7 +170,7 @@ void Mpu6050Node::imuInputCallback(const std_msgs::StringConstPtr& msg)
   {
     ROS_INFO("Starting to calibrate head IMU...");
     mpuHelper_.startCalibration();
-    madgwick_.center();
+    //madgwick_.center();
   }
   else if (msg->data.compare("center") == 0)
   {
@@ -193,6 +194,11 @@ bool Mpu6050Node::performingCalibration(float vX, float vY, float vZ)
   return mpuHelper_.processCalibration(vX, vY, vZ);
 }
 
+void Mpu6050Node::center()
+{
+  madgwick_.center();
+}
+
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, RM_MPU6050_NODE_NAME);
@@ -202,15 +208,24 @@ int main(int argc, char **argv)
 
   float vX, vY, vZ, aX, aY, aZ;
   ros::Rate rate(50);  // hz
+  bool prevPerformingCalibration = false;
+  bool performingCalibration;
   while(ros::ok())
   {
     mpu6050Node.readImuData(&vX, &vY, &vZ, &aX, &aY, &aZ);
 
-    if (!mpu6050Node.performingCalibration(vX, vY, vZ))
+    performingCalibration = mpu6050Node.performingCalibration(vX, vY, vZ);
+    if (!performingCalibration)
     {
       mpu6050Node.fillImuMessage(imuPrt, vX, vY, vZ, aX, aY, aZ);
       mpu6050Node.publishImuMessage(imuPrt);
     }
+    else if (prevPerformingCalibration && !performingCalibration)
+    {
+      // Calibration is over:
+      mpu6050Node.center();
+    }
+    prevPerformingCalibration = performingCalibration;
 
     ros::spinOnce();
     rate.sleep();
