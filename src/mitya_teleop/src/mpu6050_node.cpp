@@ -168,7 +168,7 @@ void Mpu6050Node::imuInputCallback(const std_msgs::StringConstPtr& msg)
   if (msg->data.compare("calibrate") == 0)
   {
     ROS_INFO("Starting to calibrate head IMU...");
-    mpuHelper_.startCalibration();
+    mpuHelper_.startCalibration(&madgwick_);
   }
   else if (msg->data.compare("center") == 0)
   {
