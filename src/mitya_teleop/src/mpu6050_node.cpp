@@ -150,18 +150,15 @@ float Mpu6050Node::readWord2c(int addr)
 void Mpu6050Node::readImuData(float *vX, float *vY, float *vZ, float *aX, float *aY, float *aZ)
 {
   // Read gyroscope values.
-  // At default sensitivity of 250deg/s we need to scale by 131.
-  *vX = -readWord2c(0x47) * gyroFactor_; // -z (caused by chip orientation in robot)
-  *vY = readWord2c(0x45) * gyroFactor_;  // y
-  *vZ = readWord2c(0x43) * gyroFactor_;  // x (caused by chip orientation in robot)
+  *vX = readWord2c(0x45) * gyroFactor_; // y (caused by chip orientation in robot)
+  *vY = readWord2c(0x47) * gyroFactor_; // z (caused by chip orientation in robot)
+  *vZ = readWord2c(0x43) * gyroFactor_; // x (caused by chip orientation in robot)
 
   // Read accelerometer values.
   // At default sensitivity of 2g we need to scale by 16384.
-  // Note: at "level" x = y = 0 but z = 1 (i.e. gravity)
-  // But! Imu message documentations say acceleration should be in m/2 so need to *9.807
-  const float la_rescale = 16384.0 / 9.807;
-  *aX = -readWord2c(0x3f) / la_rescale; // -z (caused by chip orientation in robot)
-  *aY = readWord2c(0x3d) / la_rescale; // y
+  const float la_rescale = 16384.0f;
+  *aX = readWord2c(0x3d) / la_rescale; // y (caused by chip orientation in robot)
+  *aY = readWord2c(0x3f) / la_rescale; // z (caused by chip orientation in robot)
   *aZ = readWord2c(0x3b) / la_rescale; // x (caused by chip orientation in robot)
 
   mpuHelper_.correctMpuData(vX, vY, vZ);
