@@ -112,20 +112,20 @@ Mpu6050Node::Mpu6050Node()
   gyroConfig |= gyroScale << 3; // Set full scale range for the gyroscope
   wiringPiI2CWriteReg8(fileDescriptor_, GYRO_CONFIG_ADDR, gyroConfig);
   // Setting gyroscope factor:
-  gyroFactor_ = 3.141592654f / 180.0f;
+  gyroFactor_ = 3.141592654f / 180.0f; // (convert to radians)
   switch (gyroScale)
   {
     case GYRO_FS_500DPS:
-      gyroFactor_ /= 500.0f / 32768.0f;
+      gyroFactor_ *= 500.0f / 32768.0f;
       break;
     case GYRO_FS_1000DPS:
-      gyroFactor_ /= 1000.0f / 32768.0f;
+      gyroFactor_ *= 1000.0f / 32768.0f;
       break;
     case GYRO_FS_2000DPS:
-      gyroFactor_ /= 2000.0f / 32768.0f;
+      gyroFactor_ *= 2000.0f / 32768.0f;
       break;
     default:
-      gyroFactor_ /= 250.0f / 32768.0f;
+      gyroFactor_ *= 250.0f / 32768.0f;
       break;
   }
 
