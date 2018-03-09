@@ -47,6 +47,7 @@ MadgwickImu::MadgwickImu()
 
 void MadgwickImu::center()
 {
+  qSource_.setValue(0, 0, 0, 1);
   qCenter_ = qSource_.inverse();
 }
 
@@ -113,11 +114,11 @@ void MadgwickImu::update(float deltaTime,
   q3 *= norm;
   q4 *= norm;
   qSource_.setValue(q2, q3, q4, q1);
+  qResult_ = qSource_ * qCenter_;
 }
 
 void MadgwickImu::getQuaternion(tf2Scalar& x, tf2Scalar& y, tf2Scalar& z, tf2Scalar& w)
 {
-  qResult_ = qSource_ * qCenter_;
   x = qResult_.x();
   y = qResult_.y();
   z = qResult_.z();
@@ -135,7 +136,7 @@ void MadgwickImu::getEulerYPR(tf2::Quaternion & quaternion, tf2Scalar& yaw, tf2S
 
 void MadgwickImu::getEulerYPR(tf2Scalar& yaw, tf2Scalar& pitch, tf2Scalar& roll)
 {
-  MadgwickImu::getEulerYPR(qSource_, yaw, pitch, roll);
+  MadgwickImu::getEulerYPR(qResult_, yaw, pitch, roll);
 }
 
 /**
