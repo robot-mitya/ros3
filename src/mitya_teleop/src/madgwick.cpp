@@ -40,22 +40,25 @@ static tf2::Matrix3x3 m_;
 
 MadgwickImu::MadgwickImu()
 {
-  q_.setValue(0, 0, 0, 1);
+  qSource_.setValue(0, 0, 0, 1);
+  qCenter_.setValue(0, 0, 0, 1);
+  qResult_ = qSource_ * qCenter_;
 }
 
 void MadgwickImu::center()
 {
-  q_.setValue(0, 0, 0, 1);
+  qCenter_ = qSource_;
+  qCenter_.inverse();
 }
 
 void MadgwickImu::update(float deltaTime,
             float gx, float gy, float gz,
             float ax, float ay, float az)
 {
-  float q1 = q_.w();
-  float q2 = q_.x();
-  float q3 = q_.y();
-  float q4 = q_.z();
+  float q1 = qSource_.w();
+  float q2 = qSource_.x();
+  float q3 = qSource_.y();
+  float q4 = qSource_.z();
   float norm;
   float s1, s2, s3, s4;
   float qDot1, qDot2, qDot3, qDot4;
@@ -110,15 +113,16 @@ void MadgwickImu::update(float deltaTime,
   q2 *= norm;
   q3 *= norm;
   q4 *= norm;
-  q_.setValue(q2, q3, q4, q1);
+  qSource_.setValue(q2, q3, q4, q1);
 }
 
 void MadgwickImu::getQuaternion(tf2Scalar& x, tf2Scalar& y, tf2Scalar& z, tf2Scalar& w)
 {
-  x = q_.x();
-  y = q_.y();
-  z = q_.z();
-  w = q_.w();
+  qResult_ = qSource_ * qCenter_;
+  x = qResult_.x();
+  y = qResult_.y();
+  z = qResult_.z();
+  w = qResult_.w();
 }
 
 void MadgwickImu::getEulerYPR(tf2::Quaternion & quaternion, tf2Scalar& yaw, tf2Scalar& pitch, tf2Scalar& roll)
@@ -132,7 +136,7 @@ void MadgwickImu::getEulerYPR(tf2::Quaternion & quaternion, tf2Scalar& yaw, tf2S
 
 void MadgwickImu::getEulerYPR(tf2Scalar& yaw, tf2Scalar& pitch, tf2Scalar& roll)
 {
-  MadgwickImu::getEulerYPR(q_, yaw, pitch, roll);
+  MadgwickImu::getEulerYPR(qSource_, yaw, pitch, roll);
 }
 
 /**

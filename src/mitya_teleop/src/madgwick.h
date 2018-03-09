@@ -51,7 +51,9 @@ public:
   void getEulerYPR(tf2Scalar& yaw, tf2Scalar& pitch, tf2Scalar& roll);
   static void getEulerYPR(tf2::Quaternion & quaternion, tf2Scalar& yaw, tf2Scalar& pitch, tf2Scalar& roll);
 private:
-  tf2::Quaternion q_;
+  tf2::Quaternion qSource_;
+  tf2::Quaternion qCenter_;
+  tf2::Quaternion qResult_;
   float invSqrt(float x);
 
   static const float BETA = 0.075574974f;
