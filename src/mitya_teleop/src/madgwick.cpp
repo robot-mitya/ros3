@@ -47,7 +47,7 @@ MadgwickImu::MadgwickImu()
 
 void MadgwickImu::center()
 {
-  qSource_.setValue(0, 0, 0, 1);
+//  qSource_.setValue(0, 0, 0, 1);
   qCenter_ = qSource_.inverse();
 }
 
