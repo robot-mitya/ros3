@@ -47,8 +47,7 @@ MadgwickImu::MadgwickImu()
 
 void MadgwickImu::center()
 {
-  qCenter_ = qSource_;
-  qCenter_.inverse();
+  qCenter_ = qSource_.inverse();
 }
 
 void MadgwickImu::update(float deltaTime,
