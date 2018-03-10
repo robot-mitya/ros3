@@ -36,7 +36,9 @@
 #include <std_msgs/String.h>
 #include "consts.h"
 #include "madgwick.h"
+#include <tf2/LinearMath/Transform.h>
 #include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Vector3.h>
 
 class TestImuNode
 {
@@ -49,7 +51,15 @@ private:
   ros::Subscriber inputSubscriber_;
   void inputCallback(const std_msgs::StringConstPtr& command);
 
-  tf2::Quaternion q;
+  tf2::Quaternion q_;
+  tf2::Transform t_;
+  tf2::Vector3 x_;
+  tf2::Vector3 y_;
+  tf2::Vector3 z_;
+
+  tf2::Quaternion extraQuaternion_;
+
+  static const float PI = 3.14159265358979f;
 };
 
 TestImuNode::TestImuNode()
@@ -57,14 +67,36 @@ TestImuNode::TestImuNode()
   ros::NodeHandle nodeHandle(RM_NAMESPACE);
   imuSubscriber_ = nodeHandle.subscribe<sensor_msgs::Imu>(RM_HEAD_IMU_OUTPUT_TOPIC_NAME, 100, &TestImuNode::imuCallback, this);
   inputSubscriber_ = nodeHandle.subscribe<std_msgs::String>("test_imu_input", 100, &TestImuNode::inputCallback, this);
+
+  x_.setValue(1, 0, 0);
+  y_.setValue(0, 1, 0);
+  z_.setValue(0, 0, 1);
+
+  tf2::Vector3 z(0, 0, 0);
+  t_.setOrigin(z);
+
+  tf2::Vector3 temp(0, 0, 1);
+  extraQuaternion_.setRotation(temp, -PI / 2.0f);
 }
 
 void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
 {
-  q.setValue(imu->orientation.x, imu->orientation.y, imu->orientation.z, imu->orientation.w);
+  // q_: local to world.
+  q_.setValue(imu->orientation.x, imu->orientation.y, imu->orientation.z, imu->orientation.w);
+
   tf2Scalar yaw, pitch, roll;
-  MadgwickImu::getEulerYPR(q, yaw, pitch, roll);
-  ROS_INFO("Roll/Pitch/Yaw: %.3f, %.3f, %.3f", roll, pitch, yaw);
+  q_ *= extraQuaternion_;
+  MadgwickImu::getEulerYPR(q_, yaw, pitch, roll);
+  yaw += 90;
+  if (yaw > 180) yaw -= 360;
+  ROS_INFO("Roll/Pitch/Yaw: %+9.3f, %+9.3f, %+9.3f", roll, pitch, yaw);
+
+  t_.setRotation(q_);
+  tf2::Vector3 x = t_ * x_;
+  tf2::Vector3 y = t_ * y_;
+  tf2::Vector3 z = t_ * z_;
+  ROS_INFO("Vectors x/y/z: %+9.3f, %+9.3f, %+9.3f  /  %+9.3f, %+9.3f, %+9.3f  /  %+9.3f, %+9.3f, %+9.3f",
+           x.x(), x.y(), x.z(), y.x(), y.y(), y.z(), z.x(), z.y(), z.z());
 }
 
 void TestImuNode::inputCallback(const std_msgs::StringConstPtr& command)
