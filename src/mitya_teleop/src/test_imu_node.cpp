@@ -80,7 +80,6 @@ TestImuNode::TestImuNode()
 
 void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
 {
-/*
   // q_: local to world.
   q_.setValue(imu->orientation.x, imu->orientation.y, imu->orientation.z, imu->orientation.w);
 
@@ -94,7 +93,8 @@ void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
   tf2::Vector3 z = t_ * z_;
   ROS_INFO("Vectors x/y/z: %+9.3f, %+9.3f, %+9.3f  /  %+9.3f, %+9.3f, %+9.3f  /  %+9.3f, %+9.3f, %+9.3f",
            x.x(), x.y(), x.z(), y.x(), y.y(), y.z(), z.x(), z.y(), z.z());
-*/
+
+/*
   ros::Duration deltaTime = imu->header.stamp - prevStamp_;
   prevStamp_ = imu->header.stamp;
   madgwick_.update(deltaTime.toSec(),
@@ -113,15 +113,14 @@ void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
   tf2::Matrix3x3 m;
   m.setRotation(q);
 
-  ROS_INFO("Matrix: colX   %+9.3f, %+9.3f, %+9.3f  /  colY   %+9.3f, %+9.3f, %+9.3f  /  colZ   %+9.3f, %+9.3f, %+9.3f",
-           m.getColumn(0).x(), m.getColumn(0).y(), m.getColumn(0).z(),
-           m.getColumn(1).x(), m.getColumn(1).y(), m.getColumn(1).z(),
-           m.getColumn(2).x(), m.getColumn(2).y(), m.getColumn(2).z());
+//  ROS_INFO("Matrix: colX   %+9.3f, %+9.3f, %+9.3f  /  colY   %+9.3f, %+9.3f, %+9.3f  /  colZ   %+9.3f, %+9.3f, %+9.3f",
+//           m.getColumn(0).x(), m.getColumn(0).y(), m.getColumn(0).z(),
+//           m.getColumn(1).x(), m.getColumn(1).y(), m.getColumn(1).z(),
+//           m.getColumn(2).x(), m.getColumn(2).y(), m.getColumn(2).z());
 
   tf2::Vector3 x = m.getColumn(0);
   tf2::Vector3 z = z_;
   tf2::Vector3 y = z.cross(x).normalize();
-//  ROS_INFO("Length(y)=%f", y.length());
   x = y.cross(z);
 
   m.setValue(x.x(), y.x(), z.x(),
@@ -133,18 +132,13 @@ void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
 
   tf2Scalar yaw2, pitch2;
   MadgwickImu::getEulerYP(q, yaw2, pitch2);
-  ROS_INFO("Yaw/Pitch: %+9.3f (%+9.3f), %+9.3f (%+9.3f)", yaw, yaw2, pitch, pitch2);
+//  ROS_INFO("Yaw/Pitch: %+9.3f (%+9.3f), %+9.3f (%+9.3f)", yaw, yaw2, pitch, pitch2);
 
-//  ROS_INFO("Matrix: row0   %+9.3f, %+9.3f, %+9.3f  /  row1   %+9.3f, %+9.3f, %+9.3f  /  row2   %+9.3f, %+9.3f, %+9.3f",
-//           m.getRow(0).x(), m.getRow(0).y(), m.getRow(0).z(),
-//           m.getRow(1).x(), m.getRow(1).y(), m.getRow(1).z(),
-//           m.getRow(2).x(), m.getRow(2).y(), m.getRow(2).z());
-  ROS_INFO("Matrix2: colX   %+9.3f, %+9.3f, %+9.3f  /  colY   %+9.3f, %+9.3f, %+9.3f  /  colZ   %+9.3f, %+9.3f, %+9.3f",
-           m.getColumn(0).x(), m.getColumn(0).y(), m.getColumn(0).z(),
-           m.getColumn(1).x(), m.getColumn(1).y(), m.getColumn(1).z(),
-           m.getColumn(2).x(), m.getColumn(2).y(), m.getColumn(2).z());
-//  ROS_INFO("Vectors x/y/z: %+9.3f, %+9.3f, %+9.3f  /  %+9.3f, %+9.3f, %+9.3f  /  %+9.3f, %+9.3f, %+9.3f",
-//           x.x(), x.y(), x.z(), y.x(), y.y(), y.z(), z.x(), z.y(), z.z());
+//  ROS_INFO("Matrix2: colX   %+9.3f, %+9.3f, %+9.3f  /  colY   %+9.3f, %+9.3f, %+9.3f  /  colZ   %+9.3f, %+9.3f, %+9.3f",
+//           m.getColumn(0).x(), m.getColumn(0).y(), m.getColumn(0).z(),
+//           m.getColumn(1).x(), m.getColumn(1).y(), m.getColumn(1).z(),
+//           m.getColumn(2).x(), m.getColumn(2).y(), m.getColumn(2).z());
+*/
 }
 
 void TestImuNode::inputCallback(const std_msgs::StringConstPtr& command)

@@ -39,40 +39,31 @@
 static tf2::Matrix3x3 m_;
 static tf2::Quaternion eulerQuaternion_;
 static tf2::Quaternion rotationZMinus90_(tf2::Vector3(0, 0, 1), -MadgwickImu::PI / 2.0f);
+static tf2::Vector3 x_(1, 0, 0);
+static tf2::Vector3 y_(0, 1, 0);
+static tf2::Vector3 z_(0, 0, 1);
 
 MadgwickImu::MadgwickImu()
 {
   qSource_.setValue(0, 0, 0, 1);
   qCenter_.setValue(0, 0, 0, 1);
   qResult_ = qSource_ * qCenter_;
-
-  tf2::Vector3 z(0, 0, 1);
-  rotationZMinus90_.setRotation(z, -PI / 2.0f);
 }
 
 void MadgwickImu::center()
 {
-//  tf2::Matrix3x3 local2world;
-//  local2world.setRotation(qSource_);
-//  local2world.get
-//
-//  tf2::Matrix3x3 world2local = local2world.inverse();
-//
-//  tf2::Vector3 x(1, 0, 0);
-//  x = world2local * x;
-//  local2world.setValue()
-//
-//  tf2::Vector3 x(local2world.m_el[0]);
-//
-//  local2world.getRotation(qCenter_);
-//  qCenter_ = qCenter_.inverse();
+  m_.setRotation(qSource_);
+  x_ = m_.getColumn(0);
+  y_ = z_.cross(x_).normalize();
+  x_ = y_.cross(z_);
 
-  qCenter_ = qSource_.inverse();
-}
+  m_.setValue(x_.x(), y_.x(), z_.x(),
+              x_.y(), y_.y(), z_.y(),
+              x_.z(), y_.z(), z_.z());
+  m_.getRotation(qCenter_);
+  qCenter_ = qCenter_.inverse();
 
-void MadgwickImu::center(tf2::Quaternion qInv)
-{
-  qCenter_ = qInv;
+//  qCenter_ = qSource_.inverse();
 }
 
 void MadgwickImu::update(float deltaTime,
@@ -151,9 +142,6 @@ void MadgwickImu::getQuaternion(tf2Scalar& x, tf2Scalar& y, tf2Scalar& z, tf2Sca
 
 void MadgwickImu::getEulerYP(tf2::Quaternion & quaternion, tf2Scalar& yaw, tf2Scalar& pitch)
 {
-//  tf2::Vector3 z(0, 0, 1);
-//  tf2::Quaternion rotationZMinus90_(z, -MadgwickImu::PI / 2.0f);
-
   eulerQuaternion_ = quaternion * rotationZMinus90_;
   m_.setRotation(eulerQuaternion_);
   tf2Scalar temp;

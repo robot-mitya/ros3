@@ -46,7 +46,6 @@ public:
 
   MadgwickImu();
   void center();
-  void center(tf2::Quaternion qInv);
   void update(float deltaTime,
               float gx, float gy, float gz,
               float ax, float ay, float az);
