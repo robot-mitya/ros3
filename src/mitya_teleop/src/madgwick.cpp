@@ -52,7 +52,15 @@ MadgwickImu::MadgwickImu()
 
 void MadgwickImu::center()
 {
-  qCenter_ = qSource_.inverse();
+  tf2::Matrix3x3 matrix;
+  matrix.setRotation(qSource_);
+  tf2Scalar yaw, pitch, roll;
+  matrix.getEulerYPR(yaw, pitch, roll);
+  matrix.setEulerYPR(yaw, 0, 0);
+  matrix.getRotation(qCenter_);
+  qCenter_ = qCenter_.inverse();
+
+  //qCenter_ = qSource_.inverse();
 }
 
 void MadgwickImu::update(float deltaTime,
