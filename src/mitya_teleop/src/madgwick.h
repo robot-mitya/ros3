@@ -42,14 +42,16 @@
 class MadgwickImu
 {
 public:
+  static const float PI = 3.14159265358979f;
+
   MadgwickImu();
   void center();
   void update(float deltaTime,
               float gx, float gy, float gz,
               float ax, float ay, float az);
   void getQuaternion(tf2Scalar& x, tf2Scalar& y, tf2Scalar& z, tf2Scalar& w);
-  void getEulerYPR(tf2Scalar& yaw, tf2Scalar& pitch, tf2Scalar& roll);
-  static void getEulerYPR(tf2::Quaternion & quaternion, tf2Scalar& yaw, tf2Scalar& pitch, tf2Scalar& roll);
+  void getEulerYP(tf2Scalar& yaw, tf2Scalar& pitch);
+  static void getEulerYP(tf2::Quaternion & quaternion, tf2Scalar& yaw, tf2Scalar& pitch);
 private:
   tf2::Quaternion qSource_;
   tf2::Quaternion qCenter_;

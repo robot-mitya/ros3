@@ -56,10 +56,6 @@ private:
   tf2::Vector3 x_;
   tf2::Vector3 y_;
   tf2::Vector3 z_;
-
-  tf2::Quaternion extraQuaternion_;
-
-  static const float PI = 3.14159265358979f;
 };
 
 TestImuNode::TestImuNode()
@@ -74,9 +70,6 @@ TestImuNode::TestImuNode()
 
   tf2::Vector3 z(0, 0, 0);
   t_.setOrigin(z);
-
-  tf2::Vector3 temp(0, 0, 1);
-  extraQuaternion_.setRotation(temp, -PI / 2.0f);
 }
 
 void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
@@ -84,12 +77,9 @@ void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
   // q_: local to world.
   q_.setValue(imu->orientation.x, imu->orientation.y, imu->orientation.z, imu->orientation.w);
 
-  tf2Scalar yaw, pitch, roll;
-  q_ *= extraQuaternion_;
-  MadgwickImu::getEulerYPR(q_, yaw, pitch, roll);
-  yaw += 90;
-  if (yaw > 180) yaw -= 360;
-  ROS_INFO("Roll/Pitch/Yaw: %+9.3f, %+9.3f, %+9.3f", roll, pitch, yaw);
+  tf2Scalar yaw, pitch;
+  MadgwickImu::getEulerYP(q_, yaw, pitch);
+  ROS_INFO("Yaw/Pitch: %+9.3f, %+9.3f", yaw, pitch);
 
   t_.setRotation(q_);
   tf2::Vector3 x = t_ * x_;

@@ -37,17 +37,21 @@
 #include "madgwick.h"
 
 static tf2::Matrix3x3 m_;
+static tf2::Quaternion eulerQuaternion_;
+static tf2::Quaternion rotationZMinus90_(tf2::Vector3(0, 0, 1), -MadgwickImu::PI / 2.0f);
 
 MadgwickImu::MadgwickImu()
 {
   qSource_.setValue(0, 0, 0, 1);
   qCenter_.setValue(0, 0, 0, 1);
   qResult_ = qSource_ * qCenter_;
+
+  tf2::Vector3 z(0, 0, 1);
+  rotationZMinus90_.setRotation(z, -PI / 2.0f);
 }
 
 void MadgwickImu::center()
 {
-//  qSource_.setValue(0, 0, 0, 1);
   qCenter_ = qSource_.inverse();
 }
 
@@ -125,18 +129,24 @@ void MadgwickImu::getQuaternion(tf2Scalar& x, tf2Scalar& y, tf2Scalar& z, tf2Sca
   w = qResult_.w();
 }
 
-void MadgwickImu::getEulerYPR(tf2::Quaternion & quaternion, tf2Scalar& yaw, tf2Scalar& pitch, tf2Scalar& roll)
+void MadgwickImu::getEulerYP(tf2::Quaternion & quaternion, tf2Scalar& yaw, tf2Scalar& pitch)
 {
-  m_.setRotation(quaternion);
-  m_.getEulerYPR(yaw, pitch, roll, 1);
+//  tf2::Vector3 z(0, 0, 1);
+//  tf2::Quaternion rotationZMinus90_(z, -MadgwickImu::PI / 2.0f);
+
+  eulerQuaternion_ = quaternion * rotationZMinus90_;
+  m_.setRotation(eulerQuaternion_);
+  tf2Scalar temp;
+  m_.getEulerYPR(yaw, temp, pitch, 1);
   yaw *= TO_DEG;
+  yaw += 90;
+  if (yaw > 180) yaw -= 360;
   pitch *= TO_DEG;
-  roll *= TO_DEG;
 }
 
-void MadgwickImu::getEulerYPR(tf2Scalar& yaw, tf2Scalar& pitch, tf2Scalar& roll)
+void MadgwickImu::getEulerYP(tf2Scalar& yaw, tf2Scalar& pitch)
 {
-  MadgwickImu::getEulerYPR(qResult_, yaw, pitch, roll);
+  MadgwickImu::getEulerYP(qResult_, yaw, pitch);
 }
 
 /**
