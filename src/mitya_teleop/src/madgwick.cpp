@@ -35,7 +35,7 @@
 
 #include <math.h>
 #include "madgwick.h"
-#include <ros/ros.h>
+//#include <ros/ros.h>
 
 static tf2::Matrix3x3 m_;
 static tf2::Quaternion eulerQuaternion_;
@@ -54,10 +54,10 @@ MadgwickImu::MadgwickImu()
 void MadgwickImu::center()
 {
   m_.setRotation(qSource_);
-  ROS_INFO("Matrix1: x = [%+9.3f; %+9.3f; %+9.3f]; y = [%+9.3f; %+9.3f; %+9.3f]; z = [%+9.3f; %+9.3f; %+9.3f]",
-           m_.getColumn(0).x(), m_.getColumn(0).y(), m_.getColumn(0).z(),
-           m_.getColumn(1).x(), m_.getColumn(1).y(), m_.getColumn(1).z(),
-           m_.getColumn(2).x(), m_.getColumn(2).y(), m_.getColumn(2).z());
+//  ROS_INFO("Matrix1: x = [%+9.3f; %+9.3f; %+9.3f]; y = [%+9.3f; %+9.3f; %+9.3f]; z = [%+9.3f; %+9.3f; %+9.3f]",
+//           m_.getColumn(0).x(), m_.getColumn(0).y(), m_.getColumn(0).z(),
+//           m_.getColumn(1).x(), m_.getColumn(1).y(), m_.getColumn(1).z(),
+//           m_.getColumn(2).x(), m_.getColumn(2).y(), m_.getColumn(2).z());
 
   x_ = m_.getColumn(0);
   z_.setValue(0, 0, 1);
@@ -68,14 +68,12 @@ void MadgwickImu::center()
   m_.setValue(x_.x(), y_.x(), z_.x(),
               x_.y(), y_.y(), z_.y(),
               x_.z(), y_.z(), z_.z());
-  ROS_INFO("Matrix2: x = [%+9.3f; %+9.3f; %+9.3f]; y = [%+9.3f; %+9.3f; %+9.3f]; z = [%+9.3f; %+9.3f; %+9.3f]",
-           m_.getColumn(0).x(), m_.getColumn(0).y(), m_.getColumn(0).z(),
-           m_.getColumn(1).x(), m_.getColumn(1).y(), m_.getColumn(1).z(),
-           m_.getColumn(2).x(), m_.getColumn(2).y(), m_.getColumn(2).z());
+//  ROS_INFO("Matrix2: x = [%+9.3f; %+9.3f; %+9.3f]; y = [%+9.3f; %+9.3f; %+9.3f]; z = [%+9.3f; %+9.3f; %+9.3f]",
+//           m_.getColumn(0).x(), m_.getColumn(0).y(), m_.getColumn(0).z(),
+//           m_.getColumn(1).x(), m_.getColumn(1).y(), m_.getColumn(1).z(),
+//           m_.getColumn(2).x(), m_.getColumn(2).y(), m_.getColumn(2).z());
   m_.getRotation(qCenter_);
   qCenter_ = qCenter_.inverse();
-
-//  qCenter_ = qSource_.inverse();
 }
 
 void MadgwickImu::update(float deltaTime,
