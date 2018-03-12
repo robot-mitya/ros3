@@ -54,7 +54,7 @@ MadgwickImu::MadgwickImu()
 void MadgwickImu::center()
 {
   m_.setRotation(qSource_);
-  ROS_INFO("Matrix1: colX   %+9.3f, %+9.3f, %+9.3f  /  colY   %+9.3f, %+9.3f, %+9.3f  /  colZ   %+9.3f, %+9.3f, %+9.3f",
+  ROS_INFO("Matrix1: x = [%+9.3f; %+9.3f; %+9.3f]; y = [%+9.3f; %+9.3f; %+9.3f]; z = [%+9.3f; %+9.3f; %+9.3f]",
            m_.getColumn(0).x(), m_.getColumn(0).y(), m_.getColumn(0).z(),
            m_.getColumn(1).x(), m_.getColumn(1).y(), m_.getColumn(1).z(),
            m_.getColumn(2).x(), m_.getColumn(2).y(), m_.getColumn(2).z());
@@ -68,7 +68,7 @@ void MadgwickImu::center()
   m_.setValue(x_.x(), y_.x(), z_.x(),
               x_.y(), y_.y(), z_.y(),
               x_.z(), y_.z(), z_.z());
-  ROS_INFO("Matrix2: colX   %+9.3f, %+9.3f, %+9.3f  /  colY   %+9.3f, %+9.3f, %+9.3f  /  colZ   %+9.3f, %+9.3f, %+9.3f",
+  ROS_INFO("Matrix2: x = [%+9.3f; %+9.3f; %+9.3f]; y = [%+9.3f; %+9.3f; %+9.3f]; z = [%+9.3f; %+9.3f; %+9.3f]",
            m_.getColumn(0).x(), m_.getColumn(0).y(), m_.getColumn(0).z(),
            m_.getColumn(1).x(), m_.getColumn(1).y(), m_.getColumn(1).z(),
            m_.getColumn(2).x(), m_.getColumn(2).y(), m_.getColumn(2).z());
@@ -141,7 +141,7 @@ void MadgwickImu::update(float deltaTime,
   q3 *= norm;
   q4 *= norm;
   qSource_.setValue(q2, q3, q4, q1);
-  qResult_ = qSource_ * qCenter_;
+  qResult_ = qCenter_ * qSource_;
 }
 
 void MadgwickImu::getQuaternion(tf2Scalar& x, tf2Scalar& y, tf2Scalar& z, tf2Scalar& w)
