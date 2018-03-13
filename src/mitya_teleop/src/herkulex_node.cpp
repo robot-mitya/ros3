@@ -87,6 +87,9 @@ private:
   ros::Subscriber headMoveSubscriber_;
   void headMoveCallback(const mitya_teleop::HeadMove::ConstPtr& msg);
 
+  // Topic RM_HEAD_IMU_INPUT_TOPIC_NAME ('head_imu_input') publisher:
+  ros::Publisher imuInputPublisher_;
+
   struct HeadMoveValues
   {
     int horizontal;
@@ -114,6 +117,7 @@ HerkulexNode::HerkulexNode()
   herkulexOutputPublisher_ = nodeHandle.advertise<std_msgs::String>(RM_HERKULEX_OUTPUT_TOPIC_NAME, 1000);
   headPositionSubscriber_ = nodeHandle.subscribe(RM_HEAD_POSITION_TOPIC_NAME, 1000, &HerkulexNode::headPositionCallback, this);
   headMoveSubscriber_ = nodeHandle.subscribe(RM_HEAD_MOVE_TOPIC_NAME, 1000, &HerkulexNode::headMoveCallback, this);
+  imuInputPublisher_ = nodeHandle.advertise<std_msgs::String>(RM_HEAD_IMU_INPUT_TOPIC_NAME, 10);
 
   ros::NodeHandle privateNodeHandle("~");
   privateNodeHandle.param("serial_port", serialPortName, (std::string) "/dev/ttyUSB0");
@@ -335,15 +339,19 @@ void HerkulexNode::update()
   ros::Time now = ros::Time::now();
   if (centerHeadImuStarted_ && now >= centerHeadImuStartTime_)
   {
-    ROS_DEBUG("Centering Head Imu [nowSeconds = %f]", now.toSec());
+    //ROS_DEBUG("Centering Head Imu [nowSeconds = %f]", now.toSec());
     centerHeadImuStarted_ = false;
+
+    std_msgs::String stringMessage;
+    stringMessage.data = "center";
+    imuInputPublisher_.publish(stringMessage);
   }
 }
 
 void HerkulexNode::centerHeadImu(double millis)
 {
   ros::Time now = ros::Time::now();
-  ROS_DEBUG("Function centerHeadImu(%f) is called [nowSeconds = %f]", millis, now.toSec());
+  //ROS_DEBUG("Function centerHeadImu(%f) is called [nowSeconds = %f]", millis, now.toSec());
   centerHeadImuStartTime_ = now + ros::Duration(millis / 1000.0);
   centerHeadImuStarted_ = true;
 }

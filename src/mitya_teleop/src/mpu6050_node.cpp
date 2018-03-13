@@ -63,6 +63,7 @@ private:
   // Topic RM_IMU_TOPIC_NAME ('imu') publisher:
   ros::Publisher imuPublisher_;
 
+  // Topic RM_HEAD_IMU_INPUT_TOPIC_NAME subscriber:
   ros::Subscriber imuInputSubscriber_;
   void imuInputCallback(const std_msgs::StringConstPtr& msg);
 
