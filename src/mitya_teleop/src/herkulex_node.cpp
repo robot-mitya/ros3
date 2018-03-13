@@ -220,7 +220,6 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
   }
   else if (commandName.compare("center") == 0)
   {
-    ROS_DEBUG("111111");
     int delay;
     if (address == HEAD_BROADCAST_SERVO_ID)
     {
@@ -230,9 +229,7 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
     }
     else
       delay = headMoveCenter(address);
-    ROS_DEBUG("222222");
     centerHeadImu(delay);
-    ROS_DEBUG("333333");
   }
   else if (commandName.compare("reboot") == 0)
   {
@@ -335,17 +332,19 @@ void HerkulexNode::headServoReboot(int servoAddress)
 
 void HerkulexNode::update()
 {
-  if (centerHeadImuStarted_ && centerHeadImuStartTime_ >= ros::Time::now())
+  ros::Time now = ros::Time::now();
+  if (centerHeadImuStarted_ && now >= centerHeadImuStartTime_)
   {
-    ROS_DEBUG("Centering Head Imu [now().toSec() = %f]", ros::Time::now().toSec());
+    ROS_DEBUG("Centering Head Imu [nowSeconds = %f]", now.toSec());
     centerHeadImuStarted_ = false;
   }
 }
 
 void HerkulexNode::centerHeadImu(double millis)
 {
-  ROS_DEBUG("Function centerHeadImu(%f) is called [now().toSec() = %f]", millis, ros::Time::now().toSec());
-  centerHeadImuStartTime_ = ros::Time::now() + ros::Duration(millis / 1000.0);
+  ros::Time now = ros::Time::now();
+  ROS_DEBUG("Function centerHeadImu(%f) is called [nowSeconds = %f]", millis, now.toSec());
+  centerHeadImuStartTime_ = now + ros::Duration(millis / 1000.0);
   centerHeadImuStarted_ = true;
 }
 
