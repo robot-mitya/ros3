@@ -220,6 +220,7 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
   }
   else if (commandName.compare("center") == 0)
   {
+    ROS_DEBUG("111111");
     int delay;
     if (address == HEAD_BROADCAST_SERVO_ID)
     {
@@ -229,7 +230,9 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
     }
     else
       delay = headMoveCenter(address);
+    ROS_DEBUG("222222");
     centerHeadImu(delay);
+    ROS_DEBUG("333333");
   }
   else if (commandName.compare("reboot") == 0)
   {
