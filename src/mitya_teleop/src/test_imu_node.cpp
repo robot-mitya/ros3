@@ -85,7 +85,7 @@ void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
 
   tf2Scalar yaw, pitch;
   MadgwickImu::getEulerYP(q_, yaw, pitch);
-//  ROS_INFO("Yaw/Pitch: %+9.3f, %+9.3f", yaw, pitch);
+  ROS_INFO("Yaw/Pitch: %+9.3f, %+9.3f", yaw, pitch);
 
   t_.setRotation(q_);
   tf2::Vector3 x = t_ * x_;
