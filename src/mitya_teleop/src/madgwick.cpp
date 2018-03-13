@@ -48,9 +48,15 @@ MadgwickImu::MadgwickImu()
 {
   qSource_.setValue(0, 0, 0, 1);
   qCenter_.setValue(0, 0, 0, 1);
-  qResult_ = qSource_ * qCenter_;
+  qResult_ = qCenter_ * qSource_;
 }
 
+/**
+ * Center position defines pitch = 0 in horizontal head orientation.
+ * So local z axis is directed strictly upward.
+ * Local x - in forward direction but in horizontal plane.
+ * Local y = cross(z, x).
+ */
 void MadgwickImu::center()
 {
   m_.setRotation(qSource_);

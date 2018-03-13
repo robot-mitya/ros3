@@ -45,16 +45,41 @@ public:
   static const float PI = 3.14159265358979f;
 
   MadgwickImu();
+
+  /**
+   * Recalculates qCenter_. Current orientation defines as zero.
+   */
   void center();
+
+  /**
+   * Update current orientation according to gyroscope and accelerometer data.
+   */
   void update(float deltaTime,
               float gx, float gy, float gz,
               float ax, float ay, float az);
+
+  /**
+   * Returns current orientation (qResult_).
+   */
   void getQuaternion(tf2Scalar& x, tf2Scalar& y, tf2Scalar& z, tf2Scalar& w);
+
+  /**
+   * Gets yaw and pitch.
+   */
   void getEulerYP(tf2Scalar& yaw, tf2Scalar& pitch);
   static void getEulerYP(tf2::Quaternion & quaternion, tf2Scalar& yaw, tf2Scalar& pitch);
 private:
+  /**
+   * qSource_ - real head orientation.
+   */
   tf2::Quaternion qSource_;
+  /**
+   * qCenter_ - defines head center position. Useful in case of gyroscope drift.
+   */
   tf2::Quaternion qCenter_;
+  /**
+   * qResult_ - the output final orientation.
+   */
   tf2::Quaternion qResult_;
   float invSqrt(float x);
 
