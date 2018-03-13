@@ -55,6 +55,7 @@ public:
   int serialBaudRate;
 
   HerkulexNode();
+  void update();
 
   void logPosition();
 private:
@@ -94,8 +95,16 @@ private:
   HeadMoveValues previousHeadMoveValues_;
   int calculateDurationInMillis(float deltaAngle, float degreesPerSecond);
 
-  void headMoveCenter(int servoAddress);
+  /*
+   * Returns movement duration in millis.
+   */
+  int headMoveCenter(int servoAddress);
+
   void headServoReboot(int servoAddress);
+
+  void centerHeadImu(double millis);
+  ros::Time centerHeadImuStartTime_;
+  bool centerHeadImuStarted_;
 };
 
 HerkulexNode::HerkulexNode()
@@ -130,6 +139,8 @@ HerkulexNode::HerkulexNode()
 
   previousHeadMoveValues_.horizontal = 0;
   previousHeadMoveValues_.vertical = 0;
+
+  centerHeadImuStarted_ = false;
 }
 
 void HerkulexNode::initServos()
@@ -209,13 +220,16 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
   }
   else if (commandName.compare("center") == 0)
   {
+    int delay;
     if (address == HEAD_BROADCAST_SERVO_ID)
     {
-      headMoveCenter(HEAD_HORIZONTAL_SERVO_ID);
-      headMoveCenter(HEAD_VERTICAL_SERVO_ID);
+      int durationH = headMoveCenter(HEAD_HORIZONTAL_SERVO_ID);
+      int durationV = headMoveCenter(HEAD_VERTICAL_SERVO_ID);
+      delay = durationH > durationV ? durationH : durationV;
     }
     else
-      headMoveCenter(address);
+      delay = headMoveCenter(address);
+    centerHeadImu(delay);
   }
   else if (commandName.compare("reboot") == 0)
   {
@@ -299,12 +313,13 @@ int HerkulexNode::calculateDurationInMillis(float deltaAngle, float degreesPerSe
   return result >= 0 ? result : -result;
 }
 
-void HerkulexNode::headMoveCenter(int servoAddress)
+int HerkulexNode::headMoveCenter(int servoAddress)
 {
   float currentAngle = herkulex.getAngle(servoAddress);
   float targetAngle = servoAddress == HEAD_HORIZONTAL_SERVO_ID ? headHorizontalCenterDegree : headVerticalCenterDegree;
   int duration = calculateDurationInMillis(targetAngle - currentAngle, headMoveSpeed_);
   herkulex.moveOneAngle(servoAddress, targetAngle, duration, 0);
+  return duration;
 }
 
 void HerkulexNode::headServoReboot(int servoAddress)
@@ -313,6 +328,22 @@ void HerkulexNode::headServoReboot(int servoAddress)
 
   usleep(1000000);
   initServos();
+}
+
+void HerkulexNode::update()
+{
+  if (centerHeadImuStarted_ && centerHeadImuStartTime_ >= ros::Time::now())
+  {
+    ROS_INFO("Centering Head Imu [now().toSec() = %f]", ros::Time::now().toSec());
+    centerHeadImuStarted_ = false;
+  }
+}
+
+void HerkulexNode::centerHeadImu(double millis)
+{
+  ROS_INFO("Function centerHeadImu(%f) is called [now().toSec() = %f]", millis, ros::Time::now().toSec());
+  centerHeadImuStartTime_ = ros::Time::now() + ros::Duration(millis / 1000.0);
+  centerHeadImuStarted_ = true;
 }
 
 int main(int argc, char **argv)
@@ -327,6 +358,7 @@ int main(int argc, char **argv)
     loop_rate.sleep();
     ros::spinOnce();
 
+    herkulexNode.update();
 //    herkulexNode.logPosition();
   }
 
