@@ -334,14 +334,14 @@ void HerkulexNode::update()
 {
   if (centerHeadImuStarted_ && centerHeadImuStartTime_ >= ros::Time::now())
   {
-    ROS_INFO("Centering Head Imu [now().toSec() = %f]", ros::Time::now().toSec());
+    ROS_DEBUG("Centering Head Imu [now().toSec() = %f]", ros::Time::now().toSec());
     centerHeadImuStarted_ = false;
   }
 }
 
 void HerkulexNode::centerHeadImu(double millis)
 {
-  ROS_INFO("Function centerHeadImu(%f) is called [now().toSec() = %f]", millis, ros::Time::now().toSec());
+  ROS_DEBUG("Function centerHeadImu(%f) is called [now().toSec() = %f]", millis, ros::Time::now().toSec());
   centerHeadImuStartTime_ = ros::Time::now() + ros::Duration(millis / 1000.0);
   centerHeadImuStarted_ = true;
 }

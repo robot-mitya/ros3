@@ -85,14 +85,14 @@ void TestImuNode::imuCallback(const sensor_msgs::Imu::ConstPtr& imu)
 
   tf2Scalar yaw, pitch;
   MadgwickImu::getEulerYP(q_, yaw, pitch);
-  ROS_INFO("Yaw/Pitch: %+9.3f, %+9.3f", yaw, pitch);
+//  ROS_INFO("Yaw/Pitch: %+9.3f, %+9.3f", yaw, pitch);
 
   t_.setRotation(q_);
   tf2::Vector3 x = t_ * x_;
   tf2::Vector3 y = t_ * y_;
   tf2::Vector3 z = t_ * z_;
-  ROS_INFO("Vectors x/y/z: %+9.3f, %+9.3f, %+9.3f  /  %+9.3f, %+9.3f, %+9.3f  /  %+9.3f, %+9.3f, %+9.3f",
-           x.x(), x.y(), x.z(), y.x(), y.y(), y.z(), z.x(), z.y(), z.z());
+//  ROS_INFO("Vectors x/y/z: %+9.3f, %+9.3f, %+9.3f  /  %+9.3f, %+9.3f, %+9.3f  /  %+9.3f, %+9.3f, %+9.3f",
+//           x.x(), x.y(), x.z(), y.x(), y.y(), y.z(), z.x(), z.y(), z.z());
 
 /*
   ros::Duration deltaTime = imu->header.stamp - prevStamp_;
