@@ -38,8 +38,11 @@
 #include "diagnostic_msgs/KeyValue.h"
 #include "yaml-cpp/yaml.h"
 #include "std_msgs/String.h"
+#include <sensor_msgs/Imu.h>
 #include "herkulex.h"
 #include <unistd.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include "madgwick.h"
 
 //#define SERVO_H 1
 //#define SERVO_V 2
@@ -72,6 +75,14 @@ private:
 
   float headMoveSpeed_; // degrees per second
 
+  bool targetMode_;
+  tf2::Quaternion imuQuaternion_;
+  tf2::Quaternion targetQuaternion_;
+  tf2::Quaternion deltaQuaternion_;
+  tf2Scalar yaw_;
+  tf2Scalar pitch_;
+  void updateToTarget();
+
   // Topic RM_HERKULEX_INPUT_TOPIC_NAME ('herkulex_input') subscriber:
   ros::Subscriber herkulexInputSubscriber_;
   void herkulexInputCallback(const std_msgs::StringConstPtr& msg);
@@ -89,6 +100,9 @@ private:
 
   // Topic RM_HEAD_IMU_INPUT_TOPIC_NAME ('head_imu_input') publisher:
   ros::Publisher imuInputPublisher_;
+  // Topic RM_HEAD_IMU_OUTPUT_TOPIC_NAME ('herkulex_output') subscriber:
+  ros::Subscriber imuOutputSubscriber_;
+  void imuOutputCallback(const sensor_msgs::Imu::ConstPtr& msg);
 
   struct HeadMoveValues
   {
@@ -118,6 +132,7 @@ HerkulexNode::HerkulexNode()
   headPositionSubscriber_ = nodeHandle.subscribe(RM_HEAD_POSITION_TOPIC_NAME, 1000, &HerkulexNode::headPositionCallback, this);
   headMoveSubscriber_ = nodeHandle.subscribe(RM_HEAD_MOVE_TOPIC_NAME, 1000, &HerkulexNode::headMoveCallback, this);
   imuInputPublisher_ = nodeHandle.advertise<std_msgs::String>(RM_HEAD_IMU_INPUT_TOPIC_NAME, 10);
+  imuOutputSubscriber_ = nodeHandle.subscribe(RM_HEAD_IMU_OUTPUT_TOPIC_NAME, 100, &HerkulexNode::imuOutputCallback, this);
 
   ros::NodeHandle privateNodeHandle("~");
   privateNodeHandle.param("serial_port", serialPortName, (std::string) "/dev/ttyUSB0");
@@ -145,6 +160,9 @@ HerkulexNode::HerkulexNode()
   previousHeadMoveValues_.vertical = 0;
 
   centerHeadImuStarted_ = false;
+
+  targetQuaternion_ = tf2::Quaternion::getIdentity();
+  targetMode_ = true; //TODO: Change to false, read in messages.
 }
 
 void HerkulexNode::initServos()
@@ -304,6 +322,11 @@ void HerkulexNode::headMoveCallback(const mitya_teleop::HeadMove::ConstPtr& msg)
   }
 }
 
+void HerkulexNode::imuOutputCallback(const sensor_msgs::Imu::ConstPtr& msg)
+{
+  imuQuaternion_.setValue(msg->orientation.x, msg->orientation.y, msg->orientation.z, msg->orientation.w);
+}
+
 void HerkulexNode::logPosition()
 {
   //ROS_INFO("++++++ Angle=%.3f", herkulex.getAngle(SERVO_H));
@@ -346,6 +369,11 @@ void HerkulexNode::update()
     stringMessage.data = "center";
     imuInputPublisher_.publish(stringMessage);
   }
+
+  if (targetMode_)
+  {
+    updateToTarget();
+  }
 }
 
 void HerkulexNode::centerHeadImu(double millis)
@@ -354,6 +382,13 @@ void HerkulexNode::centerHeadImu(double millis)
   //ROS_DEBUG("Function centerHeadImu(%f) is called [nowSeconds = %f]", millis, now.toSec());
   centerHeadImuStartTime_ = now + ros::Duration(millis / 1000.0);
   centerHeadImuStarted_ = true;
+}
+
+void HerkulexNode::updateToTarget()
+{
+  deltaQuaternion_ = imuQuaternion_.inverse() * targetQuaternion_;
+  MadgwickImu::getEulerYP(deltaQuaternion_, yaw_, pitch_);
+  ROS_INFO("Yaw/Pitch: %+9.3f, %+9.3f", yaw_, pitch_);
 }
 
 int main(int argc, char **argv)
