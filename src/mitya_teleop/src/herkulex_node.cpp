@@ -309,7 +309,7 @@ void HerkulexNode::headMoveCallback(const mitya_teleop::HeadMove::ConstPtr& msg)
       float currentAngle = herkulex.getAngle(HEAD_HORIZONTAL_SERVO_ID);
       float targetAngle = msg->horizontal > 0 ? headHorizontalMaxDegree : headHorizontalMinDegree;
       int duration = calculateDurationInMillis(targetAngle - currentAngle, headMoveSpeed_);
-//ROS_INFO("currentAngle=%.3f, targetAngle=%.3f, duration=%d", currentAngle, targetAngle, duration);
+ROS_DEBUG("currentAngle=%.3f, targetAngle=%.3f, duration=%d", currentAngle, targetAngle, duration);
       herkulex.moveOneAngle(HEAD_HORIZONTAL_SERVO_ID, targetAngle, duration, 0);
     }
     else
