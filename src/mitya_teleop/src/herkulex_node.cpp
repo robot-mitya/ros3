@@ -406,7 +406,7 @@ void HerkulexNode::updateToTarget()
   MadgwickImu::getEulerYP(targetQuaternion_, targetYaw, targetPitch);
   MadgwickImu::getEulerYP(deltaQuaternion_, deltaYaw_, deltaPitch_);
 
-  if (fabs(targetYaw - targetYaw_) > 1)
+//  if (fabs(targetYaw - targetYaw_) > 1)
   {
     float angle = herkulex.getAngle(HEAD_HORIZONTAL_SERVO_ID);
     angle += deltaYaw_;
@@ -414,7 +414,7 @@ void HerkulexNode::updateToTarget()
     targetYaw_ = targetYaw;
   }
 
-  if (fabs(targetPitch - targetPitch_) > 1)
+//  if (fabs(targetPitch - targetPitch_) > 1)
   {
     float angle = herkulex.getAngle(HEAD_VERTICAL_SERVO_ID);
     angle += deltaPitch_;
