@@ -79,8 +79,10 @@ private:
   tf2::Quaternion imuQuaternion_;
   tf2::Quaternion targetQuaternion_;
   tf2::Quaternion deltaQuaternion_;
-  tf2Scalar yaw_;
-  tf2Scalar pitch_;
+  tf2Scalar targetYaw_;
+  tf2Scalar targetPitch_;
+  tf2Scalar deltaYaw_;
+  tf2Scalar deltaPitch_;
   void updateToTarget();
 
   // Topic RM_HERKULEX_INPUT_TOPIC_NAME ('herkulex_input') subscriber:
@@ -116,6 +118,9 @@ private:
    * Returns movement duration in millis.
    */
   int headMoveCenter(int servoAddress);
+
+  void setHeadPositionHorizontal(float angle);
+  void setHeadPositionVertical(float angle);
 
   void headServoReboot(int servoAddress);
 
@@ -163,6 +168,10 @@ HerkulexNode::HerkulexNode()
 
   targetQuaternion_ = tf2::Quaternion::getIdentity();
   targetMode_ = true; //TODO: Change to false, read in messages.
+  targetYaw_ = 0;
+  targetPitch_ = 0;
+  deltaYaw_ = 0;
+  deltaPitch_ = 0;
 }
 
 void HerkulexNode::initServos()
@@ -267,21 +276,26 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
 void HerkulexNode::headPositionCallback(const mitya_teleop::HeadPosition::ConstPtr& msg)
 {
   //ROS_INFO("Received in %s.%s: %f, %f", RM_HERKULEX_NODE_NAME, RM_HEAD_POSITION_TOPIC_NAME, msg->horizontal, msg->vertical);
+  setHeadPositionHorizontal(msg->horizontal);
+  setHeadPositionVertical(msg->vertical);
+}
 
-  float angleH = msg->horizontal;
-  if (angleH < headHorizontalMinDegree)
-    angleH = headHorizontalMinDegree;
-  else if (angleH > headHorizontalMaxDegree)
-    angleH = headHorizontalMaxDegree;
+void HerkulexNode::setHeadPositionHorizontal(float angle)
+{
+  if (angle < headHorizontalMinDegree)
+    angle = headHorizontalMinDegree;
+  else if (angle > headHorizontalMaxDegree)
+    angle = headHorizontalMaxDegree;
+  herkulex.moveOneAngle(HEAD_HORIZONTAL_SERVO_ID, angle, 0, 0);
+}
 
-  float angleV = msg->vertical;
-  if (angleV < headVerticalMinDegree)
-    angleV = headVerticalMinDegree;
-  else if (angleV > headVerticalMaxDegree)
-    angleV = headVerticalMaxDegree;
-
-  herkulex.moveOneAngle(HEAD_HORIZONTAL_SERVO_ID, angleH, 0, 0);
-  herkulex.moveOneAngle(HEAD_VERTICAL_SERVO_ID, angleV, 0, 0);
+void HerkulexNode::setHeadPositionVertical(float angle)
+{
+  if (angle < headVerticalMinDegree)
+    angle = headVerticalMinDegree;
+  else if (angle > headVerticalMaxDegree)
+    angle = headVerticalMaxDegree;
+  herkulex.moveOneAngle(HEAD_VERTICAL_SERVO_ID, angle, 0, 0);
 }
 
 void HerkulexNode::headMoveCallback(const mitya_teleop::HeadMove::ConstPtr& msg)
@@ -387,8 +401,27 @@ void HerkulexNode::centerHeadImu(double millis)
 void HerkulexNode::updateToTarget()
 {
   deltaQuaternion_ = imuQuaternion_.inverse() * targetQuaternion_;
-  MadgwickImu::getEulerYP(deltaQuaternion_, yaw_, pitch_);
-  ROS_INFO("Yaw/Pitch: %+9.3f, %+9.3f", yaw_, pitch_);
+  tf2Scalar targetYaw;
+  tf2Scalar targetPitch;
+  MadgwickImu::getEulerYP(targetQuaternion_, targetYaw, targetPitch);
+  MadgwickImu::getEulerYP(deltaQuaternion_, deltaYaw_, deltaPitch_);
+
+  if (fabs(targetYaw - targetYaw_) > 1)
+  {
+    float angle = herkulex.getAngle(HEAD_HORIZONTAL_SERVO_ID);
+    angle += deltaYaw_;
+    setHeadPositionHorizontal(angle);
+    targetYaw_ = targetYaw;
+  }
+
+  if (fabs(targetPitch - targetPitch_) > 1)
+  {
+    float angle = herkulex.getAngle(HEAD_VERTICAL_SERVO_ID);
+    angle += deltaPitch_;
+    setHeadPositionVertical(angle);
+    targetPitch_ = targetPitch;
+  }
+  //ROS_INFO("Yaw/Pitch: %+9.3f, %+9.3f", targetYaw_, targetPitch_);
 }
 
 int main(int argc, char **argv)
@@ -397,7 +430,7 @@ int main(int argc, char **argv)
 
   HerkulexNode herkulexNode;
 
-  ros::Rate loop_rate(100); // 100 Hz
+  ros::Rate loop_rate(20); // (Hz)
   while (ros::ok())
   {
     loop_rate.sleep();
