@@ -409,7 +409,7 @@ void HerkulexNode::updateToTarget()
 //  if (fabs(targetYaw - targetYaw_) > 1)
   {
     float angle = herkulex.getAngle(HEAD_HORIZONTAL_SERVO_ID);
-    angle += deltaYaw_;
+    angle -= deltaYaw_;
     setHeadPositionHorizontal(angle);
     targetYaw_ = targetYaw;
   }
@@ -417,7 +417,7 @@ void HerkulexNode::updateToTarget()
 //  if (fabs(targetPitch - targetPitch_) > 1)
   {
     float angle = herkulex.getAngle(HEAD_VERTICAL_SERVO_ID);
-    angle += deltaPitch_;
+    angle -= deltaPitch_;
     setHeadPositionVertical(angle);
     targetPitch_ = targetPitch;
   }
