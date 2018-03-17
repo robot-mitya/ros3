@@ -167,7 +167,7 @@ HerkulexNode::HerkulexNode()
   centerHeadImuStarted_ = false;
 
   targetQuaternion_ = tf2::Quaternion::getIdentity();
-  targetMode_ = false; //TODO: Change to false, read in messages.
+  targetMode_ = true; //TODO: Change to false, read in messages.
   targetYaw_ = 0;
   targetPitch_ = 0;
   deltaYaw_ = 0;
@@ -402,27 +402,30 @@ void HerkulexNode::centerHeadImu(double millis)
 void HerkulexNode::updateToTarget()
 {
   deltaQuaternion_ = imuQuaternion_.inverse() * targetQuaternion_;
-  tf2Scalar targetYaw;
-  tf2Scalar targetPitch;
-  MadgwickImu::getEulerYP(targetQuaternion_, targetYaw, targetPitch);
+//  tf2Scalar targetYaw;
+//  tf2Scalar targetPitch;
+//  MadgwickImu::getEulerYP(targetQuaternion_, targetYaw, targetPitch);
   MadgwickImu::getEulerYP(deltaQuaternion_, deltaYaw_, deltaPitch_);
 
 //  if (fabs(targetYaw - targetYaw_) > 1)
-  {
-    float angle = herkulex.getAngle(HEAD_HORIZONTAL_SERVO_ID);
-    angle += deltaYaw_;
-    setHeadPositionHorizontal(angle);
-    targetYaw_ = targetYaw;
-  }
+//  {
+//    float angle = herkulex.getAngle(HEAD_HORIZONTAL_SERVO_ID);
+//    angle += deltaYaw_;
+//    setHeadPositionHorizontal(angle);
+//    targetYaw_ = targetYaw;
+//  }
 
 //  if (fabs(targetPitch - targetPitch_) > 1)
-  {
-    float angle = herkulex.getAngle(HEAD_VERTICAL_SERVO_ID);
-    angle += deltaPitch_;
-    setHeadPositionVertical(angle);
-    targetPitch_ = targetPitch;
-  }
-  //ROS_INFO("Yaw/Pitch: %+9.3f, %+9.3f", targetYaw_, targetPitch_);
+//  {
+//    float angle = herkulex.getAngle(HEAD_VERTICAL_SERVO_ID);
+//    angle += deltaPitch_;
+//    setHeadPositionVertical(angle);
+//    targetPitch_ = targetPitch;
+//  }
+
+  float horizontalDir = deltaYaw_ > 0 ? headHorizontalMaxDegree : headHorizontalMinDegree;
+  float verticalDir = deltaPitch_ > 0 ? headVerticalMaxDegree : headVerticalMinDegree;
+  ROS_DEBUG("Yaw/Pitch: %+9.3f, %+9.3f; Move to: %+9.3f, %+9.3f", deltaYaw_, deltaPitch_, horizontalDir, verticalDir);
 }
 
 int main(int argc, char **argv)
@@ -431,7 +434,7 @@ int main(int argc, char **argv)
 
   HerkulexNode herkulexNode;
 
-  ros::Rate loop_rate(20); // (Hz)
+  ros::Rate loop_rate(50); // (Hz)
   while (ros::ok())
   {
     loop_rate.sleep();
