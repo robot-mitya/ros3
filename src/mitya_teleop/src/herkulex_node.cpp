@@ -192,81 +192,7 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
 
   std::string commandName = node["n"] ? node["n"].as<std::string>() : "null name";
 
-  if (!node["a"])
-  {
-    ROS_ERROR("HerkuleX command (%s) processor error: servo ID is not defined", commandName.c_str());
-    return;
-  }
-  int address = node["a"].as<int>();
-  if (address != HEAD_HORIZONTAL_SERVO_ID && address != HEAD_VERTICAL_SERVO_ID && address != HEAD_BROADCAST_SERVO_ID)
-  {
-    ROS_ERROR("HerkuleX command (%s) processor error: unknown servo ID (%d)", commandName.c_str(), address);
-    return;
-  }
-
-  if (commandName.compare("stat") == 0)
-  {
-    uint8_t statusError;
-    uint8_t statusDetail;
-    signed char result = herkulex.stat(address, &statusError, &statusDetail);
-    if (result == 0)
-    {
-      ROS_DEBUG("Sending HerkuleX response to %s: statusError=%d, statusDetail=%d", RM_HERKULEX_INPUT_TOPIC_NAME, statusError, statusDetail);
-
-      YAML::Emitter out;
-      out << YAML::BeginMap;
-      out << YAML::Key << "n";
-      out << YAML::Value << "stat";
-      out << YAML::Key << "a";
-      out << YAML::Value << (int) address;
-      out << YAML::Key << "e";
-      out << YAML::Value << (int) statusError;
-      out << YAML::Key << "d";
-      out << YAML::Value << (int) statusDetail;
-      out << YAML::EndMap;
-
-      std_msgs::String stringMessage;
-      stringMessage.data = out.c_str();
-      herkulexOutputPublisher_.publish(stringMessage);
-    }
-    else
-    {
-      ROS_ERROR("HerkuleX command (%s) processor error: wrong checksum in response (error code %d)", commandName.c_str(), result);
-    }
-  }
-  else if (commandName.compare("led") == 0)
-  {
-    if (!node["c"])
-    {
-      ROS_ERROR("HerkuleX command (%s) processor error: LED color is not defined", commandName.c_str());
-      return;
-    }
-    int color = node["c"].as<int>();
-    if (color < 0 || color > 7)
-    {
-      ROS_ERROR("HerkuleX command (%s) processor error: bad color value (%d)", commandName.c_str(), color);
-      return;
-    }
-    herkulex.setLed(address, color);
-  }
-  else if (commandName.compare("center") == 0)
-  {
-    int delay;
-    if (address == HEAD_BROADCAST_SERVO_ID)
-    {
-      int durationH = headMoveCenter(HEAD_HORIZONTAL_SERVO_ID);
-      int durationV = headMoveCenter(HEAD_VERTICAL_SERVO_ID);
-      delay = durationH > durationV ? durationH : durationV;
-    }
-    else
-      delay = headMoveCenter(address);
-    centerHeadImu(delay);
-  }
-  else if (commandName.compare("reboot") == 0)
-  {
-    headServoReboot(address);
-  }
-  else if (commandName.compare("pointing") == 0)
+  if (commandName.compare("pointing") == 0)
   {
     if (!node["v"])
     {
@@ -274,13 +200,90 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
       return;
     }
     int value = node["v"].as<int>();
-    ROS_INFO("HerkuleX command (%s): value = %d", value);
+    ROS_INFO("HerkuleX command (%s): value = %d", commandName.c_str(), value);
     targetMode_ = value != 0;
   }
   else
   {
-    ROS_ERROR("Unknown command name: \'%s\'", commandName.c_str());
-    return;
+    if (!node["a"])
+    {
+      ROS_ERROR("HerkuleX command (%s) processor error: servo ID is not defined", commandName.c_str());
+      return;
+    }
+    int address = node["a"].as<int>();
+    if (address != HEAD_HORIZONTAL_SERVO_ID && address != HEAD_VERTICAL_SERVO_ID && address != HEAD_BROADCAST_SERVO_ID)
+    {
+      ROS_ERROR("HerkuleX command (%s) processor error: unknown servo ID (%d)", commandName.c_str(), address);
+      return;
+    }
+
+    if (commandName.compare("stat") == 0)
+    {
+      uint8_t statusError;
+      uint8_t statusDetail;
+      signed char result = herkulex.stat(address, &statusError, &statusDetail);
+      if (result == 0)
+      {
+        ROS_DEBUG("Sending HerkuleX response to %s: statusError=%d, statusDetail=%d", RM_HERKULEX_INPUT_TOPIC_NAME, statusError, statusDetail);
+
+        YAML::Emitter out;
+        out << YAML::BeginMap;
+        out << YAML::Key << "n";
+        out << YAML::Value << "stat";
+        out << YAML::Key << "a";
+        out << YAML::Value << (int) address;
+        out << YAML::Key << "e";
+        out << YAML::Value << (int) statusError;
+        out << YAML::Key << "d";
+        out << YAML::Value << (int) statusDetail;
+        out << YAML::EndMap;
+
+        std_msgs::String stringMessage;
+        stringMessage.data = out.c_str();
+        herkulexOutputPublisher_.publish(stringMessage);
+      }
+      else
+      {
+        ROS_ERROR("HerkuleX command (%s) processor error: wrong checksum in response (error code %d)", commandName.c_str(), result);
+      }
+    }
+    else if (commandName.compare("led") == 0)
+    {
+      if (!node["c"])
+      {
+        ROS_ERROR("HerkuleX command (%s) processor error: LED color is not defined", commandName.c_str());
+        return;
+      }
+      int color = node["c"].as<int>();
+      if (color < 0 || color > 7)
+      {
+        ROS_ERROR("HerkuleX command (%s) processor error: bad color value (%d)", commandName.c_str(), color);
+        return;
+      }
+      herkulex.setLed(address, color);
+    }
+    else if (commandName.compare("center") == 0)
+    {
+      int delay;
+      if (address == HEAD_BROADCAST_SERVO_ID)
+      {
+        int durationH = headMoveCenter(HEAD_HORIZONTAL_SERVO_ID);
+        int durationV = headMoveCenter(HEAD_VERTICAL_SERVO_ID);
+        delay = durationH > durationV ? durationH : durationV;
+      }
+      else
+        delay = headMoveCenter(address);
+      centerHeadImu(delay);
+    }
+    else if (commandName.compare("reboot") == 0)
+    {
+      headServoReboot(address);
+    }
+    else
+    {
+      ROS_ERROR("Unknown command name: \'%s\'", commandName.c_str());
+      return;
+    }
   }
 }
 
