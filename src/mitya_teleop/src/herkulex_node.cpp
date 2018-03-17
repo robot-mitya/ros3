@@ -127,6 +127,8 @@ private:
   void centerHeadImu(double millis);
   ros::Time centerHeadImuStartTime_;
   bool centerHeadImuStarted_;
+
+  void stopHead();
 };
 
 HerkulexNode::HerkulexNode()
@@ -201,6 +203,7 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
     }
     int value = node["v"].as<int>();
     ROS_INFO("HerkuleX command (%s): value = %d", commandName.c_str(), value);
+    stopHead();
     targetMode_ = value != 0;
   }
   else
@@ -453,6 +456,12 @@ void HerkulexNode::updateToTarget()
   herkulex.moveOneAngle(HEAD_HORIZONTAL_SERVO_ID, horizontalDir, durationY, 0);
   int durationP = dP < 0.98f ? shortDuration : longDuration;
   herkulex.moveOneAngle(HEAD_VERTICAL_SERVO_ID, verticalDir, durationP, 0);
+}
+
+void HerkulexNode::stopHead()
+{
+  setHeadPositionHorizontal(herkulex.getAngle(HEAD_HORIZONTAL_SERVO_ID));
+  setHeadPositionVertical(herkulex.getAngle(HEAD_VERTICAL_SERVO_ID));
 }
 
 int main(int argc, char **argv)
