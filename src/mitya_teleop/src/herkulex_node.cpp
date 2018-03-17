@@ -266,6 +266,16 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
   {
     headServoReboot(address);
   }
+  else if (commandName.compare("pointing") == 0)
+  {
+    if (!node["v"])
+    {
+      ROS_ERROR("HerkuleX command (%s) processor error: value is not defined", commandName.c_str());
+      return;
+    }
+    int value = node["v"].as<int>();
+    targetMode_ = value != 0;
+  }
   else
   {
     ROS_ERROR("Unknown command name: \'%s\'", commandName.c_str());
