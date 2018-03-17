@@ -194,7 +194,19 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
 
   std::string commandName = node["n"] ? node["n"].as<std::string>() : "null name";
 
-  if (commandName.compare("pointing") == 0)
+  if (commandName.compare("mode") == 0)
+  {
+    if (!node["m"])
+    {
+      ROS_ERROR("HerkuleX command (%s) processor error: mode is not defined", commandName.c_str());
+      return;
+    }
+    int mode = node["m"].as<int>();
+    ROS_INFO("HerkuleX command (%s): mode = %d", commandName.c_str(), mode);
+    //TODO #21
+    //stopHead();
+  }
+  else if (commandName.compare("pointing") == 0)
   {
     if (!node["v"])
     {
