@@ -434,8 +434,11 @@ void HerkulexNode::updateToTarget()
   //ROS_DEBUG("Yaw/Pitch: %+9.3f, %+9.3f; Move to: %+9.3f, %+9.3f; Dot2: %+9.3f", deltaYaw_, deltaPitch_, horizontalDir, verticalDir, dot2);
   ROS_DEBUG("Yaw/Pitch: %+9.3f, %+9.3f; dY/dP: %+9.3f, %+9.3f; Move to: %+9.3f, %+9.3f", deltaYaw_, deltaPitch_, dY, dP, horizontalDir, verticalDir);
 
-  //herkulex.moveOneAngle(HEAD_HORIZONTAL_SERVO_ID, horizontalDir, 0, 0);
-  int durationP = dP < 0.98f ? 0 : 2856;
+  const int shortDuration = 2856 / 8;
+  const int longDuration = 2856 / 2;
+  int durationY = dY < 0.98f ? shortDuration : longDuration;
+  herkulex.moveOneAngle(HEAD_HORIZONTAL_SERVO_ID, horizontalDir, durationY, 0);
+  int durationP = dP < 0.98f ? shortDuration : longDuration;
   herkulex.moveOneAngle(HEAD_VERTICAL_SERVO_ID, verticalDir, durationP, 0);
 }
 
