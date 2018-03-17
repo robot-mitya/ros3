@@ -431,10 +431,9 @@ void HerkulexNode::updateToTarget()
   float verticalDir = deltaPitch_ > 0 ? headVerticalMinDegree : headVerticalMaxDegree;
   float dY = 1 - deltaYaw_ * deltaYaw_ / 32400.0f;
   float dP = 1 - deltaPitch_ * deltaPitch_ / 32400.0f;
-  //ROS_DEBUG("Yaw/Pitch: %+9.3f, %+9.3f; Move to: %+9.3f, %+9.3f; Dot2: %+9.3f", deltaYaw_, deltaPitch_, horizontalDir, verticalDir, dot2);
-  ROS_DEBUG("Yaw/Pitch: %+9.3f, %+9.3f; dY/dP: %+9.3f, %+9.3f; Move to: %+9.3f, %+9.3f", deltaYaw_, deltaPitch_, dY, dP, horizontalDir, verticalDir);
+  //ROS_DEBUG("Yaw/Pitch: %+9.3f, %+9.3f; dY/dP: %+9.3f, %+9.3f; Move to: %+9.3f, %+9.3f", deltaYaw_, deltaPitch_, dY, dP, horizontalDir, verticalDir);
 
-  const int shortDuration = 2856 / 8;
+  const int shortDuration = 2856 / 4;
   const int longDuration = 2856 / 2;
   int durationY = dY < 0.98f ? shortDuration : longDuration;
   herkulex.moveOneAngle(HEAD_HORIZONTAL_SERVO_ID, horizontalDir, durationY, 0);
@@ -448,7 +447,7 @@ int main(int argc, char **argv)
 
   HerkulexNode herkulexNode;
 
-  ros::Rate loop_rate(50); // (Hz)
+  ros::Rate loop_rate(100); // (Hz)
   while (ros::ok())
   {
     loop_rate.sleep();
