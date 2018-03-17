@@ -167,7 +167,7 @@ HerkulexNode::HerkulexNode()
   centerHeadImuStarted_ = false;
 
   targetQuaternion_ = tf2::Quaternion::getIdentity();
-  targetMode_ = true; //TODO: Change to false, read in messages.
+  targetMode_ = false; //TODO: Change to false, read in messages.
   targetYaw_ = 0;
   targetPitch_ = 0;
   deltaYaw_ = 0;
@@ -426,10 +426,10 @@ void HerkulexNode::updateToTarget()
   deltaYaw_ = -deltaYaw_;
   float horizontalDir = deltaYaw_ > 0 ? headHorizontalMinDegree : headHorizontalMaxDegree;
   float verticalDir = deltaPitch_ > 0 ? headVerticalMinDegree : headVerticalMaxDegree;
-  //ROS_DEBUG("Yaw/Pitch: %+9.3f, %+9.3f; Move to: %+9.3f, %+9.3f", deltaYaw_, deltaPitch_, horizontalDir, verticalDir);
+  ROS_DEBUG("Yaw/Pitch: %+9.3f, %+9.3f; Move to: %+9.3f, %+9.3f", deltaYaw_, deltaPitch_, horizontalDir, verticalDir);
 
-  herkulex.moveOneAngle(HEAD_HORIZONTAL_SERVO_ID, horizontalDir, 0, 0);
-  herkulex.moveOneAngle(HEAD_VERTICAL_SERVO_ID, verticalDir, 0, 0);
+  //herkulex.moveOneAngle(HEAD_HORIZONTAL_SERVO_ID, horizontalDir, 0, 0);
+  //herkulex.moveOneAngle(HEAD_VERTICAL_SERVO_ID, verticalDir, 0, 0);
 }
 
 int main(int argc, char **argv)
