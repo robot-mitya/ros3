@@ -274,6 +274,7 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
       return;
     }
     int value = node["v"].as<int>();
+    ROS_INFO("HerkuleX command (%s): value = %d", value);
     targetMode_ = value != 0;
   }
   else
