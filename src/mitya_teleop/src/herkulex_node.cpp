@@ -167,7 +167,7 @@ HerkulexNode::HerkulexNode()
   centerHeadImuStarted_ = false;
 
   targetQuaternion_ = tf2::Quaternion::getIdentity();
-  targetMode_ = false; //TODO: Change to false, read in messages.
+  targetMode_ = true; //TODO: Change to false, read in messages.
   targetYaw_ = 0;
   targetPitch_ = 0;
   deltaYaw_ = 0;
