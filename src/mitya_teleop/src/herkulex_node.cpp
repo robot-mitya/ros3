@@ -423,8 +423,8 @@ void HerkulexNode::updateToTarget()
 //    targetPitch_ = targetPitch;
 //  }
 
-  float horizontalDir = deltaYaw_ > 0 ? headHorizontalMaxDegree : headHorizontalMinDegree;
-  float verticalDir = deltaPitch_ > 0 ? headVerticalMaxDegree : headVerticalMinDegree;
+  float horizontalDir = deltaYaw_ > 0 ? headHorizontalMinDegree : headHorizontalMaxDegree;
+  float verticalDir = deltaPitch_ > 0 ? headVerticalMinDegree : headVerticalMaxDegree;
   ROS_DEBUG("Yaw/Pitch: %+9.3f, %+9.3f; Move to: %+9.3f, %+9.3f", deltaYaw_, deltaPitch_, horizontalDir, verticalDir);
 }
 
