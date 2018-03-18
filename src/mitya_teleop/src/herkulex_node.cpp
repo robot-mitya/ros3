@@ -117,8 +117,8 @@ private:
    */
   int headMoveCenter(int servoAddress);
 
-  void setHeadPositionHorizontal(float angle);
-  void setHeadPositionVertical(float angle);
+  void setHeadPositionHorizontal(float angle, int duration);
+  void setHeadPositionVertical(float angle, int duration);
 
   void headServoReboot(int servoAddress);
 
@@ -297,20 +297,20 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
 void HerkulexNode::headPositionCallback(const mitya_teleop::HeadPosition::ConstPtr& msg)
 {
   //ROS_INFO("Received in %s.%s: %f, %f", RM_HERKULEX_NODE_NAME, RM_HEAD_POSITION_TOPIC_NAME, msg->horizontal, msg->vertical);
-  setHeadPositionHorizontal(msg->horizontal);
-  setHeadPositionVertical(msg->vertical);
+  setHeadPositionHorizontal(msg->horizontal, 0);
+  setHeadPositionVertical(msg->vertical, 0);
 }
 
-void HerkulexNode::setHeadPositionHorizontal(float angle)
+void HerkulexNode::setHeadPositionHorizontal(float angle, int duration)
 {
   if (angle < headHorizontalMinDegree)
     angle = headHorizontalMinDegree;
   else if (angle > headHorizontalMaxDegree)
     angle = headHorizontalMaxDegree;
-  herkulex_.moveOneAngle(HEAD_HORIZONTAL_SERVO_ID, angle, 0, 0);
+  herkulex_.moveOneAngle(HEAD_HORIZONTAL_SERVO_ID, angle, duration, 0);
 }
 
-void HerkulexNode::setHeadPositionVertical(float angle)
+void HerkulexNode::setHeadPositionVertical(float angle, int duration)
 {
   if (angle < headVerticalMinDegree)
     angle = headVerticalMinDegree;
@@ -433,7 +433,7 @@ void HerkulexNode::updateToTarget()
 
   tf2Scalar deltaYaw = targetYaw - imuYaw;
   tf2Scalar deltaPitch = targetPitch - imuPitch;
-  float speed = headMoveSpeed_ * 2.0f;
+  float speed = headMoveSpeed_ * 4.0f;
   int yawDuration = calculateDurationInMillis(deltaYaw, speed);
   int pitchDuration = calculateDurationInMillis(deltaPitch, speed);
   int duration = MAX(yawDuration, pitchDuration);
@@ -444,14 +444,14 @@ void HerkulexNode::updateToTarget()
 
 //  ROS_INFO("iY/iP: %+9.3f    %+9.3f    tY/tP: %+9.3f    %+9.3f    aY/aP: %+9.3f    %+9.3f    Y/P: %+9.3f    %+9.3f",
 //           imuYaw, imuPitch, targetYaw, targetPitch, aYaw, aPitch, yaw, pitch);
-  herkulex_.moveOneAngle(HEAD_HORIZONTAL_SERVO_ID, yaw, duration, 0);
-  herkulex_.moveOneAngle(HEAD_VERTICAL_SERVO_ID, pitch, duration, 0);
+  setHeadPositionHorizontal(yaw, duration);
+  setHeadPositionVertical(pitch, duration);
 }
 
 void HerkulexNode::stopHead()
 {
-  setHeadPositionHorizontal(herkulex_.getAngle(HEAD_HORIZONTAL_SERVO_ID));
-  setHeadPositionVertical(herkulex_.getAngle(HEAD_VERTICAL_SERVO_ID));
+  setHeadPositionHorizontal(herkulex_.getAngle(HEAD_HORIZONTAL_SERVO_ID), 0);
+  setHeadPositionVertical(herkulex_.getAngle(HEAD_VERTICAL_SERVO_ID), 0);
 }
 
 void HerkulexNode::setTorqueMode(HerkulexTorqueState mode)
