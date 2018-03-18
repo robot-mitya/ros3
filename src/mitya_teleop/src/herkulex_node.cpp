@@ -441,9 +441,9 @@ void HerkulexNode::updateToTarget()
 
   //MadgwickImu::getEulerYP(deltaQuaternion_, deltaYaw_, deltaPitch_);
   deltaYaw_ = targetYaw - imuYaw;
-  deltaYaw_ = -deltaYaw_;
+  //deltaYaw_ = -deltaYaw_;
   deltaPitch_ = targetPitch - imuPitch;
-  deltaPitch_ = -deltaPitch_;
+  //deltaPitch_ = -deltaPitch_;
   int yawDuration = calculateDurationInMillis(deltaYaw_, headMoveSpeed_);
   int pitchDuration = calculateDurationInMillis(deltaPitch_, headMoveSpeed_);
   int duration = MAX(yawDuration, pitchDuration);
