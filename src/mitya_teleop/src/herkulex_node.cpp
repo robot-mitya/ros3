@@ -439,8 +439,10 @@ void HerkulexNode::updateToTarget()
   tf2Scalar targetPitch;
   MadgwickImu::getEulerYP(targetQuaternion_, targetYaw, targetPitch);
 
-  MadgwickImu::getEulerYP(deltaQuaternion_, deltaYaw_, deltaPitch_);
+  //MadgwickImu::getEulerYP(deltaQuaternion_, deltaYaw_, deltaPitch_);
+  deltaYaw_ = targetYaw - imuYaw;
   deltaYaw_ = -deltaYaw_;
+  deltaPitch_ = targetPitch - imuPitch;
   int yawDuration = calculateDurationInMillis(deltaYaw_, headMoveSpeed_);
   int pitchDuration = calculateDurationInMillis(deltaPitch_, headMoveSpeed_);
   int duration = MAX(yawDuration, pitchDuration);
