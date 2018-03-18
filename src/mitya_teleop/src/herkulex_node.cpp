@@ -169,7 +169,7 @@ HerkulexNode::HerkulexNode()
   centerHeadImuStarted_ = false;
 
   targetQuaternion_ = tf2::Quaternion::getIdentity();
-  targetMode_ = true; //TODO: Change to false, read in messages.
+  targetMode_ = false; //TODO: Change to false, read in messages.
   targetYaw_ = 0;
   targetPitch_ = 0;
   deltaYaw_ = 0;
@@ -436,13 +436,14 @@ void HerkulexNode::updateToTarget()
 //  MadgwickImu::getEulerYP(targetQuaternion_, targetYaw, targetPitch);
   MadgwickImu::getEulerYP(deltaQuaternion_, deltaYaw_, deltaPitch_);
   deltaYaw_ = -deltaYaw_;
-  float yawDuration = calculateDurationInMillis(deltaYaw_, headMoveSpeed_);
-  float pitchDuration = calculateDurationInMillis(deltaPitch_, headMoveSpeed_);
-  float duration = MAX(yawDuration, pitchDuration);
+  int yawDuration = calculateDurationInMillis(deltaYaw_, headMoveSpeed_);
+  int pitchDuration = calculateDurationInMillis(deltaPitch_, headMoveSpeed_);
+  int duration = MAX(yawDuration, pitchDuration);
   float yaw = herkulex_.getAngle(HEAD_HORIZONTAL_SERVO_ID) + deltaYaw_;
   float pitch = herkulex_.getAngle(HEAD_VERTICAL_SERVO_ID) + deltaPitch_;
-  herkulex_.moveOneAngle(HEAD_HORIZONTAL_SERVO_ID, yaw, duration, 0);
-  herkulex_.moveOneAngle(HEAD_VERTICAL_SERVO_ID, pitch, duration, 0);
+  ROS_INFO("Yaw/Pitch/Duration: %+9.3f    %+9.3f    %d", yaw, pitch, duration);
+  //herkulex_.moveOneAngle(HEAD_HORIZONTAL_SERVO_ID, yaw, duration, 0);
+  //herkulex_.moveOneAngle(HEAD_VERTICAL_SERVO_ID, pitch, duration, 0);
 }
 
 void HerkulexNode::stopHead()
