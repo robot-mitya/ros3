@@ -125,6 +125,11 @@ private:
   void centerHeadImu(double millis);
   ros::Time centerHeadImuStartTime_;
   bool centerHeadImuStarted_;
+
+  float pointingFactor_;
+  static const tf2Scalar POINTING_DEFAULT = 1000.0f;
+  tf2Scalar pointingYaw_;
+  tf2Scalar pointingPitch_;
 };
 
 HerkulexNode::HerkulexNode()
@@ -165,7 +170,11 @@ HerkulexNode::HerkulexNode()
   centerHeadImuStarted_ = false;
 
   targetQuaternion_ = tf2::Quaternion::getIdentity();
-  targetMode_ = false; //TODO: Change to false, read in messages.
+  targetMode_ = false;
+
+  pointingFactor_ = 1.0f;
+  pointingYaw_ = POINTING_DEFAULT;
+  pointingPitch_ = POINTING_DEFAULT;
 }
 
 void HerkulexNode::initServos()
@@ -209,6 +218,22 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
     ROS_INFO("HerkuleX command (%s): value = %d", commandName.c_str(), value);
     stopHead();
     targetMode_ = value != 0;
+    if (targetMode_)
+    {
+      pointingYaw_ = POINTING_DEFAULT;
+      pointingPitch_ = POINTING_DEFAULT;
+    }
+  }
+  else if (commandName.compare("f1") == 0)
+  {
+    if (!node["v"])
+    {
+      ROS_ERROR("HerkuleX command (%s) processor error: value is not defined", commandName.c_str());
+      return;
+    }
+    float value = node["v"].as<float>();
+    ROS_INFO("HerkuleX command (%s): value = %f", commandName.c_str(), value);
+    pointingFactor_ = value;
   }
   else
   {
@@ -444,8 +469,14 @@ void HerkulexNode::updateToTarget()
 
 //  ROS_INFO("iY/iP: %+9.3f    %+9.3f    tY/tP: %+9.3f    %+9.3f    aY/aP: %+9.3f    %+9.3f    Y/P: %+9.3f    %+9.3f",
 //           imuYaw, imuPitch, targetYaw, targetPitch, aYaw, aPitch, yaw, pitch);
-  setHeadPositionHorizontal(yaw, duration);
-  setHeadPositionVertical(pitch, duration);
+  pointingYaw_ = pointingYaw_ == POINTING_DEFAULT ?
+      yaw :
+      pointingYaw_ = (1.0f - pointingFactor_) * pointingYaw_ + pointingFactor_ * yaw;
+  pointingPitch_ = pointingPitch_ == POINTING_DEFAULT ?
+      pitch :
+      pointingPitch_ = (1.0f - pointingFactor_) * pointingPitch_ + pointingFactor_ * pitch;
+  setHeadPositionHorizontal(pointingYaw_, duration);
+  setHeadPositionVertical(pointingPitch_, duration);
 }
 
 void HerkulexNode::stopHead()
