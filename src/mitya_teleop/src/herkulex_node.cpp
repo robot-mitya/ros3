@@ -435,39 +435,14 @@ void HerkulexNode::updateToTarget()
 //  tf2Scalar targetPitch;
 //  MadgwickImu::getEulerYP(targetQuaternion_, targetYaw, targetPitch);
   MadgwickImu::getEulerYP(deltaQuaternion_, deltaYaw_, deltaPitch_);
-
-//  if (fabs(targetYaw - targetYaw_) > 1)
-//  {
-//    float angle = herkulex.getAngle(HEAD_HORIZONTAL_SERVO_ID);
-//    angle += deltaYaw_;
-//    setHeadPositionHorizontal(angle);
-//    targetYaw_ = targetYaw;
-//  }
-
-//  if (fabs(targetPitch - targetPitch_) > 1)
-//  {
-//    float angle = herkulex.getAngle(HEAD_VERTICAL_SERVO_ID);
-//    angle += deltaPitch_;
-//    setHeadPositionVertical(angle);
-//    targetPitch_ = targetPitch;
-//  }
-
-//  float dot2 = imuQuaternion_.dot(targetQuaternion_);
-//  dot2 *= dot2;
-
   deltaYaw_ = -deltaYaw_;
-  float horizontalDir = deltaYaw_ > 0 ? headHorizontalMinDegree : headHorizontalMaxDegree;
-  float verticalDir = deltaPitch_ > 0 ? headVerticalMinDegree : headVerticalMaxDegree;
-  float dY = 1 - deltaYaw_ * deltaYaw_ / 32400.0f;
-  float dP = 1 - deltaPitch_ * deltaPitch_ / 32400.0f;
-  //ROS_DEBUG("Yaw/Pitch: %+9.3f, %+9.3f; dY/dP: %+9.3f, %+9.3f; Move to: %+9.3f, %+9.3f", deltaYaw_, deltaPitch_, dY, dP, horizontalDir, verticalDir);
-
-  const int shortDuration = 2856 / 4;
-  const int longDuration = 2856 / 2;
-  int durationY = dY < 0.98f ? shortDuration : longDuration;
-  herkulex_.moveOneAngle(HEAD_HORIZONTAL_SERVO_ID, horizontalDir, durationY, 0);
-  int durationP = dP < 0.98f ? shortDuration : longDuration;
-  herkulex_.moveOneAngle(HEAD_VERTICAL_SERVO_ID, verticalDir, durationP, 0);
+  float yawDuration = calculateDurationInMillis(deltaYaw_, headMoveSpeed_);
+  float pitchDuration = calculateDurationInMillis(deltaPitch_, headMoveSpeed_);
+  float duration = MAX(yawDuration, pitchDuration);
+  float yaw = herkulex_.getAngle(HEAD_HORIZONTAL_SERVO_ID) + deltaYaw_;
+  float pitch = herkulex_.getAngle(HEAD_VERTICAL_SERVO_ID) + deltaPitch_;
+  herkulex_.moveOneAngle(HEAD_HORIZONTAL_SERVO_ID, yaw, duration, 0);
+  herkulex_.moveOneAngle(HEAD_VERTICAL_SERVO_ID, pitch, duration, 0);
 }
 
 void HerkulexNode::stopHead()
