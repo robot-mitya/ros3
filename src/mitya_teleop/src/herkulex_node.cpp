@@ -452,10 +452,10 @@ void HerkulexNode::updateToTarget()
   float yaw = aYaw + deltaYaw_;
   float pitch = -(-aPitch + deltaPitch_);
 
-  ROS_INFO("iY/iP: %+9.3f    %+9.3f    tY/tP: %+9.3f    %+9.3f    aY/aP: %+9.3f    %+9.3f    Y/P: %+9.3f    %+9.3f",
-           imuYaw, imuPitch, targetYaw, targetPitch, aYaw, aPitch, yaw, pitch);
-  //herkulex_.moveOneAngle(HEAD_HORIZONTAL_SERVO_ID, yaw, duration, 0);
-  //herkulex_.moveOneAngle(HEAD_VERTICAL_SERVO_ID, pitch, duration, 0);
+//  ROS_INFO("iY/iP: %+9.3f    %+9.3f    tY/tP: %+9.3f    %+9.3f    aY/aP: %+9.3f    %+9.3f    Y/P: %+9.3f    %+9.3f",
+//           imuYaw, imuPitch, targetYaw, targetPitch, aYaw, aPitch, yaw, pitch);
+  herkulex_.moveOneAngle(HEAD_HORIZONTAL_SERVO_ID, yaw, duration, 0);
+  herkulex_.moveOneAngle(HEAD_VERTICAL_SERVO_ID, pitch, duration, 0);
 }
 
 void HerkulexNode::stopHead()
