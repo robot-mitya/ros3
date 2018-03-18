@@ -81,10 +81,6 @@ private:
   tf2::Quaternion imuQuaternion_;
   tf2::Quaternion targetQuaternion_;
   tf2::Quaternion deltaQuaternion_;
-  tf2Scalar targetYaw_;
-  tf2Scalar targetPitch_;
-  tf2Scalar deltaYaw_;
-  tf2Scalar deltaPitch_;
   void updateToTarget();
 
   // Topic RM_HERKULEX_INPUT_TOPIC_NAME ('herkulex_input') subscriber:
@@ -170,10 +166,6 @@ HerkulexNode::HerkulexNode()
 
   targetQuaternion_ = tf2::Quaternion::getIdentity();
   targetMode_ = false; //TODO: Change to false, read in messages.
-  targetYaw_ = 0;
-  targetPitch_ = 0;
-  deltaYaw_ = 0;
-  deltaPitch_ = 0;
 }
 
 void HerkulexNode::initServos()
@@ -439,18 +431,16 @@ void HerkulexNode::updateToTarget()
   tf2Scalar targetPitch;
   MadgwickImu::getEulerYP(targetQuaternion_, targetYaw, targetPitch);
 
-  //MadgwickImu::getEulerYP(deltaQuaternion_, deltaYaw_, deltaPitch_);
-  deltaYaw_ = targetYaw - imuYaw;
-  //deltaYaw_ = -deltaYaw_;
-  deltaPitch_ = targetPitch - imuPitch;
-  //deltaPitch_ = -deltaPitch_;
-  int yawDuration = calculateDurationInMillis(deltaYaw_, headMoveSpeed_);
-  int pitchDuration = calculateDurationInMillis(deltaPitch_, headMoveSpeed_);
+  tf2Scalar deltaYaw = targetYaw - imuYaw;
+  tf2Scalar deltaPitch = targetPitch - imuPitch;
+  float speed = headMoveSpeed_ * 2.0f;
+  int yawDuration = calculateDurationInMillis(deltaYaw, speed);
+  int pitchDuration = calculateDurationInMillis(deltaPitch, speed);
   int duration = MAX(yawDuration, pitchDuration);
   float aYaw = herkulex_.getAngle(HEAD_HORIZONTAL_SERVO_ID);
   float aPitch = herkulex_.getAngle(HEAD_VERTICAL_SERVO_ID);
-  float yaw = aYaw + deltaYaw_;
-  float pitch = -(-aPitch + deltaPitch_);
+  float yaw = aYaw + deltaYaw;
+  float pitch = aPitch - deltaPitch; // (should be plus, but pitch servo's axis is directed in negative direction)
 
 //  ROS_INFO("iY/iP: %+9.3f    %+9.3f    tY/tP: %+9.3f    %+9.3f    aY/aP: %+9.3f    %+9.3f    Y/P: %+9.3f    %+9.3f",
 //           imuYaw, imuPitch, targetYaw, targetPitch, aYaw, aPitch, yaw, pitch);
