@@ -126,7 +126,7 @@ void TestHerkulexNode::joystickCallback(const sensor_msgs::Joy::ConstPtr& joy)
   if (backButtonState && !prevBackButtonState_)
   {
     ROS_INFO("Back was pressed");
-    herkulex_.torqueOFF(SERVO_ID);
+    herkulex_.setTorqueFree(SERVO_ID);
   }
   prevBackButtonState_ = backButtonState;
 
@@ -134,7 +134,7 @@ void TestHerkulexNode::joystickCallback(const sensor_msgs::Joy::ConstPtr& joy)
   if (startButtonState && !prevStartButtonState_)
   {
     ROS_INFO("Start was pressed");
-    herkulex_.torqueON(SERVO_ID);
+    herkulex_.setTorqueOn(SERVO_ID);
   }
   prevStartButtonState_ = startButtonState;
 

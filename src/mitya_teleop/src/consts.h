@@ -39,6 +39,11 @@
 #define HEAD_VERTICAL_SERVO_ID 2
 #define HEAD_BROADCAST_SERVO_ID 0xFE
 
+enum HerkulexTorqueState
+{
+  HTS_TORQUE_FREE = 0x00, HTS_BREAK_ON = 0x40, HTS_TORQUE_ON = 0x60
+};
+
 /**
  * ROS namespace for Robot Mitay's packages.
  * Actually namespace is defined in launch file.

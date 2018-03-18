@@ -61,6 +61,7 @@ public:
   HerkulexNode();
   void update();
   void stopHead();
+  void setTorqueMode(HerkulexTorqueState mode);
   void logPosition();
 private:
   HerkulexClass herkulex;
@@ -202,8 +203,9 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
     }
     int mode = node["m"].as<int>();
     ROS_INFO("HerkuleX command (%s): mode = %d", commandName.c_str(), mode);
+
     //TODO #21
-    //stopHead();
+    stopHead();
   }
   else if (commandName.compare("pointing") == 0)
   {
@@ -475,14 +477,33 @@ void HerkulexNode::stopHead()
   setHeadPositionVertical(herkulex.getAngle(HEAD_VERTICAL_SERVO_ID));
 }
 
-HerkulexNode* herkulexNode = NULL;
+void HerkulexNode::setTorqueMode(HerkulexTorqueState mode)
+{
+  switch (mode)
+  {
+    case HTS_BREAK_ON:
+    case HTS_TORQUE_ON:
+      herkulex.torqueState(HEAD_HORIZONTAL_SERVO_ID, (TorqueState) mode);
+      herkulex.torqueState(HEAD_VERTICAL_SERVO_ID, (TorqueState) mode);
+      break;
+    default:
+      herkulex.torqueState(HEAD_HORIZONTAL_SERVO_ID, TS_TORQUE_FREE);
+      herkulex.torqueState(HEAD_VERTICAL_SERVO_ID, TS_TORQUE_FREE);
+      break;
+  }
+}
+
+HerkulexNode *herkulexNode = NULL;
 
 // Calls on shutting down the node.
 void sigintHandler(int sig)
 {
   ROS_INFO("Shutting down %s", RM_HERKULEX_NODE_NAME);
   if (herkulexNode != NULL)
+  {
     herkulexNode->stopHead();
+    herkulexNode->setTorqueMode(HTS_TORQUE_FREE);
+  }
 
   ros::shutdown();
 }

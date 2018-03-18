@@ -32,16 +32,17 @@
  */
 
 #include "ros/ros.h"
+#include <signal.h>
 #include "mitya_teleop/Drive.h"
 #include "mitya_teleop/HeadPosition.h"
 #include "mitya_teleop/HeadMove.h"
-#include "std_msgs/String.h"
+#include <std_msgs/String.h>
 #include <sensor_msgs/Joy.h>
 #include <math.h>
 #include "consts.h"
 #include "robo_com.h"
 #include "button_event.h"
-#include "yaml-cpp/yaml.h"
+#include <yaml-cpp/yaml.h>
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 
@@ -51,6 +52,7 @@ class JoystickNode
 {
 public:
   JoystickNode();
+  void sendStopHead();
 private:
   static const float RAD_TO_DEG = 180.0f / M_PI;
 
@@ -131,6 +133,7 @@ private:
   void publishSwitchLed2Message();
   void publishSwingTailMessage();
   void publishCenterHerkulex(uint8_t address);
+  void publishModeHerkulex(HerkulexTorqueState mode);
   void publishRebootHerkulex();
   void publishRebootArduino();
 
@@ -381,6 +384,21 @@ void JoystickNode::publishCenterHerkulex(uint8_t address)
   herkulexInputPublisher_.publish(stringMessage);
 }
 
+void JoystickNode::publishModeHerkulex(HerkulexTorqueState mode)
+{
+  YAML::Emitter out;
+  out << YAML::BeginMap;
+  out << YAML::Key << "n";
+  out << YAML::Value << "mode";
+  out << YAML::Key << "m";
+  out << YAML::Value << (int) mode;
+  out << YAML::EndMap;
+
+  std_msgs::String stringMessage;
+  stringMessage.data = out.c_str();
+  herkulexInputPublisher_.publish(stringMessage);
+}
+
 void JoystickNode::publishRebootHerkulex()
 {
   YAML::Emitter out;
@@ -475,10 +493,28 @@ void JoystickNode::headMoveCenterButtonHandler(bool state)
   publishCenterHerkulex(HEAD_BROADCAST_SERVO_ID);
 }
 
+void JoystickNode::sendStopHead()
+{
+  publishModeHerkulex(HTS_TORQUE_FREE);
+}
+
+JoystickNode *joystickNode = NULL;
+
+// Calls on shutting down the node.
+void sigintHandler(int sig)
+{
+  ROS_INFO("Shutting down %s", RM_JOYSTICK_NODE_NAME);
+  if (joystickNode != NULL)
+    joystickNode->sendStopHead();
+
+  ros::shutdown();
+}
+
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, RM_JOYSTICK_NODE_NAME);
-  JoystickNode joystickNode;
+  joystickNode = new JoystickNode();
+  signal(SIGINT, sigintHandler);
   ros::spin();
 
   return 0;

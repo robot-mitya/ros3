@@ -34,12 +34,10 @@
 #ifndef MITYA_TELEOP_SRC_HERKULEX_H_
 #define MITYA_TELEOP_SRC_HERKULEX_H_
 
-
 #include <stdint.h>
 #include <termios.h>
 #include <fcntl.h>
 #include <unistd.h>
-
 
 #define DATA_SIZE        30             // buffer for input data
 #define DATA_MOVE        50             // max 10 servos <---- change this for more servos!
@@ -58,73 +56,80 @@
 #define HREBOOT          0x09   //Reboot
 
 // HERKULEX LED - See Manual p29
-static int LED_OFF   =   0x00;
-static int LED_GREEN =   0x01;
-static int LED_BLUE  =   0x02;
-static int LED_CYAN  =   0x03;
-static int LED_RED   =   0x04;
-static int LED_GREEN2=   0x05;
-static int LED_PINK  =   0x06;
-static int LED_WHITE =   0x07;
+static int LED_OFF = 0x00;
+static int LED_GREEN = 0x01;
+static int LED_BLUE = 0x02;
+static int LED_CYAN = 0x03;
+static int LED_RED = 0x04;
+static int LED_GREEN2 = 0x05;
+static int LED_PINK = 0x06;
+static int LED_WHITE = 0x07;
 
 // HERKULEX STATUS ERROR - See Manual p39
-static uint8_t H_STATUS_OK                                 = 0x00;
-static uint8_t H_ERROR_INPUT_VOLTAGE               = 0x01;
-static uint8_t H_ERROR_POS_LIMIT                   = 0x02;
-static uint8_t H_ERROR_TEMPERATURE_LIMIT   = 0x04;
-static uint8_t H_ERROR_INVALID_PKT                 = 0x08;
-static uint8_t H_ERROR_OVERLOAD                    = 0x10;
-static uint8_t H_ERROR_DRIVER_FAULT                = 0x20;
-static uint8_t H_ERROR_EEPREG_DISTORT              = 0x40;
+static uint8_t H_STATUS_OK = 0x00;
+static uint8_t H_ERROR_INPUT_VOLTAGE = 0x01;
+static uint8_t H_ERROR_POS_LIMIT = 0x02;
+static uint8_t H_ERROR_TEMPERATURE_LIMIT = 0x04;
+static uint8_t H_ERROR_INVALID_PKT = 0x08;
+static uint8_t H_ERROR_OVERLOAD = 0x10;
+static uint8_t H_ERROR_DRIVER_FAULT = 0x20;
+static uint8_t H_ERROR_EEPREG_DISTORT = 0x40;
 
 // HERKULEX Broadcast Servo ID
 static uint8_t BROADCAST_ID = 0xFE;
 
-class HerkulexClass {
+enum TorqueState
+{
+  TS_TORQUE_FREE = 0x00, TS_BREAK_ON = 0x40, TS_TORQUE_ON = 0x60
+};
+
+class HerkulexClass
+{
 public:
   HerkulexClass();
   ~HerkulexClass();
 
   bool begin(char const* portName, long baud);
-  void  end();
+  void end();
 
-  void  initialize();
-  uint8_t  stat(int servoID, uint8_t *statusError, uint8_t *statusDetail);
-  void  ACK(int valueACK);
-  uint8_t  model();
-  void  set_ID(int ID_Old, int ID_New);
-  void  clearError(int servoID);
+  void initialize();
+  uint8_t stat(int servoID, uint8_t *statusError, uint8_t *statusDetail);
+  void ACK(int valueACK);
+  uint8_t model();
+  void set_ID(int ID_Old, int ID_New);
+  void clearError(int servoID);
 
-  void  torqueON(int servoID);
-  void  torqueOFF(int servoID);
+  void torqueState(int servoID, TorqueState state);
+  void setTorqueFree(int servoID);
+  void setBreakOn(int servoID);
+  void setTorqueOn(int servoID);
 
-  void  moveAll(int servoID, int Goal, int iLed);
-  void  moveSpeedAll(int servoID, int Goal, int iLed);
-  void  moveAllAngle(int servoID, float angle, int iLed);
-  void  actionAll(int pTime);
+  void moveAll(int servoID, int Goal, int iLed);
+  void moveSpeedAll(int servoID, int Goal, int iLed);
+  void moveAllAngle(int servoID, float angle, int iLed);
+  void actionAll(int pTime);
 
-  void  moveSpeedOne(int servoID, int Goal, int pTime, int iLed);
-  void  moveOne(int servoID, int Goal, int pTime, int iLed);
-  void  moveOneAngle(int servoID, float angle, int pTime, int iLed);
+  void moveSpeedOne(int servoID, int Goal, int pTime, int iLed);
+  void moveOne(int servoID, int Goal, int pTime, int iLed);
+  void moveOneAngle(int servoID, float angle, int pTime, int iLed);
 
-  int   getPosition(int servoID);
+  int getPosition(int servoID);
   float getAngle(int servoID);
-  int   getSpeed(int servoID);
+  int getSpeed(int servoID);
 
-  void  reboot(int servoID);
-  void  setLed(int servoID, int valueLed);
+  void reboot(int servoID);
+  void setLed(int servoID, int valueLed);
 
-  void  writeRegistryRAM(int servoID, int address, int writeByte);
-  void  writeRegistryEEP(int servoID, int address, int writeByte);
-
+  void writeRegistryRAM(int servoID, int address, int writeByte);
+  void writeRegistryEEP(int servoID, int address, int writeByte);
 
 // private area
 private:
   void sendData(uint8_t* buffer, int length);
   bool readData(int size);
   void addData(int GoalLSB, int GoalMSB, int set, int servoID);
-  int  checksum1(uint8_t* data, int lengthString);
-  int  checksum2(int XOR);
+  int checksum1(uint8_t* data, int lengthString);
+  int checksum2(int XOR);
   void delay(long millis);
 
   int pSize;
@@ -151,6 +156,5 @@ private:
 };
 
 extern HerkulexClass Herkulex;
-
 
 #endif /* MITYA_TELEOP_SRC_HERKULEX_H_ */

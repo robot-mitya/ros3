@@ -95,7 +95,7 @@ void HerkulexClass::initialize()
   delay(10);
   ACK(1); // set ACK
   delay(10);
-  torqueON(BROADCAST_ID); // torqueON for all servos
+  torqueState(BROADCAST_ID, TS_TORQUE_ON); // torqueON for all servos
   delay(10);
 }
 
@@ -143,15 +143,14 @@ uint8_t HerkulexClass::stat(int servoID, uint8_t *statusError, uint8_t *statusDe
   return 0;
 }
 
-// torque on -
-void HerkulexClass::torqueON(int servoID)
+void HerkulexClass::torqueState(int servoID, TorqueState state)
 {
   pSize = 0x0A; // 3.Packet size 7-58
   pID = servoID; // 4. Servo ID
   cmd = HRAMWRITE; // 5. CMD
   data[0] = 0x34; // 8. Address
   data[1] = 0x01; // 9. Length
-  data[2] = 0x60; // 10. 0x60=Torque ON
+  data[2] = state; // 10. 0x00=Torque Free, 0x40=Break ON, 0x60=Torque ON
   lengthString = 3; // lengthData
 
   ck1 = checksum1(data, lengthString); //6. Checksum1
@@ -166,37 +165,24 @@ void HerkulexClass::torqueON(int servoID)
   dataEx[6] = ck2; // Checksum 2
   dataEx[7] = data[0]; // Address 52
   dataEx[8] = data[1]; // Length
-  dataEx[9] = data[2]; // Torque ON
+  dataEx[9] = data[2]; // State
 
   sendData(dataEx, pSize);
 }
 
-// torque off - the torque is FREE, not Break
-void HerkulexClass::torqueOFF(int servoID)
+void HerkulexClass::setTorqueFree(int servoID)
 {
-  pSize = 0x0A; // 3.Packet size 7-58
-  pID = servoID; // 4. Servo ID
-  cmd = HRAMWRITE; // 5. CMD
-  data[0] = 0x34; // 8. Address
-  data[1] = 0x01; // 9. Length
-  data[2] = 0x00; // 10. 0x00=Torque Free
-  lengthString = 3; // lengthData
+  torqueState(servoID, TS_TORQUE_FREE);
+}
 
-  ck1 = checksum1(data, lengthString); //6. Checksum1
-  ck2 = checksum2(ck1); //7. Checksum2
+void HerkulexClass::setBreakOn(int servoID)
+{
+  torqueState(servoID, TS_BREAK_ON);
+}
 
-  dataEx[0] = 0xFF; // Packet Header
-  dataEx[1] = 0xFF; // Packet Header
-  dataEx[2] = pSize; // Packet Size
-  dataEx[3] = pID; // Servo ID
-  dataEx[4] = cmd; // Command Ram Write
-  dataEx[5] = ck1; // Checksum 1
-  dataEx[6] = ck2; // Checksum 2
-  dataEx[7] = data[0]; // Address 52
-  dataEx[8] = data[1]; // Length
-  dataEx[9] = data[2]; // Torque Free
-
-  sendData(dataEx, pSize);
+void HerkulexClass::setTorqueOn(int servoID)
+{
+  torqueState(servoID, TS_TORQUE_ON);
 }
 
 // ACK  - 0=No Replay, 1=Only reply to READ CMD, 2=Always reply

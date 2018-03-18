@@ -32,10 +32,12 @@
  */
 
 #include <ros/ros.h>
+#include <signal.h>
 #include <sensor_msgs/Imu.h>
-#include "std_msgs/String.h"
+#include <std_msgs/String.h>
 #include <wiringPi.h>
 #include <wiringPiI2C.h>
+#include <yaml-cpp/yaml.h>
 #include "consts.h"
 #include "mpu6050_helper.h"
 #include "madgwick.h"
@@ -51,7 +53,9 @@ public:
 
   void fillImuMessage(const sensor_msgs::ImuPtr& msg, float vX, float vY, float vZ, float aX, float aY, float aZ);
   void publishImuMessage(const sensor_msgs::ImuPtr& msg);
+  void publishModeHerkulex(HerkulexTorqueState mode);
   void afterCalibration();
+  void sendStopHead();
 private:
   int i2cAddress_;
   int fileDescriptor_;
@@ -62,6 +66,8 @@ private:
 
   // Topic RM_IMU_TOPIC_NAME ('imu') publisher:
   ros::Publisher imuPublisher_;
+  // Topic RM_HERKULEX_INPUT_TOPIC_NAME ('herkulex_input') publisher:
+  ros::Publisher herkulexInputPublisher_;
 
   // Topic RM_HEAD_IMU_INPUT_TOPIC_NAME subscriber:
   ros::Subscriber imuInputSubscriber_;
@@ -133,6 +139,9 @@ Mpu6050Node::Mpu6050Node()
   ros::NodeHandle nodeHandle(RM_NAMESPACE);
   imuPublisher_ = nodeHandle.advertise<sensor_msgs::Imu>(RM_HEAD_IMU_OUTPUT_TOPIC_NAME, 100);
 
+  ros::NodeHandle herkulexInputNodeHandle(RM_NAMESPACE);
+  herkulexInputPublisher_ = herkulexInputNodeHandle.advertise<std_msgs::String>(RM_HERKULEX_INPUT_TOPIC_NAME, 100);
+
   imuInputSubscriber_ = nodeHandle.subscribe(RM_HEAD_IMU_INPUT_TOPIC_NAME, 10, &Mpu6050Node::imuInputCallback, this);
 
   seq_ = 0;
@@ -196,6 +205,21 @@ void Mpu6050Node::publishImuMessage(const sensor_msgs::ImuPtr& msg)
   imuPublisher_.publish(msg);
 }
 
+void Mpu6050Node::publishModeHerkulex(HerkulexTorqueState mode)
+{
+  YAML::Emitter out;
+  out << YAML::BeginMap;
+  out << YAML::Key << "n";
+  out << YAML::Value << "mode";
+  out << YAML::Key << "m";
+  out << YAML::Value << (int) mode;
+  out << YAML::EndMap;
+
+  std_msgs::String stringMessage;
+  stringMessage.data = out.c_str();
+  herkulexInputPublisher_.publish(stringMessage);
+}
+
 void Mpu6050Node::imuInputCallback(const std_msgs::StringConstPtr& msg)
 {
   if (msg->data.compare("calibrate") == 0)
@@ -232,31 +256,51 @@ void Mpu6050Node::afterCalibration()
   ROS_INFO("Stopping to calibrate head IMU");
 }
 
+void Mpu6050Node::sendStopHead()
+{
+  publishModeHerkulex(HTS_TORQUE_FREE);
+}
+
+Mpu6050Node *mpu6050Node = NULL;
+
+// Calls on shutting down the node.
+void sigintHandler(int sig)
+{
+  ROS_INFO("Shutting down %s", RM_MPU6050_NODE_NAME);
+  if (mpu6050Node != NULL)
+    mpu6050Node->sendStopHead();
+
+  ros::shutdown();
+}
+
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, RM_MPU6050_NODE_NAME);
 
-  Mpu6050Node mpu6050Node;
+  mpu6050Node = new Mpu6050Node();
+
+  signal(SIGINT, sigintHandler);
+
   sensor_msgs::ImuPtr imuPrt(new sensor_msgs::Imu());
 
   float vX, vY, vZ, aX, aY, aZ;
-  ros::Rate rate(50);  // hz
+  ros::Rate rate(50);  // (Hz)
   bool prevPerformingCalibration = false;
   bool performingCalibration;
   while(ros::ok())
   {
-    mpu6050Node.readImuData(&vX, &vY, &vZ, &aX, &aY, &aZ);
+    mpu6050Node->readImuData(&vX, &vY, &vZ, &aX, &aY, &aZ);
 
-    performingCalibration = mpu6050Node.performingCalibration(vX, vY, vZ);
+    performingCalibration = mpu6050Node->performingCalibration(vX, vY, vZ);
     if (!performingCalibration)
     {
       if (prevPerformingCalibration)
       {
         // Calibration is over:
-        mpu6050Node.afterCalibration();
+        mpu6050Node->afterCalibration();
       }
-      mpu6050Node.fillImuMessage(imuPrt, vX, vY, vZ, aX, aY, aZ);
-      mpu6050Node.publishImuMessage(imuPrt);
+      mpu6050Node->fillImuMessage(imuPrt, vX, vY, vZ, aX, aY, aZ);
+      mpu6050Node->publishImuMessage(imuPrt);
     }
     prevPerformingCalibration = performingCalibration;
 
