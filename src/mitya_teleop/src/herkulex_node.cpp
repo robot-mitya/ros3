@@ -31,13 +31,14 @@
  *      Author: Dmitry Dzakhov
  */
 
-#include "ros/ros.h"
+#include <ros/ros.h>
+#include <signal.h>
 #include "consts.h"
 #include "mitya_teleop/HeadPosition.h"
 #include "mitya_teleop/HeadMove.h"
-#include "diagnostic_msgs/KeyValue.h"
-#include "yaml-cpp/yaml.h"
-#include "std_msgs/String.h"
+#include <diagnostic_msgs/KeyValue.h>
+#include <yaml-cpp/yaml.h>
+#include <std_msgs/String.h>
 #include <sensor_msgs/Imu.h>
 #include "herkulex.h"
 #include <unistd.h>
@@ -59,7 +60,7 @@ public:
 
   HerkulexNode();
   void update();
-
+  void stopHead();
   void logPosition();
 private:
   HerkulexClass herkulex;
@@ -127,8 +128,6 @@ private:
   void centerHeadImu(double millis);
   ros::Time centerHeadImuStartTime_;
   bool centerHeadImuStarted_;
-
-  void stopHead();
 };
 
 HerkulexNode::HerkulexNode()
@@ -476,11 +475,25 @@ void HerkulexNode::stopHead()
   setHeadPositionVertical(herkulex.getAngle(HEAD_VERTICAL_SERVO_ID));
 }
 
+HerkulexNode* herkulexNode = NULL;
+
+// Calls on shutting down the node.
+void sigintHandler(int sig)
+{
+  ROS_INFO("Shutting down %s", RM_HERKULEX_NODE_NAME);
+  if (herkulexNode != NULL)
+    herkulexNode->stopHead();
+
+  ros::shutdown();
+}
+
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, RM_HERKULEX_NODE_NAME);
+  ros::init(argc, argv, RM_HERKULEX_NODE_NAME, ros::init_options::NoSigintHandler);
 
-  HerkulexNode herkulexNode;
+  herkulexNode = new HerkulexNode();
+
+  signal(SIGINT, sigintHandler);
 
   ros::Rate loop_rate(100); // (Hz)
   while (ros::ok())
@@ -488,8 +501,8 @@ int main(int argc, char **argv)
     loop_rate.sleep();
     ros::spinOnce();
 
-    herkulexNode.update();
-//    herkulexNode.logPosition();
+    herkulexNode->update();
+//    herkulexNode->logPosition();
   }
 
   return 0;
