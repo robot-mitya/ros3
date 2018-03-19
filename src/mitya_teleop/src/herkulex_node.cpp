@@ -395,7 +395,7 @@ void HerkulexNode::imuOutputCallback(const sensor_msgs::Imu::ConstPtr& msg)
   if (imuQuaternion_ == tf2::Quaternion::getIdentity())
     imuQuaternion_ = temp;
   else
-    imuQuaternion_ = imuQuaternion_.slerp(temp, pointingFactor_);
+    imuQuaternion_ = imuQuaternion_ * (1 - pointingFactor_) + temp * pointingFactor_;
 }
 
 void HerkulexNode::logPosition()
@@ -526,7 +526,7 @@ void sigintHandler(int sig)
     herkulexNode->setTorqueMode(HTS_TORQUE_FREE);
   }
 
-  ros::shutdown();
+//  ros::shutdown();
 }
 
 int main(int argc, char **argv)

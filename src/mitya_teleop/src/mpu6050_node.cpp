@@ -270,7 +270,7 @@ void sigintHandler(int sig)
   if (mpu6050Node != NULL)
     mpu6050Node->sendStopHead();
 
-  ros::shutdown();
+  //ros::shutdown();
 }
 
 int main(int argc, char **argv)

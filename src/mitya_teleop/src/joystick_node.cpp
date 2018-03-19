@@ -507,7 +507,7 @@ void sigintHandler(int sig)
   if (joystickNode != NULL)
     joystickNode->sendStopHead();
 
-  ros::shutdown();
+  //ros::shutdown();
 }
 
 int main(int argc, char **argv)
