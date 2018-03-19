@@ -296,15 +296,18 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
     }
     else if (commandName.compare("center") == 0)
     {
-      int delay;
-      if (address == HEAD_BROADCAST_SERVO_ID)
+      int delay = 0;
+      if (!targetMode_)
       {
-        int durationH = headMoveCenter(HEAD_HORIZONTAL_SERVO_ID);
-        int durationV = headMoveCenter(HEAD_VERTICAL_SERVO_ID);
-        delay = durationH > durationV ? durationH : durationV;
+        if (address == HEAD_BROADCAST_SERVO_ID)
+        {
+          int durationH = headMoveCenter(HEAD_HORIZONTAL_SERVO_ID);
+          int durationV = headMoveCenter(HEAD_VERTICAL_SERVO_ID);
+          delay = MAX(durationH, durationV);
+        }
+        else
+          delay = headMoveCenter(address);
       }
-      else
-        delay = headMoveCenter(address);
       centerHeadImu(delay);
     }
     else if (commandName.compare("reboot") == 0)
@@ -387,7 +390,8 @@ void HerkulexNode::headMoveCallback(const mitya_teleop::HeadMove::ConstPtr& msg)
 
 void HerkulexNode::imuOutputCallback(const sensor_msgs::Imu::ConstPtr& msg)
 {
-  imuQuaternion_.setValue(msg->orientation.x, msg->orientation.y, msg->orientation.z, msg->orientation.w);
+  tf2::Quaternion temp(msg->orientation.x, msg->orientation.y, msg->orientation.z, msg->orientation.w);
+  imuQuaternion_ = imuQuaternion_.slerp(temp, pointingFactor_);
 }
 
 void HerkulexNode::logPosition()
@@ -471,12 +475,15 @@ void HerkulexNode::updateToTarget()
 
 //  ROS_INFO("iY/iP: %+9.3f    %+9.3f    tY/tP: %+9.3f    %+9.3f    aY/aP: %+9.3f    %+9.3f    Y/P: %+9.3f    %+9.3f",
 //           imuYaw, imuPitch, targetYaw, targetPitch, aYaw, aPitch, yaw, pitch);
-  pointingYaw_ = pointingYaw_ == POINTING_DEFAULT ?
-      yaw :
-      pointingYaw_ = (1.0f - pointingFactor_) * pointingYaw_ + pointingFactor_ * yaw;
-  pointingPitch_ = pointingPitch_ == POINTING_DEFAULT ?
-      pitch :
-      pointingPitch_ = (1.0f - pointingFactor_) * pointingPitch_ + pointingFactor_ * pitch;
+
+//  pointingYaw_ = pointingYaw_ == POINTING_DEFAULT ?
+//      yaw :
+//      pointingYaw_ = (1.0f - pointingFactor_) * pointingYaw_ + pointingFactor_ * yaw;
+//  pointingPitch_ = pointingPitch_ == POINTING_DEFAULT ?
+//      pitch :
+//      pointingPitch_ = (1.0f - pointingFactor_) * pointingPitch_ + pointingFactor_ * pitch;
+  pointingYaw_ = yaw;
+  pointingPitch_ = pitch;
   setHeadPositionHorizontal(pointingYaw_, duration);
   setHeadPositionVertical(pointingPitch_, duration);
 }
