@@ -524,7 +524,6 @@ void sigintHandler(int sig)
   {
     herkulexNode->stopHead();
     herkulexNode->setTorqueMode(HTS_TORQUE_FREE);
-    sleep(2); //TODO ???
   }
 
   ros::shutdown();
@@ -532,7 +531,7 @@ void sigintHandler(int sig)
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, RM_HERKULEX_NODE_NAME, ros::init_options::NoSigintHandler);
+  ros::init(argc, argv, RM_HERKULEX_NODE_NAME/*, ros::init_options::NoSigintHandler*/);
 
   herkulexNode = new HerkulexNode();
 
