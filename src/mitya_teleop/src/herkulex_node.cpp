@@ -540,11 +540,10 @@ int main(int argc, char **argv)
   ros::Rate loop_rate(100); // (Hz)
   while (ros::ok())
   {
-    loop_rate.sleep();
-    ros::spinOnce();
-
     herkulexNode->update();
 //    herkulexNode->logPosition();
+    ros::spinOnce();
+    loop_rate.sleep();
   }
 
   return 0;
