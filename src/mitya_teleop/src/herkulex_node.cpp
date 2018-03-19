@@ -128,8 +128,6 @@ private:
 
   float pointingFactor_;
   static const tf2Scalar POINTING_DEFAULT = 1000.0f;
-  tf2Scalar pointingYaw_;
-  tf2Scalar pointingPitch_;
 };
 
 HerkulexNode::HerkulexNode()
@@ -173,8 +171,6 @@ HerkulexNode::HerkulexNode()
   targetMode_ = false;
 
   pointingFactor_ = 1.0f;
-  pointingYaw_ = POINTING_DEFAULT;
-  pointingPitch_ = POINTING_DEFAULT;
 }
 
 void HerkulexNode::initServos()
@@ -218,11 +214,6 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
     ROS_INFO("HerkuleX command (%s): value = %d", commandName.c_str(), value);
     stopHead();
     targetMode_ = value != 0;
-    if (targetMode_)
-    {
-      pointingYaw_ = POINTING_DEFAULT;
-      pointingPitch_ = POINTING_DEFAULT;
-    }
   }
   else if (commandName.compare("f1") == 0)
   {
@@ -390,12 +381,7 @@ void HerkulexNode::headMoveCallback(const mitya_teleop::HeadMove::ConstPtr& msg)
 
 void HerkulexNode::imuOutputCallback(const sensor_msgs::Imu::ConstPtr& msg)
 {
-  //imuQuaternion_.setValue(msg->orientation.x, msg->orientation.y, msg->orientation.z, msg->orientation.w);
-  tf2::Quaternion temp(msg->orientation.x, msg->orientation.y, msg->orientation.z, msg->orientation.w);
-  if (imuQuaternion_ == tf2::Quaternion::getIdentity())
-    imuQuaternion_ = temp;
-  else
-    imuQuaternion_ = imuQuaternion_ * (1 - pointingFactor_) + temp * pointingFactor_;
+  imuQuaternion_.setValue(msg->orientation.x, msg->orientation.y, msg->orientation.z, msg->orientation.w);
 }
 
 void HerkulexNode::logPosition()
@@ -476,20 +462,10 @@ void HerkulexNode::updateToTarget()
   float aPitch = herkulex_.getAngle(HEAD_VERTICAL_SERVO_ID);
   float yaw = aYaw + deltaYaw;
   float pitch = aPitch - deltaPitch; // (should be plus, but pitch servo's axis is directed in negative direction)
-
 //  ROS_INFO("iY/iP: %+9.3f    %+9.3f    tY/tP: %+9.3f    %+9.3f    aY/aP: %+9.3f    %+9.3f    Y/P: %+9.3f    %+9.3f",
 //           imuYaw, imuPitch, targetYaw, targetPitch, aYaw, aPitch, yaw, pitch);
-
-//  pointingYaw_ = pointingYaw_ == POINTING_DEFAULT ?
-//      yaw :
-//      pointingYaw_ = (1.0f - pointingFactor_) * pointingYaw_ + pointingFactor_ * yaw;
-//  pointingPitch_ = pointingPitch_ == POINTING_DEFAULT ?
-//      pitch :
-//      pointingPitch_ = (1.0f - pointingFactor_) * pointingPitch_ + pointingFactor_ * pitch;
-  pointingYaw_ = yaw;
-  pointingPitch_ = pitch;
-  setHeadPositionHorizontal(pointingYaw_, duration);
-  setHeadPositionVertical(pointingPitch_, duration);
+  setHeadPositionHorizontal(yaw, duration);
+  setHeadPositionVertical(pitch, duration);
 }
 
 void HerkulexNode::stopHead()
@@ -526,12 +502,12 @@ void sigintHandler(int sig)
     herkulexNode->setTorqueMode(HTS_TORQUE_FREE);
   }
 
-//  ros::shutdown();
+  ros::shutdown();
 }
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, RM_HERKULEX_NODE_NAME/*, ros::init_options::NoSigintHandler*/);
+  ros::init(argc, argv, RM_HERKULEX_NODE_NAME, ros::init_options::NoSigintHandler);
 
   herkulexNode = new HerkulexNode();
 

@@ -507,12 +507,12 @@ void sigintHandler(int sig)
   if (joystickNode != NULL)
     joystickNode->sendStopHead();
 
-  //ros::shutdown();
+  ros::shutdown();
 }
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, RM_JOYSTICK_NODE_NAME);
+  ros::init(argc, argv, RM_JOYSTICK_NODE_NAME, ros::init_options::NoSigintHandler);
   joystickNode = new JoystickNode();
   signal(SIGINT, sigintHandler);
   ros::spin();
