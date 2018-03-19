@@ -321,6 +321,7 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
 
 void HerkulexNode::headPositionCallback(const mitya_teleop::HeadPosition::ConstPtr& msg)
 {
+  if (targetMode_) return;
   //ROS_INFO("Received in %s.%s: %f, %f", RM_HERKULEX_NODE_NAME, RM_HEAD_POSITION_TOPIC_NAME, msg->horizontal, msg->vertical);
   setHeadPositionHorizontal(msg->horizontal, 0);
   setHeadPositionVertical(msg->vertical, 0);
@@ -346,6 +347,7 @@ void HerkulexNode::setHeadPositionVertical(float angle, int duration)
 
 void HerkulexNode::headMoveCallback(const mitya_teleop::HeadMove::ConstPtr& msg)
 {
+  if (targetMode_) return;
   //ROS_INFO("Received in %s.%s: %d, %d", RM_HERKULEX_NODE_NAME, RM_HEAD_MOVE_TOPIC_NAME, msg->horizontal, msg->vertical);
 
   if (msg->horizontal != previousHeadMoveValues_.horizontal)
