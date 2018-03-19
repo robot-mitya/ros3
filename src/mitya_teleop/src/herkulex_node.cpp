@@ -390,8 +390,9 @@ void HerkulexNode::headMoveCallback(const mitya_teleop::HeadMove::ConstPtr& msg)
 
 void HerkulexNode::imuOutputCallback(const sensor_msgs::Imu::ConstPtr& msg)
 {
-  tf2::Quaternion temp(msg->orientation.x, msg->orientation.y, msg->orientation.z, msg->orientation.w);
-  imuQuaternion_ = imuQuaternion_.slerp(temp, pointingFactor_);
+  imuQuaternion_.setValue(msg->orientation.x, msg->orientation.y, msg->orientation.z, msg->orientation.w);
+//  tf2::Quaternion temp(msg->orientation.x, msg->orientation.y, msg->orientation.z, msg->orientation.w);
+//  imuQuaternion_ = imuQuaternion_.slerp(temp, pointingFactor_);
 }
 
 void HerkulexNode::logPosition()
