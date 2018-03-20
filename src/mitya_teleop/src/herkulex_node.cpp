@@ -90,6 +90,8 @@ private:
   // Topic RM_HERKULEX_OUTPUT_TOPIC_NAME ('herkulex_output') publisher:
   ros::Publisher herkulexOutputPublisher_;
 
+  ros::Publisher herkulexLogPositionPublisher_;
+
   // Topic RM_HEAD_POSITION_TOPIC_NAME ('head_position') subscriber:
   ros::Subscriber headPositionSubscriber_;
   void headPositionCallback(const mitya_teleop::HeadPosition::ConstPtr& msg);
@@ -136,6 +138,7 @@ HerkulexNode::HerkulexNode()
   ros::NodeHandle nodeHandle(RM_NAMESPACE);
   herkulexInputSubscriber_ = nodeHandle.subscribe(RM_HERKULEX_INPUT_TOPIC_NAME, 1000, &HerkulexNode::herkulexInputCallback, this);
   herkulexOutputPublisher_ = nodeHandle.advertise<std_msgs::String>(RM_HERKULEX_OUTPUT_TOPIC_NAME, 1000);
+  herkulexLogPositionPublisher_ = nodeHandle.advertise<mitya_teleop::HeadPosition>("herkulex_log", 1000);
   headPositionSubscriber_ = nodeHandle.subscribe(RM_HEAD_POSITION_TOPIC_NAME, 1000, &HerkulexNode::headPositionCallback, this);
   headMoveSubscriber_ = nodeHandle.subscribe(RM_HEAD_MOVE_TOPIC_NAME, 1000, &HerkulexNode::headMoveCallback, this);
   imuInputPublisher_ = nodeHandle.advertise<std_msgs::String>(RM_HEAD_IMU_INPUT_TOPIC_NAME, 10);
@@ -399,12 +402,15 @@ void HerkulexNode::imuOutputCallback(const sensor_msgs::Imu::ConstPtr& msg)
 
 void HerkulexNode::logPosition()
 {
-  //ROS_INFO("++++++ Angle=%.3f", herkulex.getAngle(SERVO_H));
+  mitya_teleop::HeadPosition headPosition;
+  headPosition.horizontal = herkulex_.getAngle(HEAD_HORIZONTAL_SERVO_ID);
+  headPosition.vertical = herkulex_.getAngle(HEAD_VERTICAL_SERVO_ID);
+  herkulexLogPositionPublisher_.publish(headPosition);
 }
 
 int HerkulexNode::calculateDurationInMillis(float deltaAngle, float degreesPerSecond)
 {
-  deltaAngle = fabs(deltaAngle);
+/*  deltaAngle = fabs(deltaAngle);
   if (factor1_ > 0 && factor2_ > 0)
   {
     if (deltaAngle < factor1_)
@@ -420,10 +426,11 @@ int HerkulexNode::calculateDurationInMillis(float deltaAngle, float degreesPerSe
       }
     }
   }
-
+*/
   if (degreesPerSecond < headMoveMinSpeed_)
     degreesPerSecond = headMoveMinSpeed_;
-  return (int)(deltaAngle * 1000.0f / degreesPerSecond);
+  float result = (int)(deltaAngle * 1000.0f / degreesPerSecond);
+  return result > 0 ? result : -result;
 }
 
 int HerkulexNode::headMoveCenter(int servoAddress)
@@ -546,7 +553,7 @@ int main(int argc, char **argv)
   while (ros::ok())
   {
     herkulexNode->update();
-//    herkulexNode->logPosition();
+    herkulexNode->logPosition();
     ros::spinOnce();
     loop_rate.sleep();
   }
