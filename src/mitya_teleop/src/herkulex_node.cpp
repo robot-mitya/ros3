@@ -79,6 +79,7 @@ private:
 
   bool targetMode_;
   tf2::Quaternion imuQuaternion_;
+  bool imuQuaternionUpdated_;
   tf2::Quaternion targetQuaternion_;
   void updateToTarget();
 
@@ -176,6 +177,8 @@ HerkulexNode::HerkulexNode()
 
   targetQuaternion_ = tf2::Quaternion::getIdentity();
   targetMode_ = false;
+
+  imuQuaternionUpdated_ = false;
 
   factor1_ = 0.0f;
   factor2_ = 0.0f;
@@ -402,6 +405,7 @@ void HerkulexNode::headMoveCallback(const mitya_teleop::HeadMove::ConstPtr& msg)
 void HerkulexNode::imuOutputCallback(const sensor_msgs::Imu::ConstPtr& msg)
 {
   imuQuaternion_.setValue(msg->orientation.x, msg->orientation.y, msg->orientation.z, msg->orientation.w);
+  imuQuaternionUpdated_ = true;
 }
 
 void HerkulexNode::logPosition()
@@ -483,6 +487,9 @@ void HerkulexNode::centerHeadImu(double millis)
 
 void HerkulexNode::updateToTarget()
 {
+  if (!imuQuaternionUpdated_) return;
+  imuQuaternionUpdated_ = false;
+
   tf2Scalar imuYaw;
   tf2Scalar imuPitch;
   MadgwickImu::getEulerYP(imuQuaternion_, imuYaw, imuPitch);
