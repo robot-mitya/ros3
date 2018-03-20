@@ -90,7 +90,9 @@ private:
   // Topic RM_HERKULEX_OUTPUT_TOPIC_NAME ('herkulex_output') publisher:
   ros::Publisher herkulexOutputPublisher_;
 
+  //TODO Убрать!
   ros::Publisher herkulexLogPositionPublisher_;
+  //TODO Убрать!
   ros::Publisher imuLogPositionPublisher_;
 
   // Topic RM_HEAD_POSITION_TOPIC_NAME ('head_position') subscriber:
@@ -508,6 +510,7 @@ void HerkulexNode::updateToTarget()
   float pitch = aPitch - deltaPitch; // (should be plus, but pitch servo's axis is directed in negative direction)
 //  ROS_INFO("iY/iP: %+9.3f    %+9.3f    tY/tP: %+9.3f    %+9.3f    aY/aP: %+9.3f    %+9.3f    Y/P: %+9.3f    %+9.3f",
 //           imuYaw, imuPitch, targetYaw, targetPitch, aYaw, aPitch, yaw, pitch);
+  ROS_INFO("iY(aY): %+9.3f (%+9.3f)    iP(aP): %+9.3f (%+9.3f)", imuYaw, aYaw, imuPitch, aPitch);
   setHeadPositionHorizontal(yaw, duration);
   setHeadPositionVertical(pitch, duration);
 }
