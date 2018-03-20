@@ -80,7 +80,6 @@ private:
   bool targetMode_;
   tf2::Quaternion imuQuaternion_;
   tf2::Quaternion targetQuaternion_;
-  tf2::Quaternion deltaQuaternion_;
   void updateToTarget();
 
   // Topic RM_HERKULEX_INPUT_TOPIC_NAME ('herkulex_input') subscriber:
@@ -361,7 +360,8 @@ void HerkulexNode::setHeadPositionVertical(float angle, int duration)
 
 void HerkulexNode::headMoveCallback(const mitya_teleop::HeadMove::ConstPtr& msg)
 {
-  if (targetMode_) return;
+  //TODO Вернуть!
+  //if (targetMode_) return;
   //ROS_INFO("Received in %s.%s: %d, %d", RM_HERKULEX_NODE_NAME, RM_HEAD_MOVE_TOPIC_NAME, msg->horizontal, msg->vertical);
 
   if (msg->horizontal != previousHeadMoveValues_.horizontal)
@@ -483,8 +483,6 @@ void HerkulexNode::centerHeadImu(double millis)
 
 void HerkulexNode::updateToTarget()
 {
-  deltaQuaternion_ = imuQuaternion_.inverse() * targetQuaternion_;
-
   tf2Scalar imuYaw;
   tf2Scalar imuPitch;
   MadgwickImu::getEulerYP(imuQuaternion_, imuYaw, imuPitch);
