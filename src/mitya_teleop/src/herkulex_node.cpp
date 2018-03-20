@@ -509,8 +509,8 @@ void HerkulexNode::updateToTarget()
   ROS_INFO("iY/iP: %+9.3f    %+9.3f    tY/tP: %+9.3f    %+9.3f    aY/aP: %+9.3f    %+9.3f    Y/P: %+9.3f    %+9.3f",
            imuYaw, imuPitch, targetYaw, targetPitch, aYaw, aPitch, yaw, pitch);
 //  ROS_INFO("iY(aY): %+9.3f (%+9.3f)    iP(aP): %+9.3f (%+9.3f)", imuYaw, aYaw, imuPitch, aPitch);
-//  setHeadPositionHorizontal(yaw, duration);
-//  setHeadPositionVertical(pitch, duration);
+  setHeadPositionHorizontal(yaw, duration);
+  setHeadPositionVertical(pitch, duration);
 }
 
 void HerkulexNode::stopHead()
@@ -558,7 +558,9 @@ int main(int argc, char **argv)
 
   signal(SIGINT, sigintHandler);
 
-  ros::Rate loop_rate(100); // (Hz)
+  //TODO !
+  //ros::Rate loop_rate(100); // (Hz)
+  ros::Rate loop_rate(0.100); // (Hz)
   while (ros::ok())
   {
     herkulexNode->update();
