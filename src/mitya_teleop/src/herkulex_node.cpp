@@ -508,9 +508,9 @@ void HerkulexNode::updateToTarget()
   float aPitch = herkulex_.getAngle(HEAD_VERTICAL_SERVO_ID);
   float yaw = aYaw + deltaYaw;
   float pitch = aPitch - deltaPitch; // (should be plus, but pitch servo's axis is directed in negative direction)
-//  ROS_INFO("iY/iP: %+9.3f    %+9.3f    tY/tP: %+9.3f    %+9.3f    aY/aP: %+9.3f    %+9.3f    Y/P: %+9.3f    %+9.3f",
-//           imuYaw, imuPitch, targetYaw, targetPitch, aYaw, aPitch, yaw, pitch);
-  ROS_INFO("iY(aY): %+9.3f (%+9.3f)    iP(aP): %+9.3f (%+9.3f)", imuYaw, aYaw, imuPitch, aPitch);
+  ROS_INFO("iY/iP: %+9.3f    %+9.3f    tY/tP: %+9.3f    %+9.3f    aY/aP: %+9.3f    %+9.3f    Y/P: %+9.3f    %+9.3f",
+           imuYaw, imuPitch, targetYaw, targetPitch, aYaw, aPitch, yaw, pitch);
+//  ROS_INFO("iY(aY): %+9.3f (%+9.3f)    iP(aP): %+9.3f (%+9.3f)", imuYaw, aYaw, imuPitch, aPitch);
 //  setHeadPositionHorizontal(yaw, duration);
 //  setHeadPositionVertical(pitch, duration);
 }
