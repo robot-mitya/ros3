@@ -126,7 +126,8 @@ private:
   ros::Time centerHeadImuStartTime_;
   bool centerHeadImuStarted_;
 
-  float pointingFactor_;
+  float factor1_;
+  float factor2_;
   static const tf2Scalar POINTING_DEFAULT = 1000.0f;
 };
 
@@ -170,7 +171,8 @@ HerkulexNode::HerkulexNode()
   targetQuaternion_ = tf2::Quaternion::getIdentity();
   targetMode_ = false;
 
-  pointingFactor_ = 1.0f;
+  factor1_ = 0.0f;
+  factor2_ = 0.0f;
 }
 
 void HerkulexNode::initServos()
@@ -224,7 +226,18 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
     }
     float value = node["v"].as<float>();
     ROS_INFO("HerkuleX command (%s): value = %f", commandName.c_str(), value);
-    pointingFactor_ = value;
+    factor1_ = value;
+  }
+  else if (commandName.compare("f2") == 0)
+  {
+    if (!node["v"])
+    {
+      ROS_ERROR("HerkuleX command (%s) processor error: value is not defined", commandName.c_str());
+      return;
+    }
+    float value = node["v"].as<float>();
+    ROS_INFO("HerkuleX command (%s): value = %f", commandName.c_str(), value);
+    factor2_ = value;
   }
   else
   {
@@ -391,10 +404,26 @@ void HerkulexNode::logPosition()
 
 int HerkulexNode::calculateDurationInMillis(float deltaAngle, float degreesPerSecond)
 {
-  if (degreesPerSecond < headMoveSpeed_)
-    degreesPerSecond = headMoveSpeed_;
-  int result = (int)(deltaAngle * 1000.0f / degreesPerSecond);
-  return result >= 0 ? result : -result;
+  deltaAngle = fabs(deltaAngle);
+  if (factor1_ > 0 && factor2_ > 0)
+  {
+    if (deltaAngle < factor1_)
+    {
+      // f(t) = 1 - (1 - K*x)^2, x=[0, 1/K];
+      // f(t) = 1, x>1/K.
+      float t = deltaAngle / factor1_;
+      // K = pointingFactor_
+      if (t < 1.0f / factor2_)
+      {
+        float f = 1.0f - factor2_ * t;
+        degreesPerSecond *= 1.0f - f * f;
+      }
+    }
+  }
+
+  if (degreesPerSecond < headMoveMinSpeed_)
+    degreesPerSecond = headMoveMinSpeed_;
+  return (int)(deltaAngle * 1000.0f / degreesPerSecond);
 }
 
 int HerkulexNode::headMoveCenter(int servoAddress)
