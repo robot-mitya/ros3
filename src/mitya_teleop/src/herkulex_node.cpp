@@ -80,8 +80,8 @@ private:
 
   bool targetMode_;
   tf2::Quaternion imuQuaternion_;
-//  uint32_t lastImuSeq_;
-//  bool imuQuaternionUpdated_;
+  uint32_t lastImuSeq_;
+  bool imuQuaternionUpdated_;
   tf2::Quaternion targetQuaternion_;
 
   // Topic RM_HERKULEX_INPUT_TOPIC_NAME ('herkulex_input') subscriber:
@@ -177,8 +177,8 @@ HerkulexNode::HerkulexNode()
   targetQuaternion_ = tf2::Quaternion::getIdentity();
   targetMode_ = false;
 
-//  imuQuaternionUpdated_ = false;
-//  lastImuSeq_ = 0;
+  imuQuaternionUpdated_ = false;
+  lastImuSeq_ = 0;
 
   factor1_ = 0.0f;
   factor2_ = 0.0f;
@@ -405,8 +405,8 @@ void HerkulexNode::headMoveCallback(const mitya_teleop::HeadMove::ConstPtr& msg)
 void HerkulexNode::imuOutputCallback(const sensor_msgs::Imu::ConstPtr& msg)
 {
   imuQuaternion_.setValue(msg->orientation.x, msg->orientation.y, msg->orientation.z, msg->orientation.w);
-//  imuQuaternionUpdated_ = msg->header.seq != lastImuSeq_;
-//  lastImuSeq_ = msg->header.seq;
+  imuQuaternionUpdated_ = msg->header.seq != lastImuSeq_;
+  lastImuSeq_ = msg->header.seq;
 
 //  tf2Scalar imuYaw;
 //  tf2Scalar imuPitch;
@@ -489,8 +489,9 @@ void HerkulexNode::centerHeadImu(double millis)
 void HerkulexNode::updateToTarget()
 {
   if (!targetMode_) return;
-//  if (!imuQuaternionUpdated_) return;
-//  imuQuaternionUpdated_ = false;
+
+  if (!imuQuaternionUpdated_) return;
+  imuQuaternionUpdated_ = false;
 
   tf2Scalar imuYaw;
   tf2Scalar imuPitch;
@@ -573,13 +574,13 @@ int main(int argc, char **argv)
   ros::Rate loop_rate(100); // (Hz)
   //ros::Rate loop_rate(50); // (Hz)
   //ros::Rate loop_rate(0.2); // (Hz)
-//  bool skipStep = false;
+  bool skipStep = false;
   while (ros::ok())
   {
     herkulexNode->updateCenterHeadState();
-    herkulexNode->updateToTarget();
-//    if (skipStep) herkulexNode->updateToTarget();
-//    skipStep = !skipStep;
+//    herkulexNode->updateToTarget();
+    if (skipStep) herkulexNode->updateToTarget();
+    skipStep = !skipStep;
 
 //    herkulexNode->logPosition();
     ros::spinOnce();
