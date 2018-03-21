@@ -59,7 +59,8 @@ public:
   int serialBaudRate;
 
   HerkulexNode();
-  void update();
+  void updateCenterHeadState();
+  void updateToTarget();
   void stopHead();
   void setTorqueMode(HerkulexTorqueState mode);
   void logPosition();
@@ -82,7 +83,6 @@ private:
   uint32_t lastImuSeq_;
   bool imuQuaternionUpdated_;
   tf2::Quaternion targetQuaternion_;
-  void updateToTarget();
 
   // Topic RM_HERKULEX_INPUT_TOPIC_NAME ('herkulex_input') subscriber:
   ros::Subscriber herkulexInputSubscriber_;
@@ -467,7 +467,7 @@ void HerkulexNode::headServoReboot(int servoAddress)
   initServos();
 }
 
-void HerkulexNode::update()
+void HerkulexNode::updateCenterHeadState()
 {
   ros::Time now = ros::Time::now();
   if (centerHeadImuStarted_ && now >= centerHeadImuStartTime_)
@@ -478,11 +478,6 @@ void HerkulexNode::update()
     std_msgs::String stringMessage;
     stringMessage.data = "center";
     imuInputPublisher_.publish(stringMessage);
-  }
-
-  if (targetMode_)
-  {
-    updateToTarget();
   }
 }
 
@@ -496,6 +491,7 @@ void HerkulexNode::centerHeadImu(double millis)
 
 void HerkulexNode::updateToTarget()
 {
+  if (!targetMode_) return;
   if (!imuQuaternionUpdated_) return;
   imuQuaternionUpdated_ = false;
 
@@ -580,9 +576,13 @@ int main(int argc, char **argv)
   //ros::Rate loop_rate(100); // (Hz)
   //ros::Rate loop_rate(50); // (Hz)
   ros::Rate loop_rate(0.1); // (Hz)
+  bool skipStep = false;
   while (ros::ok())
   {
-    herkulexNode->update();
+    herkulexNode->updateCenterHeadState();
+    if (skipStep) herkulexNode->updateToTarget();
+    skipStep = !skipStep;
+
     herkulexNode->logPosition();
     ros::spinOnce();
     loop_rate.sleep();
