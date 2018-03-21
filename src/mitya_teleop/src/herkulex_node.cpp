@@ -579,7 +579,7 @@ int main(int argc, char **argv)
   //TODO !
   //ros::Rate loop_rate(100); // (Hz)
   //ros::Rate loop_rate(50); // (Hz)
-  ros::Rate loop_rate(0.5); // (Hz)
+  ros::Rate loop_rate(0.1); // (Hz)
   while (ros::ok())
   {
     herkulexNode->update();
