@@ -518,7 +518,7 @@ int main(int argc, char **argv)
 
   signal(SIGINT, sigintHandler);
 
-  ros::Rate loop_rate(100); // (Hz)
+  ros::Rate loop_rate(200); // (Hz)
   while (ros::ok())
   {
     herkulexNode->updateCenterHeadState();
