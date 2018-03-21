@@ -358,7 +358,7 @@ void HerkulexNode::setHeadPositionVertical(float angle, int duration)
     angle = headVerticalMinDegree;
   else if (angle > headVerticalMaxDegree)
     angle = headVerticalMaxDegree;
-  herkulex_.moveOneAngle(HEAD_VERTICAL_SERVO_ID, angle, 0, 0);
+  herkulex_.moveOneAngle(HEAD_VERTICAL_SERVO_ID, angle, duration, 0);
 }
 
 void HerkulexNode::headMoveCallback(const mitya_teleop::HeadMove::ConstPtr& msg)
