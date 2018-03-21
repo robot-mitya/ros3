@@ -409,10 +409,16 @@ void HerkulexNode::imuOutputCallback(const sensor_msgs::Imu::ConstPtr& msg)
   imuQuaternion_.setValue(msg->orientation.x, msg->orientation.y, msg->orientation.z, msg->orientation.w);
   imuQuaternionUpdated_ = msg->header.seq != lastImuSeq_;
   lastImuSeq_ = msg->header.seq;
+
+  tf2Scalar imuYaw;
+  tf2Scalar imuPitch;
+  MadgwickImu::getEulerYP(imuQuaternion_, imuYaw, imuPitch);
+  ROS_INFO("iY/iP: %+9.3f    %+9.3f    #: %d", imuYaw, imuPitch, lastImuSeq_);
 }
 
 void HerkulexNode::logPosition()
 {
+  //TODO Убрать!
   mitya_teleop::HeadPosition headPosition;
   headPosition.horizontal = herkulex_.getAngle(HEAD_HORIZONTAL_SERVO_ID);
   headPosition.vertical = herkulex_.getAngle(HEAD_VERTICAL_SERVO_ID);
@@ -518,9 +524,9 @@ void HerkulexNode::updateToTarget()
   float pitch = aPitch - deltaPitch; // (should be plus, but pitch servo's axis is directed in negative direction)
 //  ROS_INFO("iY/iP: %+9.3f    %+9.3f    tY/tP: %+9.3f    %+9.3f    aY/aP: %+9.3f    %+9.3f    Y/P: %+9.3f    %+9.3f",
 //           imuYaw, imuPitch, targetYaw, targetPitch, aYaw, aPitch, yaw, pitch);
-  ROS_INFO("iY/iP: %+9.3f    %+9.3f    aY/aP: %+9.3f    %+9.3f    Y/P: %+9.3f    %+9.3f",
-           imuYaw, imuPitch, aYaw, aPitch, yaw, pitch);
 //  ROS_INFO("iY(aY): %+9.3f (%+9.3f)    iP(aP): %+9.3f (%+9.3f)", imuYaw, aYaw, imuPitch, aPitch);
+//  ROS_INFO("iY/iP: %+9.3f    %+9.3f    aY/aP: %+9.3f    %+9.3f    Y/P: %+9.3f    %+9.3f",
+//           imuYaw, imuPitch, aYaw, aPitch, yaw, pitch);
   setHeadPositionHorizontal(yaw, duration);
   setHeadPositionVertical(pitch, duration);
 }
