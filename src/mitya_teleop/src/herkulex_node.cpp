@@ -573,13 +573,13 @@ int main(int argc, char **argv)
   ros::Rate loop_rate(100); // (Hz)
   //ros::Rate loop_rate(50); // (Hz)
   //ros::Rate loop_rate(0.1); // (Hz)
-//  bool skipStep = false;
+  bool skipStep = false;
   while (ros::ok())
   {
     herkulexNode->updateCenterHeadState();
-    herkulexNode->updateToTarget();
-//    if (skipStep) herkulexNode->updateToTarget();
-//    skipStep = !skipStep;
+    //herkulexNode->updateToTarget();
+    if (skipStep) herkulexNode->updateToTarget();
+    skipStep = !skipStep;
 
 //    herkulexNode->logPosition();
     ros::spinOnce();
