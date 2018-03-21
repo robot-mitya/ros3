@@ -91,10 +91,8 @@ private:
   // Topic RM_HERKULEX_OUTPUT_TOPIC_NAME ('herkulex_output') publisher:
   ros::Publisher herkulexOutputPublisher_;
 
-  //TODO Убрать!
-  ros::Publisher herkulexLogPositionPublisher_;
-  //TODO Убрать!
-  ros::Publisher imuLogPositionPublisher_;
+//  ros::Publisher herkulexLogPositionPublisher_;
+//  ros::Publisher imuLogPositionPublisher_;
 
   // Topic RM_HEAD_POSITION_TOPIC_NAME ('head_position') subscriber:
   ros::Subscriber headPositionSubscriber_;
@@ -142,8 +140,8 @@ HerkulexNode::HerkulexNode()
   ros::NodeHandle nodeHandle(RM_NAMESPACE);
   herkulexInputSubscriber_ = nodeHandle.subscribe(RM_HERKULEX_INPUT_TOPIC_NAME, 1000, &HerkulexNode::herkulexInputCallback, this);
   herkulexOutputPublisher_ = nodeHandle.advertise<std_msgs::String>(RM_HERKULEX_OUTPUT_TOPIC_NAME, 1000);
-  herkulexLogPositionPublisher_ = nodeHandle.advertise<mitya_teleop::HeadPosition>("herkulex_log", 1000);
-  imuLogPositionPublisher_ = nodeHandle.advertise<mitya_teleop::HeadPosition>("imu_log", 1000);
+//  herkulexLogPositionPublisher_ = nodeHandle.advertise<mitya_teleop::HeadPosition>("herkulex_log", 1000);
+//  imuLogPositionPublisher_ = nodeHandle.advertise<mitya_teleop::HeadPosition>("imu_log", 1000);
   headPositionSubscriber_ = nodeHandle.subscribe(RM_HEAD_POSITION_TOPIC_NAME, 1000, &HerkulexNode::headPositionCallback, this);
   headMoveSubscriber_ = nodeHandle.subscribe(RM_HEAD_MOVE_TOPIC_NAME, 1000, &HerkulexNode::headMoveCallback, this);
   imuInputPublisher_ = nodeHandle.advertise<std_msgs::String>(RM_HEAD_IMU_INPUT_TOPIC_NAME, 10);
@@ -418,11 +416,10 @@ void HerkulexNode::imuOutputCallback(const sensor_msgs::Imu::ConstPtr& msg)
 
 void HerkulexNode::logPosition()
 {
-  //TODO Убрать!
-  mitya_teleop::HeadPosition headPosition;
-  headPosition.horizontal = herkulex_.getAngle(HEAD_HORIZONTAL_SERVO_ID);
-  headPosition.vertical = herkulex_.getAngle(HEAD_VERTICAL_SERVO_ID);
-  herkulexLogPositionPublisher_.publish(headPosition);
+//  mitya_teleop::HeadPosition headPosition;
+//  headPosition.horizontal = herkulex_.getAngle(HEAD_HORIZONTAL_SERVO_ID);
+//  headPosition.vertical = herkulex_.getAngle(HEAD_VERTICAL_SERVO_ID);
+//  herkulexLogPositionPublisher_.publish(headPosition);
 }
 
 int HerkulexNode::calculateDurationInMillis(float deltaAngle, float degreesPerSecond)
@@ -503,10 +500,10 @@ void HerkulexNode::updateToTarget()
   MadgwickImu::getEulerYP(targetQuaternion_, targetYaw, targetPitch);
 
   //TODO Убрать!
-  mitya_teleop::HeadPosition headPosition;
-  headPosition.horizontal = imuYaw;
-  headPosition.vertical = imuPitch;
-  imuLogPositionPublisher_.publish(headPosition);
+//  mitya_teleop::HeadPosition headPosition;
+//  headPosition.horizontal = imuYaw;
+//  headPosition.vertical = imuPitch;
+//  imuLogPositionPublisher_.publish(headPosition);
 
   tf2Scalar deltaYaw = targetYaw - imuYaw;
   tf2Scalar deltaPitch = targetPitch - imuPitch;
@@ -573,9 +570,9 @@ int main(int argc, char **argv)
   signal(SIGINT, sigintHandler);
 
   //TODO !
-  //ros::Rate loop_rate(100); // (Hz)
+  ros::Rate loop_rate(100); // (Hz)
   //ros::Rate loop_rate(50); // (Hz)
-  ros::Rate loop_rate(0.1); // (Hz)
+  //ros::Rate loop_rate(0.1); // (Hz)
   bool skipStep = false;
   while (ros::ok())
   {
