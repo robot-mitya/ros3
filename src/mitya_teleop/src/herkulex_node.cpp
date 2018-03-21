@@ -45,9 +45,6 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include "madgwick.h"
 
-//#define SERVO_H 1
-//#define SERVO_V 2
-//#define SERVO_ALL 0xFE
 #define CORRECTION_DURATION 0
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
@@ -80,8 +77,6 @@ private:
 
   bool targetMode_;
   tf2::Quaternion imuQuaternion_;
-  uint32_t lastImuSeq_;
-  bool imuQuaternionUpdated_;
   tf2::Quaternion targetQuaternion_;
 
   // Topic RM_HERKULEX_INPUT_TOPIC_NAME ('herkulex_input') subscriber:
@@ -90,9 +85,6 @@ private:
 
   // Topic RM_HERKULEX_OUTPUT_TOPIC_NAME ('herkulex_output') publisher:
   ros::Publisher herkulexOutputPublisher_;
-
-//  ros::Publisher herkulexLogPositionPublisher_;
-//  ros::Publisher imuLogPositionPublisher_;
 
   // Topic RM_HEAD_POSITION_TOPIC_NAME ('head_position') subscriber:
   ros::Subscriber headPositionSubscriber_;
@@ -140,8 +132,6 @@ HerkulexNode::HerkulexNode()
   ros::NodeHandle nodeHandle(RM_NAMESPACE);
   herkulexInputSubscriber_ = nodeHandle.subscribe(RM_HERKULEX_INPUT_TOPIC_NAME, 1000, &HerkulexNode::herkulexInputCallback, this);
   herkulexOutputPublisher_ = nodeHandle.advertise<std_msgs::String>(RM_HERKULEX_OUTPUT_TOPIC_NAME, 1000);
-//  herkulexLogPositionPublisher_ = nodeHandle.advertise<mitya_teleop::HeadPosition>("herkulex_log", 1000);
-//  imuLogPositionPublisher_ = nodeHandle.advertise<mitya_teleop::HeadPosition>("imu_log", 1000);
   headPositionSubscriber_ = nodeHandle.subscribe(RM_HEAD_POSITION_TOPIC_NAME, 1000, &HerkulexNode::headPositionCallback, this);
   headMoveSubscriber_ = nodeHandle.subscribe(RM_HEAD_MOVE_TOPIC_NAME, 1000, &HerkulexNode::headMoveCallback, this);
   imuInputPublisher_ = nodeHandle.advertise<std_msgs::String>(RM_HEAD_IMU_INPUT_TOPIC_NAME, 10);
@@ -176,9 +166,6 @@ HerkulexNode::HerkulexNode()
 
   targetQuaternion_ = tf2::Quaternion::getIdentity();
   targetMode_ = false;
-
-  imuQuaternionUpdated_ = false;
-  lastImuSeq_ = 0;
 
   factor1_ = 0.0f;
   factor2_ = 0.0f;
@@ -363,9 +350,7 @@ void HerkulexNode::setHeadPositionVertical(float angle, int duration)
 
 void HerkulexNode::headMoveCallback(const mitya_teleop::HeadMove::ConstPtr& msg)
 {
-  //TODO Вернуть!
-  //if (targetMode_) return;
-  //ROS_INFO("Received in %s.%s: %d, %d", RM_HERKULEX_NODE_NAME, RM_HEAD_MOVE_TOPIC_NAME, msg->horizontal, msg->vertical);
+  if (targetMode_) return;
 
   if (msg->horizontal != previousHeadMoveValues_.horizontal)
   {
@@ -405,42 +390,14 @@ void HerkulexNode::headMoveCallback(const mitya_teleop::HeadMove::ConstPtr& msg)
 void HerkulexNode::imuOutputCallback(const sensor_msgs::Imu::ConstPtr& msg)
 {
   imuQuaternion_.setValue(msg->orientation.x, msg->orientation.y, msg->orientation.z, msg->orientation.w);
-  imuQuaternionUpdated_ = msg->header.seq != lastImuSeq_;
-  lastImuSeq_ = msg->header.seq;
-
-//  tf2Scalar imuYaw;
-//  tf2Scalar imuPitch;
-//  MadgwickImu::getEulerYP(imuQuaternion_, imuYaw, imuPitch);
-//  ROS_INFO("iY/iP: %+9.3f    %+9.3f    #: %d", imuYaw, imuPitch, lastImuSeq_);
 }
 
 void HerkulexNode::logPosition()
 {
-//  mitya_teleop::HeadPosition headPosition;
-//  headPosition.horizontal = herkulex_.getAngle(HEAD_HORIZONTAL_SERVO_ID);
-//  headPosition.vertical = herkulex_.getAngle(HEAD_VERTICAL_SERVO_ID);
-//  herkulexLogPositionPublisher_.publish(headPosition);
 }
 
 int HerkulexNode::calculateDurationInMillis(float deltaAngle, float degreesPerSecond)
 {
-  deltaAngle = fabs(deltaAngle);
-  if (factor1_ > 0.000001f && factor2_ > 0.000001f)
-  {
-    if (deltaAngle < factor1_)
-    {
-      // f(t) = 1 - (1 - K*x)^2, x=[0, 1/K];
-      // f(t) = 1, x>1/K.
-      float t = deltaAngle / factor1_;
-      // K = pointingFactor_
-      if (t < 1.0f / factor2_)
-      {
-        float f = 1.0f - factor2_ * t;
-        degreesPerSecond *= 1.0f - f * f;
-      }
-    }
-  }
-
   if (degreesPerSecond < headMoveMinSpeed_)
     degreesPerSecond = headMoveMinSpeed_;
   float result = (int)(deltaAngle * 1000.0f / degreesPerSecond);
@@ -490,21 +447,12 @@ void HerkulexNode::updateToTarget()
 {
   if (!targetMode_) return;
 
-  if (!imuQuaternionUpdated_) return;
-  imuQuaternionUpdated_ = false;
-
   tf2Scalar imuYaw;
   tf2Scalar imuPitch;
   MadgwickImu::getEulerYP(imuQuaternion_, imuYaw, imuPitch);
   tf2Scalar targetYaw;
   tf2Scalar targetPitch;
   MadgwickImu::getEulerYP(targetQuaternion_, targetYaw, targetPitch);
-
-  //TODO Убрать!
-//  mitya_teleop::HeadPosition headPosition;
-//  headPosition.horizontal = imuYaw;
-//  headPosition.vertical = imuPitch;
-//  imuLogPositionPublisher_.publish(headPosition);
 
   tf2Scalar deltaYaw = targetYaw - imuYaw;
   tf2Scalar deltaPitch = targetPitch - imuPitch;
@@ -570,18 +518,11 @@ int main(int argc, char **argv)
 
   signal(SIGINT, sigintHandler);
 
-  //TODO !
   ros::Rate loop_rate(100); // (Hz)
-  //ros::Rate loop_rate(50); // (Hz)
-  //ros::Rate loop_rate(0.2); // (Hz)
-  bool skipStep = false;
   while (ros::ok())
   {
     herkulexNode->updateCenterHeadState();
-//    herkulexNode->updateToTarget();
-    if (skipStep) herkulexNode->updateToTarget();
-    skipStep = !skipStep;
-
+    herkulexNode->updateToTarget();
 //    herkulexNode->logPosition();
     ros::spinOnce();
     loop_rate.sleep();
