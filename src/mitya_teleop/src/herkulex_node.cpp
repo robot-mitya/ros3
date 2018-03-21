@@ -408,10 +408,10 @@ void HerkulexNode::imuOutputCallback(const sensor_msgs::Imu::ConstPtr& msg)
   imuQuaternionUpdated_ = msg->header.seq != lastImuSeq_;
   lastImuSeq_ = msg->header.seq;
 
-  tf2Scalar imuYaw;
-  tf2Scalar imuPitch;
-  MadgwickImu::getEulerYP(imuQuaternion_, imuYaw, imuPitch);
-  ROS_INFO("iY/iP: %+9.3f    %+9.3f    #: %d", imuYaw, imuPitch, lastImuSeq_);
+//  tf2Scalar imuYaw;
+//  tf2Scalar imuPitch;
+//  MadgwickImu::getEulerYP(imuQuaternion_, imuYaw, imuPitch);
+//  ROS_INFO("iY/iP: %+9.3f    %+9.3f    #: %d", imuYaw, imuPitch, lastImuSeq_);
 }
 
 void HerkulexNode::logPosition()
@@ -581,7 +581,7 @@ int main(int argc, char **argv)
 //    if (skipStep) herkulexNode->updateToTarget();
 //    skipStep = !skipStep;
 
-    herkulexNode->logPosition();
+//    herkulexNode->logPosition();
     ros::spinOnce();
     loop_rate.sleep();
   }
