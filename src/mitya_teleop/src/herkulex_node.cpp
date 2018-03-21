@@ -424,7 +424,7 @@ void HerkulexNode::logPosition()
 
 int HerkulexNode::calculateDurationInMillis(float deltaAngle, float degreesPerSecond)
 {
-  deltaAngle = fabs(deltaAngle);
+/*  deltaAngle = fabs(deltaAngle);
   if (factor1_ > 0.000001f && factor2_ > 0.000001f)
   {
     if (deltaAngle < factor1_)
@@ -440,7 +440,7 @@ int HerkulexNode::calculateDurationInMillis(float deltaAngle, float degreesPerSe
       }
     }
   }
-
+*/
   if (degreesPerSecond < headMoveMinSpeed_)
     degreesPerSecond = headMoveMinSpeed_;
   float result = (int)(deltaAngle * 1000.0f / degreesPerSecond);
@@ -573,13 +573,13 @@ int main(int argc, char **argv)
   ros::Rate loop_rate(100); // (Hz)
   //ros::Rate loop_rate(50); // (Hz)
   //ros::Rate loop_rate(0.2); // (Hz)
-  bool skipStep = false;
+  //bool skipStep = false;
   while (ros::ok())
   {
     herkulexNode->updateCenterHeadState();
-    //herkulexNode->updateToTarget();
-    if (skipStep) herkulexNode->updateToTarget();
-    skipStep = !skipStep;
+    herkulexNode->updateToTarget();
+//    if (skipStep) herkulexNode->updateToTarget();
+//    skipStep = !skipStep;
 
 //    herkulexNode->logPosition();
     ros::spinOnce();
