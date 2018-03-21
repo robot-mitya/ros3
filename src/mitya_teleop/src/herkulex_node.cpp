@@ -570,9 +570,9 @@ int main(int argc, char **argv)
   signal(SIGINT, sigintHandler);
 
   //TODO !
-  ros::Rate loop_rate(100); // (Hz)
+  //ros::Rate loop_rate(100); // (Hz)
   //ros::Rate loop_rate(50); // (Hz)
-  //ros::Rate loop_rate(0.1); // (Hz)
+  ros::Rate loop_rate(0.2); // (Hz)
   bool skipStep = false;
   while (ros::ok())
   {
