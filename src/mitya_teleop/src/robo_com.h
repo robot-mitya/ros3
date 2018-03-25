@@ -34,60 +34,104 @@
 #ifndef MITYA_TELEOP_SRC_ROBO_COM_H_
 #define MITYA_TELEOP_SRC_ROBO_COM_H_
 
-#define MAX_MESSAGE_SIZE 200
-#define COMMAND_SEPARATOR ';'
+#include <stdint.h>
+
+//#define MAX_MESSAGE_SIZE 200
+//#define COMMAND_SEPARATOR ';'
 
 enum Command
 {
-  CMD_UNKNOWN = 0,
-  CMD_STATUS_REQUEST = 10,
-  CMD_STATUS_RESPONSE = 20,
-  CMD_MOTOR_LEFT = 30,
-  CMD_MOTOR_RIGHT = 40,
-  CMD_MOTOR_BOTH = 50,
-  CMD_LED = 60,
-  CMD_LED_REQUEST = 70,
-  CMD_LED_RESPONSE = 80,
-  CMD_ENCL_REQUEST = 90,
-  CMD_ENCR_REQUEST = 100,
-  CMD_ENCB_REQUEST = 110,
-  CMD_ENCL_RESPONSE = 120,
-  CMD_ENCR_RESPONSE = 130,
-  CMD_DIST_REQUEST = 140,
-  CMD_DIST_RESPONSE = 150,
-  CMD_SPD_REQUEST = 160,
-  CMD_SPD_RESPONSE = 170,
-  CMD_MCPS_REQUEST = 180,
-  CMD_MCPS_RESPONSE = 190
+  CMD_UNKNOWN         = 0x00,
+  CMD_MOTOR_LEFT      = 0x01,
+  CMD_MOTOR_RIGHT     = 0x02,
+  CMD_MOTOR_BOTH      = 0x03,
+
+  CMD_TAIL_ROTATE     = 0x08,
+  CMD_TAIL_SWING      = 0x09,
+  CMD_TAIL_SWING_A    = 0x0A,
+  CMD_TAIL_FREEZE     = 0x0F,
+
+  CMD_LED_1           = 0x10,
+  CMD_LED_1_REQUEST   = 0x11,
+  CMD_LED_1_RESPONSE  = 0x12,
+  CMD_LED_2           = 0x13,
+  CMD_LED_2_REQUEST   = 0x14,
+  CMD_LED_2_RESPONSE  = 0x15,
+
+  CMD_ENCL_REQUEST    = 0x40,
+  CMD_ENCR_REQUEST    = 0x41,
+  CMD_ENCB_REQUEST    = 0x42,
+  CMD_ENCL_RESPONSE   = 0x43,
+  CMD_ENCR_RESPONSE   = 0x44,
+  CMD_DIST_REQUEST    = 0x45,
+  CMD_DIST_RESPONSE   = 0x46,
+  CMD_SPD_REQUEST     = 0x47,
+  CMD_SPD_RESPONSE    = 0x48,
+  CMD_MCPS_REQUEST    = 0x49,
+  CMD_MCPS_RESPONSE   = 0x4A,
+
+  CMD_BV_REQUEST      = 0x50,
+  CMD_BV_RESPONSE     = 0x51,
+  CMD_DV_REQUEST      = 0x52,
+  CMD_DV_RESPONSE     = 0x53,
+  CMD_BVF_REQUEST     = 0x54,
+  CMD_BVF_RESPONSE    = 0x55,
+  CMD_DVF_REQUEST     = 0x56,
+  CMD_DVF_RESPONSE    = 0x57,
+
+  CMD_RESET           = 0xF0,
+  CMD_STATUS_REQUEST  = 0xF1,
+  CMD_STATUS_RESPONSE = 0xF2
 };
 
 enum StatusCode
 {
   RET_OK = 0,
   RET_BAD_PARAMETER = 1,
-  RET_TOO_MANY_WORDS = 2,
-  RET_BAD_COMMAND = 3
+  RET_WRONG_PARAMS_COUNT = 2,
+  RET_BAD_COMMAND = 3,
+  RET_NOISE_RECEIVED = 4,
+  RET_CS_ERROR = 5
 };
 
 class RoboCom
 {
 public:
+  static const int MAX_MESSAGE_SIZE = 12;
+  static const int MAX_TEXT_MESSAGE_SIZE = 200;
+  static const char COMMAND_SEPARATOR = ';';
+
+  // buildDriveLeftCommand fills left drive message array, returns message length:
+  static int buildDriveLeftCommand(signed char speed, uint8_t* message);
+  // buildDriveRightCommand fills right drive message array, returns message length:
+  static int buildDriveRightCommand(signed char speed, uint8_t* message);
+
   static char const* getStatusText(int status);
-  static char* getDriveLeftCommand(signed char speed);
-  static char* getDriveRightCommand(signed char speed);
-  static char* getSwitchLed1Command();
-  static char* getSwitchLed2Command();
-  static char* getSwingTailCommand();
-  static char* getRebootCommand();
-  static void parseMessage(const char* message, Command &command, int &param1, int &param2, int &param3);
+  static int buildBinaryMessage(Command command, int param1, int param2, int param3, uint8_t* message);
+  static int buildSwitchLed1Message(uint8_t* message);
+  static int buildSwitchLed2Message(uint8_t* message);
+  static int buildSwingTailMessage(uint8_t* message);
+  static int buildRebootMessage(uint8_t* message);
+
+  static const char* buildTextMessage(Command command);
+  static const char* buildTextMessage(Command command, int param1);
+  static const char* buildTextMessage(Command command, int param1, int param2);
+  static const char* buildTextMessage(Command command, int param1, int param2, int param3);
+
+  static const char* buildSwitchLed1TextMessage();
+  static const char* buildSwitchLed2TextMessage();
+  static const char* buildSwingTailTextMessage();
+  static const char* buildRebootTextMessage();
+
+  static StatusCode parseTextMessage(const char* message, Command &command, int &param1, int &param2, int &param3);
+  static StatusCode parseBinaryMessage(uint8_t* message, int size, Command &command, int &param1, int &param2, int &param3);
 private:
-  static char driveLeftMessage_[MAX_MESSAGE_SIZE];
-  static char driveRightMessage_[MAX_MESSAGE_SIZE];
-  static char led1Message_[MAX_MESSAGE_SIZE];
-  static char led2Message_[MAX_MESSAGE_SIZE];
-  static char tailMessage_[MAX_MESSAGE_SIZE];
-  static char rebootMessage_[MAX_MESSAGE_SIZE];
-  static Command getCommand(char *text);
+  static int checksum1(uint8_t* data, int size);
+  static int checksum2(int cs1);
+  static int buildDriveMessage(Command command, signed char speed, uint8_t* message);
+  static int buildSwitchLedMessage(Command command, uint8_t* message);
+  static Command getCommand(char *commandText);
+  static const char* getCommandText(Command command);
 };
 
 #endif /* MITYA_TELEOP_SRC_ROBO_COM_H_ */

@@ -42,29 +42,29 @@
 #include <unistd.h>
 #include "robo_com.h"
 
-#define MAX_MESSAGE_SIZE 200
-#define SERIAL_BUFFER_SIZE 1000
-
 class ArduinoNode
 {
 public:
   ArduinoNode();
   void openSerial();
   void closeSerial();
-  void readSerial(void (*func)(ArduinoNode*, char*));
-  void writeSerial(char const* message);
-  void publishArduinoOutput(char *message);
+  void readSerial(void (*func)(ArduinoNode*, Command, int, int, int));
+  void writeSerial(uint8_t const* message, int size);
+  void publishArduinoOutput(const char *message);
   void publishLED(int ledState);
   void publishDistance(float distance);
   void publishSpeed(float speed);
 private:
+  static const int SERIAL_BUFFER_SIZE = 256;
   std::string serialPortName;
   int serialBaudRate;
   int fd;
   bool isPortOpened;
-  char serialIncomingMessage[MAX_MESSAGE_SIZE];
+  char serialIncomingMessage[RoboCom::MAX_MESSAGE_SIZE];
   int serialIncomingMessageSize;
-  char buffer[SERIAL_BUFFER_SIZE];
+  uint8_t buffer_[SERIAL_BUFFER_SIZE];
+  uint8_t message_[RoboCom::MAX_MESSAGE_SIZE];
+
   int baudRateToBaudRateConst(int baudRate);
 
   // Topic RM_ARDUINO_INPUT_TOPIC_NAME ('arduino_input') subscriber:
@@ -94,12 +94,12 @@ private:
 ArduinoNode::ArduinoNode()
 {
   ros::NodeHandle nodeHandle(RM_NAMESPACE);
-  arduinoInputSubscriber_ = nodeHandle.subscribe(RM_ARDUINO_INPUT_TOPIC_NAME, 1000, &ArduinoNode::arduinoInputCallback, this);
-  arduinoOutputPublisher_ = nodeHandle.advertise<std_msgs::String>(RM_ARDUINO_OUTPUT_TOPIC_NAME, 1000);
-  driveSubscriber_ = nodeHandle.subscribe(RM_DRIVE_TOPIC_NAME, 1000, &ArduinoNode::driveCallback, this);
-  ledPublisher_ = nodeHandle.advertise<std_msgs::Int8>(RM_LED_TOPIC_NAME, 1000);
-  distancePublisher_ = nodeHandle.advertise<std_msgs::Float32>(RM_DISTANCE_TOPIC_NAME, 1000);
-  speedPublisher_ = nodeHandle.advertise<std_msgs::Float32>(RM_SPEED_TOPIC_NAME, 1000);
+  arduinoInputSubscriber_ = nodeHandle.subscribe(RM_ARDUINO_INPUT_TOPIC_NAME, 100, &ArduinoNode::arduinoInputCallback, this);
+  arduinoOutputPublisher_ = nodeHandle.advertise<std_msgs::String>(RM_ARDUINO_OUTPUT_TOPIC_NAME, 50);
+  driveSubscriber_ = nodeHandle.subscribe(RM_DRIVE_TOPIC_NAME, 100, &ArduinoNode::driveCallback, this);
+  ledPublisher_ = nodeHandle.advertise<std_msgs::Int8>(RM_LED_TOPIC_NAME, 50);
+  distancePublisher_ = nodeHandle.advertise<std_msgs::Float32>(RM_DISTANCE_TOPIC_NAME, 50);
+  speedPublisher_ = nodeHandle.advertise<std_msgs::Float32>(RM_SPEED_TOPIC_NAME, 50);
 
   ros::NodeHandle privateNodeHandle("~");
   std::string serialPortParamName = "serial_port";
@@ -131,15 +131,25 @@ ArduinoNode::ArduinoNode()
 
 void ArduinoNode::arduinoInputCallback(const std_msgs::StringConstPtr& msg)
 {
-  ROS_DEBUG("Node \'%s\' topic \'%s\' received \'%s\'", RM_ARDUINO_NODE_NAME, RM_ARDUINO_INPUT_TOPIC_NAME, msg->data.c_str());
-  writeSerial(msg->data.c_str());
+  //ROS_DEBUG("Node \'%s\' topic \'%s\' received \'%s\'", RM_ARDUINO_NODE_NAME, RM_ARDUINO_INPUT_TOPIC_NAME, msg->data.c_str());
+  Command command;
+  int param1;
+  int param2;
+  int param3;
+  StatusCode status = RoboCom::parseTextMessage(msg->data.c_str(), command, param1, param2, param3);
+  if (status != RET_OK)
+    ROS_ERROR("Failed to parse message '%s': %s", msg->data.c_str(), RoboCom::getStatusText(status));
+  int messageSize = RoboCom::buildBinaryMessage(command, param1, param2, param3, message_);
+  writeSerial(message_, messageSize);
 }
 
 void ArduinoNode::driveCallback(const mitya_teleop::Drive::ConstPtr& msg)
 {
-  ROS_DEBUG("Node \'%s\' topic \'%s\' received \'%d,%d\'", RM_ARDUINO_NODE_NAME, RM_DRIVE_TOPIC_NAME, msg->left, msg->right);
-  writeSerial(RoboCom::getDriveLeftCommand((signed char) (msg->left)));
-  writeSerial(RoboCom::getDriveRightCommand((signed char) (msg->right)));
+  //ROS_DEBUG("Node \'%s\' topic \'%s\' received \'%d,%d\'", RM_ARDUINO_NODE_NAME, RM_DRIVE_TOPIC_NAME, msg->left, msg->right);
+  int messageSize = RoboCom::buildDriveLeftCommand((signed char) (msg->left), message_);
+  writeSerial(message_, messageSize);
+  messageSize = RoboCom::buildDriveRightCommand((signed char) (msg->right), message_);
+  writeSerial(message_, messageSize);
 }
 
 bool ArduinoNode::setInterfaceAttribs(int fd, int speed, int parity)
@@ -302,9 +312,10 @@ int ArduinoNode::baudRateToBaudRateConst(int baudRate)
   }
 }
 
-void ArduinoNode::readSerial(void (*func)(ArduinoNode*, char*))
+void ArduinoNode::readSerial(void (*func)(ArduinoNode*, Command, int, int, int))
 {
-  int n = read(fd, buffer, SERIAL_BUFFER_SIZE);
+  //TODO readSerial
+/*  int n = read(fd, buffer, SERIAL_BUFFER_SIZE);
   char ch;
   for (int i = 0; i < n; i++)
   {
@@ -318,15 +329,15 @@ void ArduinoNode::readSerial(void (*func)(ArduinoNode*, char*))
       serialIncomingMessageSize = 0;
       serialIncomingMessage[serialIncomingMessageSize] = '\0';
     }
-  }
+  }*/
 }
 
-void ArduinoNode::writeSerial(char const* message)
+void ArduinoNode::writeSerial(uint8_t const* message, int size)
 {
-  write(fd, message, strlen(message));
+  write(fd, message, size);
 }
 
-void ArduinoNode::publishArduinoOutput(char *message)
+void ArduinoNode::publishArduinoOutput(const char *message)
 {
   std_msgs::String stringMessage;
   stringMessage.data = message;
@@ -354,24 +365,28 @@ void ArduinoNode::publishSpeed(float speed)
   speedPublisher_.publish(floatMessage);
 }
 
-void onReceiveSerialMessage(ArduinoNode *arduinoNode, char *message)
+void onReceiveSerialMessage(ArduinoNode *arduinoNode, Command command, int param1, int param2, int param3)
 {
-  ROS_DEBUG("Message from the controller: %s", message);
-  arduinoNode->publishArduinoOutput(message);
-  Command command;
-  int param1, param2, param3;
-  RoboCom::parseMessage(message, command, param1, param2, param3);
+//  ROS_DEBUG("Message from the controller: %s", message);
   switch (command)
   {
     case CMD_STATUS_RESPONSE:
     {
-      if (param1 > 0)
+      if (param1 != RET_OK)
         ROS_ERROR("Arduino controller's status response error: %s (%d)", RoboCom::getStatusText(param1), param1);
       break;
     }
-    case CMD_LED_RESPONSE:
+    case CMD_LED_1_RESPONSE:
     {
       arduinoNode->publishLED(param1);
+      arduinoNode->publishArduinoOutput(RoboCom::buildTextMessage(CMD_LED_1_RESPONSE, param1));
+      break;
+    }
+    case CMD_LED_2_RESPONSE:
+    {
+      //TODO Another publisher.
+      //arduinoNode->publishLED(param1);
+      arduinoNode->publishArduinoOutput(RoboCom::buildTextMessage(CMD_LED_2_RESPONSE, param1));
       break;
     }
     case CMD_DIST_RESPONSE:
@@ -387,6 +402,11 @@ void onReceiveSerialMessage(ArduinoNode *arduinoNode, char *message)
       float kilometersPerHour = param1;
       kilometersPerHour /= 1000;
       arduinoNode->publishSpeed(kilometersPerHour);
+      break;
+    }
+    default:
+    {
+      arduinoNode->publishArduinoOutput(RoboCom::buildTextMessage(command, param1, param2, param3));
       break;
     }
   }

@@ -351,21 +351,21 @@ void JoystickNode::publishHeadPositionMessage(float x, float y)
 void JoystickNode::publishSwitchLed1Message()
 {
   std_msgs::String msg;
-  msg.data = RoboCom::getSwitchLed1Command();
+  msg.data = RoboCom::buildSwitchLed1TextMessage();
   arduinoInputPublisher_.publish(msg);
 }
 
 void JoystickNode::publishSwitchLed2Message()
 {
   std_msgs::String msg;
-  msg.data = RoboCom::getSwitchLed2Command();
+  msg.data = RoboCom::buildSwitchLed2TextMessage();
   arduinoInputPublisher_.publish(msg);
 }
 
 void JoystickNode::publishSwingTailMessage()
 {
   std_msgs::String msg;
-  msg.data = RoboCom::getSwingTailCommand();
+  msg.data = RoboCom::buildSwingTailTextMessage();
   arduinoInputPublisher_.publish(msg);
 }
 
@@ -417,7 +417,7 @@ void JoystickNode::publishRebootHerkulex()
 void JoystickNode::publishRebootArduino()
 {
   std_msgs::String msg;
-  msg.data = RoboCom::getRebootCommand();
+  msg.data = RoboCom::buildRebootTextMessage();
   arduinoInputPublisher_.publish(msg);
 }
 
