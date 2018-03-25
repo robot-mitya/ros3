@@ -97,8 +97,9 @@ enum StatusCode
 class RoboCom
 {
 public:
-  static const int MAX_MESSAGE_SIZE = 12;
+  static const int MAX_BINARY_MESSAGE_SIZE = 12;
   static const int MAX_TEXT_MESSAGE_SIZE = 200;
+  static const int SERIAL_BUFFER_SIZE = 256;
   static const char COMMAND_SEPARATOR = ';';
 
   // buildDriveLeftCommand fills left drive message array, returns message length:
@@ -125,6 +126,10 @@ public:
 
   static StatusCode parseTextMessage(const char* message, Command &command, int &param1, int &param2, int &param3);
   static StatusCode parseBinaryMessage(uint8_t* message, int size, Command &command, int &param1, int &param2, int &param3);
+
+  static void processSerialBuffer(uint8_t* buffer, int bufferSize, void* node,
+                                  void (*onMessageHandler)(void*, Command, int, int, int),
+                                  void (*onErrorHandler)(StatusCode));
 private:
   static int checksum1(uint8_t* data, int size);
   static int checksum2(int cs1);

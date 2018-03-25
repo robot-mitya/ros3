@@ -36,16 +36,9 @@
 #include <string.h>
 #include "robo_com.h"
 
-//#include "ros/ros.h"
-
 #define LOBYTE(v)        ((unsigned char) (v))
 #define HIBYTE(v)        ((unsigned char) (((unsigned int) (v)) >> 8))
 #define MAKEWORD(lo, hi) ((uint16_t) (lo) | ((uint16_t) (hi) << 8))
-
-static uint8_t message_[RoboCom::MAX_MESSAGE_SIZE];
-static int messagePos_ = 0;
-static int messageSize_;
-static int errorStatus_ = 0; // 0 means no error.
 
 static char textMessage_[RoboCom::MAX_TEXT_MESSAGE_SIZE];
 
@@ -74,6 +67,11 @@ static char param2Text_[7] = "";
 static char param3Text_[7] = "";
 static int wordCounter_ = 0;
 static bool inWordSeparator_ = false;
+
+static int serialIncomingMessageSize_ = 0;
+static int serialIncomingMessagePos_ = 0;
+static StatusCode serialIncomingMessageErrorStatus_ = RET_OK;
+static uint8_t serialIncomingMessage_[RoboCom::MAX_BINARY_MESSAGE_SIZE];
 
 char const* RoboCom::getStatusText(int status)
 {
@@ -510,4 +508,54 @@ const char* RoboCom::buildSwingTailTextMessage()
 const char* RoboCom::buildRebootTextMessage()
 {
   return buildTextMessage(CMD_RESET);
+}
+
+void RoboCom::processSerialBuffer(uint8_t* buffer, int bufferSize, void* node,
+                                void (*onMessageHandler)(void*, Command, int, int, int),
+                                void (*onErrorHandler)(StatusCode))
+{
+  for (int bufferPos = 0; bufferPos < bufferSize; bufferPos++) {
+
+    if ((serialIncomingMessagePos_ == 0) && (buffer[bufferPos] != 0xFF)) {
+      serialIncomingMessageErrorStatus_ = RET_NOISE_RECEIVED;
+      continue;
+    } else if ((serialIncomingMessagePos_ == 1) && (buffer[bufferPos] != 0xFF)) {
+      serialIncomingMessageErrorStatus_ = RET_NOISE_RECEIVED;
+      continue;
+    }
+
+    if (serialIncomingMessagePos_ == 2) {
+      serialIncomingMessageSize_ = buffer[bufferPos];
+      if ((serialIncomingMessageSize_ != NO_PARAMS_MESSAGE_SIZE) &&
+          (serialIncomingMessageSize_ != ONE_PARAM_MESSAGE_SIZE) &&
+          (serialIncomingMessageSize_ != TWO_PARAMS_MESSAGE_SIZE) &&
+          (serialIncomingMessageSize_ != THREE_PARAMS_MESSAGE_SIZE)) {
+        serialIncomingMessageErrorStatus_ = RET_WRONG_PARAMS_COUNT;
+        continue;
+      }
+    }
+
+    if (serialIncomingMessageErrorStatus_ != RET_OK) {
+      onErrorHandler(serialIncomingMessageErrorStatus_);
+      serialIncomingMessageErrorStatus_ = RET_OK;
+    }
+    serialIncomingMessage_[serialIncomingMessagePos_++] = buffer[bufferPos];
+
+    if (serialIncomingMessagePos_ == serialIncomingMessageSize_) {
+      uint8_t cs1 = checksum1(serialIncomingMessage_, serialIncomingMessageSize_);
+      uint8_t cs2 = checksum2(cs1);
+      if ((serialIncomingMessage_[CS_1_INDEX] == cs1) && (serialIncomingMessage_[CS_2_INDEX] == cs2)) {
+        int param1 = serialIncomingMessageSize_ > NO_PARAMS_MESSAGE_SIZE ?
+            MAKEWORD(serialIncomingMessage_[PARAM_1_LSB_INDEX], serialIncomingMessage_[PARAM_1_MSB_INDEX]) : 0;
+        int param2 = serialIncomingMessageSize_ > ONE_PARAM_MESSAGE_SIZE ?
+            MAKEWORD(serialIncomingMessage_[PARAM_2_LSB_INDEX], serialIncomingMessage_[PARAM_2_MSB_INDEX]) : 0;
+        int param3 = serialIncomingMessageSize_ > TWO_PARAMS_MESSAGE_SIZE ?
+            MAKEWORD(serialIncomingMessage_[PARAM_3_LSB_INDEX], serialIncomingMessage_[PARAM_3_MSB_INDEX]) : 0;
+        onMessageHandler(node, (Command) serialIncomingMessage_[COMMAND_INDEX], param1, param2, param3);
+      } else {
+        onErrorHandler(RET_CS_ERROR);
+      }
+      serialIncomingMessagePos_ = 0;
+    }
+  }
 }

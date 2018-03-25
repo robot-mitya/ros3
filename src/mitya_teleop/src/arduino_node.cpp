@@ -48,22 +48,21 @@ public:
   ArduinoNode();
   void openSerial();
   void closeSerial();
-  void readSerial(void (*func)(ArduinoNode*, Command, int, int, int));
+  void readSerial(void (*onMessageHandler)(void*, Command, int, int, int),
+                  void (*onErrorHandler)(StatusCode));
   void writeSerial(uint8_t const* message, int size);
   void publishArduinoOutput(const char *message);
   void publishLED(int ledState);
   void publishDistance(float distance);
   void publishSpeed(float speed);
 private:
-  static const int SERIAL_BUFFER_SIZE = 256;
-  std::string serialPortName;
-  int serialBaudRate;
-  int fd;
-  bool isPortOpened;
-  char serialIncomingMessage[RoboCom::MAX_MESSAGE_SIZE];
-  int serialIncomingMessageSize;
-  uint8_t buffer_[SERIAL_BUFFER_SIZE];
-  uint8_t message_[RoboCom::MAX_MESSAGE_SIZE];
+  std::string serialPortName_;
+  int serialBaudRate_;
+  int fd_;
+  bool isPortOpened_;
+  uint8_t buffer_[RoboCom::SERIAL_BUFFER_SIZE];
+
+  uint8_t message_[RoboCom::MAX_BINARY_MESSAGE_SIZE];
 
   int baudRateToBaudRateConst(int baudRate);
 
@@ -103,30 +102,28 @@ ArduinoNode::ArduinoNode()
 
   ros::NodeHandle privateNodeHandle("~");
   std::string serialPortParamName = "serial_port";
-  if (privateNodeHandle.getParam(serialPortParamName, serialPortName))
+  if (privateNodeHandle.getParam(serialPortParamName, serialPortName_))
   {
-    ROS_INFO("Serial port name: %s", serialPortName.c_str());
+    ROS_INFO("Serial port name: %s", serialPortName_.c_str());
   }
   else
   {
     ROS_ERROR("Failed to get parameter '%s'", serialPortParamName.c_str());
-    serialPortName = "unassigned";
+    serialPortName_ = "unassigned";
   }
   std::string baudRateParamName = "baud_rate";
-  if (privateNodeHandle.getParam(baudRateParamName, serialBaudRate))
+  if (privateNodeHandle.getParam(baudRateParamName, serialBaudRate_))
   {
-    ROS_INFO("Serial port baud rate: %d", serialBaudRate);
+    ROS_INFO("Serial port baud rate: %d", serialBaudRate_);
   }
   else
   {
-    serialBaudRate = 115200;
-    ROS_ERROR("Failed to get parameter '%s'. The default value is %d.", baudRateParamName.c_str(), serialBaudRate);
+    serialBaudRate_ = 115200;
+    ROS_ERROR("Failed to get parameter '%s'. The default value is %d.", baudRateParamName.c_str(), serialBaudRate_);
   }
 
-  fd = -1;
-  isPortOpened = false;
-  serialIncomingMessageSize = 0;
-  serialIncomingMessage[0] = '\0';
+  fd_ = -1;
+  isPortOpened_ = false;
 }
 
 void ArduinoNode::arduinoInputCallback(const std_msgs::StringConstPtr& msg)
@@ -217,17 +214,17 @@ bool ArduinoNode::setBlocking(int fd, int should_block)
 void ArduinoNode::openSerial()
 {
   closeSerial();
-  fd = open(serialPortName.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
-  if (fd < 0)
+  fd_ = open(serialPortName_.c_str(), O_RDWR | O_NOCTTY | O_SYNC);
+  if (fd_ < 0)
   {
-    ROS_ERROR("Error %d opening %s: %s", errno, serialPortName.c_str(), strerror(errno));
+    ROS_ERROR("Error %d opening %s: %s", errno, serialPortName_.c_str(), strerror(errno));
     return;
   }
-  isPortOpened = true;
+  isPortOpened_ = true;
 
-  if (!setInterfaceAttribs(fd, baudRateToBaudRateConst(serialBaudRate), 0)) // set speed bps, 8n1 (no parity)
+  if (!setInterfaceAttribs(fd_, baudRateToBaudRateConst(serialBaudRate_), 0)) // set speed bps, 8n1 (no parity)
     return;
-  if (!setBlocking(fd, 0)) // set no blocking
+  if (!setBlocking(fd_, 0)) // set no blocking
     return;
 
   ROS_INFO("Serial port is opened");
@@ -235,10 +232,10 @@ void ArduinoNode::openSerial()
 
 void ArduinoNode::closeSerial()
 {
-  if (isPortOpened)
+  if (isPortOpened_)
   {
-    close(fd);
-    isPortOpened = false;
+    close(fd_);
+    isPortOpened_ = false;
   }
 }
 
@@ -312,29 +309,16 @@ int ArduinoNode::baudRateToBaudRateConst(int baudRate)
   }
 }
 
-void ArduinoNode::readSerial(void (*func)(ArduinoNode*, Command, int, int, int))
+void ArduinoNode::readSerial(void (*onMessageHandler)(void*, Command, int, int, int),
+                             void (*onErrorHandler)(StatusCode))
 {
-  //TODO readSerial
-/*  int n = read(fd, buffer, SERIAL_BUFFER_SIZE);
-  char ch;
-  for (int i = 0; i < n; i++)
-  {
-    ch = buffer[i];
-    if (ch < 32) continue;
-    serialIncomingMessage[serialIncomingMessageSize++] = ch;
-    if (ch == COMMAND_SEPARATOR)
-    {
-      serialIncomingMessage[serialIncomingMessageSize] = '\0';
-      func(this, serialIncomingMessage);
-      serialIncomingMessageSize = 0;
-      serialIncomingMessage[serialIncomingMessageSize] = '\0';
-    }
-  }*/
+  int bufferSize = read(fd_, buffer_, RoboCom::SERIAL_BUFFER_SIZE);
+  RoboCom::processSerialBuffer(buffer_, bufferSize, this, onMessageHandler, onErrorHandler);
 }
 
 void ArduinoNode::writeSerial(uint8_t const* message, int size)
 {
-  write(fd, message, size);
+  write(fd_, message, size);
 }
 
 void ArduinoNode::publishArduinoOutput(const char *message)
@@ -365,9 +349,10 @@ void ArduinoNode::publishSpeed(float speed)
   speedPublisher_.publish(floatMessage);
 }
 
-void onReceiveSerialMessage(ArduinoNode *arduinoNode, Command command, int param1, int param2, int param3)
+void onReceiveSerialMessage(void* node, Command command, int param1, int param2, int param3)
 {
 //  ROS_DEBUG("Message from the controller: %s", message);
+  ArduinoNode* arduinoNode = (ArduinoNode*) node;
   switch (command)
   {
     case CMD_STATUS_RESPONSE:
@@ -410,6 +395,11 @@ void onReceiveSerialMessage(ArduinoNode *arduinoNode, Command command, int param
       break;
     }
   }
+}
+
+void onErrorReceivingSerialMessage(StatusCode statusCode)
+{
+  ROS_ERROR("Error on receiving message from Arduino controller: %s", RoboCom::getStatusText(statusCode));
 }
 /*
 void checkResult(int testId,
@@ -456,7 +446,7 @@ int main(int argc, char **argv)
   ros::Rate loop_rate(100); // 100 Hz
   while (ros::ok())
   {
-    arduinoNode.readSerial(onReceiveSerialMessage);
+    arduinoNode.readSerial(onReceiveSerialMessage, onErrorReceivingSerialMessage);
     loop_rate.sleep();
     ros::spinOnce();
   }
