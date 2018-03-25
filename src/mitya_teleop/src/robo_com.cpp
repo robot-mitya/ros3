@@ -171,8 +171,10 @@ Command RoboCom::getCommand(char *text)
     return CMD_UNKNOWN;
   if (strcmp(text, "!") == 0)
     return CMD_STATUS_RESPONSE;
-  if (strcmp(text, "!LED") == 0)
-    return CMD_LED_RESPONSE;
+  if (strcmp(text, "!L1") == 0)
+    return CMD_L1_RESPONSE;
+  if (strcmp(text, "!L2") == 0)
+    return CMD_L2_RESPONSE;
   if (strcmp(text, "!DIST") == 0)
     return CMD_DIST_RESPONSE;
   if (strcmp(text, "!SPD") == 0)

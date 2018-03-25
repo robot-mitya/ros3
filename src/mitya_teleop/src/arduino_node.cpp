@@ -36,6 +36,7 @@
 #include "std_msgs/Int8.h"
 #include "std_msgs/Float32.h"
 #include "mitya_teleop/Drive.h"
+#include "mitya_teleop/LedState.h"
 #include "consts.h"
 #include <termios.h>
 #include <fcntl.h>
@@ -54,7 +55,7 @@ public:
   void readSerial(void (*func)(ArduinoNode*, char*));
   void writeSerial(char const* message);
   void publishArduinoOutput(char *message);
-  void publishLED(int ledState);
+  void publishLED(uint8_t ledId, int ledState);
   void publishDistance(float distance);
   void publishSpeed(float speed);
 private:
@@ -79,7 +80,7 @@ private:
   void driveCallback(const mitya_teleop::Drive::ConstPtr& msg);
 
   // Topic RM_LED_TOPIC_NAME ('led') publisher:
-  ros::Publisher ledPublisher_;
+  ros::Publisher ledStatePublisher_;
 
   // Topic RM_DISTANCE_TOPIC_NAME ('distance') publisher:
   ros::Publisher distancePublisher_;
@@ -89,17 +90,21 @@ private:
 
   bool setInterfaceAttribs(int fd, int speed, int parity);
   bool setBlocking(int fd, int should_block);
+
+  mitya_teleop::LedState ledStateRosMessage_;
+  std_msgs::Float32 distanceRosMessage_;
+  std_msgs::Float32 speedRosMessage_;
 };
 
 ArduinoNode::ArduinoNode()
 {
   ros::NodeHandle nodeHandle(RM_NAMESPACE);
-  arduinoInputSubscriber_ = nodeHandle.subscribe(RM_ARDUINO_INPUT_TOPIC_NAME, 1000, &ArduinoNode::arduinoInputCallback, this);
-  arduinoOutputPublisher_ = nodeHandle.advertise<std_msgs::String>(RM_ARDUINO_OUTPUT_TOPIC_NAME, 1000);
+  arduinoInputSubscriber_ = nodeHandle.subscribe(RM_ARDUINO_INPUT_TOPIC_NAME, 100, &ArduinoNode::arduinoInputCallback, this);
+  arduinoOutputPublisher_ = nodeHandle.advertise<std_msgs::String>(RM_ARDUINO_OUTPUT_TOPIC_NAME, 100);
   driveSubscriber_ = nodeHandle.subscribe(RM_DRIVE_TOPIC_NAME, 1000, &ArduinoNode::driveCallback, this);
-  ledPublisher_ = nodeHandle.advertise<std_msgs::Int8>(RM_LED_TOPIC_NAME, 1000);
-  distancePublisher_ = nodeHandle.advertise<std_msgs::Float32>(RM_DISTANCE_TOPIC_NAME, 1000);
-  speedPublisher_ = nodeHandle.advertise<std_msgs::Float32>(RM_SPEED_TOPIC_NAME, 1000);
+  ledStatePublisher_ = nodeHandle.advertise<mitya_teleop::LedState>(RM_LED_TOPIC_NAME, 50);
+  distancePublisher_ = nodeHandle.advertise<std_msgs::Float32>(RM_DISTANCE_TOPIC_NAME, 100);
+  speedPublisher_ = nodeHandle.advertise<std_msgs::Float32>(RM_SPEED_TOPIC_NAME, 100);
 
   ros::NodeHandle privateNodeHandle("~");
   std::string serialPortParamName = "serial_port";
@@ -131,13 +136,13 @@ ArduinoNode::ArduinoNode()
 
 void ArduinoNode::arduinoInputCallback(const std_msgs::StringConstPtr& msg)
 {
-  ROS_DEBUG("Node \'%s\' topic \'%s\' received \'%s\'", RM_ARDUINO_NODE_NAME, RM_ARDUINO_INPUT_TOPIC_NAME, msg->data.c_str());
+  //ROS_DEBUG("Node \'%s\' topic \'%s\' received \'%s\'", RM_ARDUINO_NODE_NAME, RM_ARDUINO_INPUT_TOPIC_NAME, msg->data.c_str());
   writeSerial(msg->data.c_str());
 }
 
 void ArduinoNode::driveCallback(const mitya_teleop::Drive::ConstPtr& msg)
 {
-  ROS_DEBUG("Node \'%s\' topic \'%s\' received \'%d,%d\'", RM_ARDUINO_NODE_NAME, RM_DRIVE_TOPIC_NAME, msg->left, msg->right);
+  //ROS_DEBUG("Node \'%s\' topic \'%s\' received \'%d,%d\'", RM_ARDUINO_NODE_NAME, RM_DRIVE_TOPIC_NAME, msg->left, msg->right);
   writeSerial(RoboCom::getDriveLeftCommand((signed char) (msg->left)));
   writeSerial(RoboCom::getDriveRightCommand((signed char) (msg->right)));
 }
@@ -333,31 +338,28 @@ void ArduinoNode::publishArduinoOutput(char *message)
   arduinoOutputPublisher_.publish(stringMessage);
 }
 
-void ArduinoNode::publishLED(int ledState)
+void ArduinoNode::publishLED(uint8_t ledId, int ledState)
 {
-  std_msgs::Int8 intMessage;
-  intMessage.data = ledState;
-  ledPublisher_.publish(intMessage);
+  ledStateRosMessage_.id = ledId;
+  ledStateRosMessage_.state = (uint8_t) ledState;
+  ledStatePublisher_.publish(ledStateRosMessage_);
 }
 
 void ArduinoNode::publishDistance(float distance)
 {
-  std_msgs::Float32 floatMessage;
-  floatMessage.data = distance;
-  distancePublisher_.publish(floatMessage);
+  distanceRosMessage_.data = distance;
+  distancePublisher_.publish(distanceRosMessage_);
 }
 
 void ArduinoNode::publishSpeed(float speed)
 {
-  std_msgs::Float32 floatMessage;
-  floatMessage.data = speed;
-  speedPublisher_.publish(floatMessage);
+  speedRosMessage_.data = speed;
+  speedPublisher_.publish(speedRosMessage_);
 }
 
 void onReceiveSerialMessage(ArduinoNode *arduinoNode, char *message)
 {
-  ROS_DEBUG("Message from the controller: %s", message);
-  arduinoNode->publishArduinoOutput(message);
+//  ROS_DEBUG("Message from the controller: %s", message);
   Command command;
   int param1, param2, param3;
   RoboCom::parseMessage(message, command, param1, param2, param3);
@@ -369,9 +371,16 @@ void onReceiveSerialMessage(ArduinoNode *arduinoNode, char *message)
         ROS_ERROR("Arduino controller's status response error: %s (%d)", RoboCom::getStatusText(param1), param1);
       break;
     }
-    case CMD_LED_RESPONSE:
+    case CMD_L1_RESPONSE:
     {
-      arduinoNode->publishLED(param1);
+      arduinoNode->publishLED(1, param1);
+      arduinoNode->publishArduinoOutput(message);
+      break;
+    }
+    case CMD_L2_RESPONSE:
+    {
+      arduinoNode->publishLED(2, param1);
+      arduinoNode->publishArduinoOutput(message);
       break;
     }
     case CMD_DIST_RESPONSE:
@@ -387,6 +396,11 @@ void onReceiveSerialMessage(ArduinoNode *arduinoNode, char *message)
       float kilometersPerHour = param1;
       kilometersPerHour /= 1000;
       arduinoNode->publishSpeed(kilometersPerHour);
+      break;
+    }
+    default:
+    {
+      arduinoNode->publishArduinoOutput(message);
       break;
     }
   }

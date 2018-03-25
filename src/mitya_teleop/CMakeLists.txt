@@ -56,6 +56,7 @@ add_message_files(
   Drive.msg
   HeadPosition.msg
   HeadMove.msg
+  LedState.msg
 )
 
 ## Generate services in the 'srv' folder
