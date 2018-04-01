@@ -71,6 +71,8 @@ enum HerkulexTorqueState
 #define RM_HEAD_IMU_OUTPUT_TOPIC_NAME "head_imu_output"
 #define RM_HEAD_IMU_INPUT_TOPIC_NAME "head_imu_input"
 
+#define RM_CONTROLLER_IMU_TOPIC_NAME "controller_imu"
+
 #define RM_HERKULEX_NODE_NAME "herkulex_node"
 #define RM_HEAD_POSITION_TOPIC_NAME "head_position"
 #define RM_HEAD_MOVE_TOPIC_NAME "head_move"
