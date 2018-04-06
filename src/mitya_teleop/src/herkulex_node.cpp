@@ -301,18 +301,15 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
     }
     else if (commandName.compare("center") == 0)
     {
-      int delay = 0;
-      if (!targetMode_)
+      int delay;
+      if (address == HEAD_BROADCAST_SERVO_ID)
       {
-        if (address == HEAD_BROADCAST_SERVO_ID)
-        {
-          int durationH = headMoveCenter(HEAD_HORIZONTAL_SERVO_ID);
-          int durationV = headMoveCenter(HEAD_VERTICAL_SERVO_ID);
-          delay = MAX(durationH, durationV);
-        }
-        else
-          delay = headMoveCenter(address);
+        int durationH = headMoveCenter(HEAD_HORIZONTAL_SERVO_ID);
+        int durationV = headMoveCenter(HEAD_VERTICAL_SERVO_ID);
+        delay = MAX(durationH, durationV);
       }
+      else
+        delay = headMoveCenter(address);
       centerHeadImu(delay);
     }
     else if (commandName.compare("reboot") == 0)
