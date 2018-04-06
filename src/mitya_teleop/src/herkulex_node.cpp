@@ -329,7 +329,7 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
 
 void HerkulexNode::headPositionCallback(const mitya_teleop::HeadPosition::ConstPtr& msg)
 {
-  if (targetMode_) return;
+  if (targetMode_ || centerHeadImuStarted_) return;
   //ROS_INFO("Received in %s.%s: %f, %f", RM_HERKULEX_NODE_NAME, RM_HEAD_POSITION_TOPIC_NAME, msg->horizontal, msg->vertical);
   setHeadPositionHorizontal(msg->horizontal, 0);
   setHeadPositionVertical(msg->vertical, 0);
@@ -355,7 +355,7 @@ void HerkulexNode::setHeadPositionVertical(float angle, int duration)
 
 void HerkulexNode::headMoveCallback(const mitya_teleop::HeadMove::ConstPtr& msg)
 {
-  if (targetMode_) return;
+  if (targetMode_ || centerHeadImuStarted_) return;
 
   if (msg->horizontal != previousHeadMoveValues_.horizontal)
   {
@@ -455,7 +455,7 @@ void HerkulexNode::centerHeadImu(double millis)
 
 void HerkulexNode::updateToTarget()
 {
-  if (!targetMode_) return;
+  if (!targetMode_ || centerHeadImuStarted_) return;
 
   tf2Scalar imuYaw;
   tf2Scalar imuPitch;
