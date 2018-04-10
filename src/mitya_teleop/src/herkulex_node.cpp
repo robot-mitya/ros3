@@ -39,6 +39,7 @@
 #include <diagnostic_msgs/KeyValue.h>
 #include <yaml-cpp/yaml.h>
 #include <std_msgs/String.h>
+#include <std_msgs/Int8.h>
 #include <sensor_msgs/Imu.h>
 #include "herkulex.h"
 #include <unistd.h>
@@ -104,6 +105,10 @@ private:
   ros::Subscriber controllerImuSubscriber_;
   void controllerImuCallback(const sensor_msgs::Imu::ConstPtr& msg);
 
+  // Topic RM_DRIVE_TOWARDS_TOPIC_NAME ('drive_towards') subscriber:
+  ros::Subscriber driveTowardsSubscriber_;
+  void driveTowardsCallback(const std_msgs::Int8ConstPtr& msg);
+
   struct HeadMoveValues
   {
     int horizontal;
@@ -134,13 +139,14 @@ private:
 HerkulexNode::HerkulexNode()
 {
   ros::NodeHandle nodeHandle(RM_NAMESPACE);
-  herkulexInputSubscriber_ = nodeHandle.subscribe(RM_HERKULEX_INPUT_TOPIC_NAME, 1000, &HerkulexNode::herkulexInputCallback, this);
-  herkulexOutputPublisher_ = nodeHandle.advertise<std_msgs::String>(RM_HERKULEX_OUTPUT_TOPIC_NAME, 1000);
-  headPositionSubscriber_ = nodeHandle.subscribe(RM_HEAD_POSITION_TOPIC_NAME, 1000, &HerkulexNode::headPositionCallback, this);
+  herkulexInputSubscriber_ = nodeHandle.subscribe(RM_HERKULEX_INPUT_TOPIC_NAME, 100, &HerkulexNode::herkulexInputCallback, this);
+  herkulexOutputPublisher_ = nodeHandle.advertise<std_msgs::String>(RM_HERKULEX_OUTPUT_TOPIC_NAME, 100);
+  headPositionSubscriber_ = nodeHandle.subscribe(RM_HEAD_POSITION_TOPIC_NAME, 100, &HerkulexNode::headPositionCallback, this);
   headMoveSubscriber_ = nodeHandle.subscribe(RM_HEAD_MOVE_TOPIC_NAME, 1000, &HerkulexNode::headMoveCallback, this);
   headImuInputPublisher_ = nodeHandle.advertise<std_msgs::String>(RM_HEAD_IMU_INPUT_TOPIC_NAME, 10);
   headImuOutputSubscriber_ = nodeHandle.subscribe(RM_HEAD_IMU_OUTPUT_TOPIC_NAME, 100, &HerkulexNode::headImuOutputCallback, this);
   controllerImuSubscriber_ = nodeHandle.subscribe(RM_CONTROLLER_IMU_TOPIC_NAME, 100, &HerkulexNode::controllerImuCallback, this);
+  driveTowardsSubscriber_ = nodeHandle.subscribe(RM_DRIVE_TOWARDS_TOPIC_NAME, 100, &HerkulexNode::driveTowardsCallback, this);
 
   ros::NodeHandle privateNodeHandle("~");
   privateNodeHandle.param("serial_port", serialPortName, (std::string) "/dev/ttyUSB0");
@@ -397,6 +403,12 @@ void HerkulexNode::headImuOutputCallback(const sensor_msgs::Imu::ConstPtr& msg)
 void HerkulexNode::controllerImuCallback(const sensor_msgs::Imu::ConstPtr& msg)
 {
   targetQuaternion_.setValue(msg->orientation.x, msg->orientation.y, msg->orientation.z, msg->orientation.w);
+}
+
+void HerkulexNode::driveTowardsCallback(const std_msgs::Int8ConstPtr& msg)
+{
+  if (!targetMode_ || centerHeadImuStarted_) return;
+  ROS_INFO("driveTowardsCallback: %d", msg->data);
 }
 
 void HerkulexNode::logPosition()

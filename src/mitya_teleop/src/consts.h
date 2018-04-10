@@ -78,6 +78,7 @@ enum HerkulexTorqueState
 #define RM_HEAD_MOVE_TOPIC_NAME "head_move"
 #define RM_HERKULEX_OUTPUT_TOPIC_NAME "herkulex_output"
 #define RM_HERKULEX_INPUT_TOPIC_NAME "herkulex_input"
+#define RM_DRIVE_TOWARDS_TOPIC_NAME "drive_towards"
 
 
 #endif /* MITYA_TELEOP_SRC_CONSTS_H_ */
