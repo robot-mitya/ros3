@@ -408,7 +408,8 @@ void HerkulexNode::controllerImuCallback(const sensor_msgs::Imu::ConstPtr& msg)
 void HerkulexNode::driveTowardsCallback(const std_msgs::Int8ConstPtr& msg)
 {
   if (!targetMode_ || centerHeadImuStarted_) return;
-  ROS_INFO("driveTowardsCallback: %d", msg->data);
+  float yaw = herkulex_.getAngle(HEAD_HORIZONTAL_SERVO_ID);
+  ROS_INFO("driveTowardsCallback => velocity = %d, yaw = %.1f", msg->data, yaw);
 }
 
 void HerkulexNode::logPosition()
