@@ -81,6 +81,9 @@ private:
   tf2::Quaternion headQuaternion_;
   tf2::Quaternion targetQuaternion_;
 
+  int targetModeVelocityLeft_;
+  int targetModeVelocityRight_;
+
   // Topic RM_HERKULEX_INPUT_TOPIC_NAME ('herkulex_input') subscriber:
   ros::Subscriber herkulexInputSubscriber_;
   void herkulexInputCallback(const std_msgs::StringConstPtr& msg);
@@ -113,6 +116,7 @@ private:
   // Topic RM_ARDUINO_INPUT_TOPIC_NAME ('arduino_input') publisher:
   ros::Publisher arduinoInputPublisher_;
 
+  void publishDriveCommands(int leftMotorVelocity, int rightMotorVelocity);
 
   struct HeadMoveValues
   {
@@ -183,6 +187,8 @@ HerkulexNode::HerkulexNode()
 
   targetQuaternion_ = tf2::Quaternion::getIdentity();
   targetMode_ = false;
+  targetModeVelocityLeft_ = 0;
+  targetModeVelocityRight_ = 0;
 
   factor1_ = 0.0f;
   factor2_ = 0.0f;
@@ -229,6 +235,7 @@ void HerkulexNode::herkulexInputCallback(const std_msgs::StringConstPtr& msg)
     ROS_INFO("HerkuleX command (%s): value = %d", commandName.c_str(), value);
     stopHead();
     targetMode_ = value != 0;
+    publishDriveCommands(0, 0); // stop motors anyway
   }
   else if (commandName.compare("f1") == 0)
   {
@@ -421,28 +428,21 @@ void HerkulexNode::driveTowardsCallback(const std_msgs::Int8ConstPtr& msg)
   if (yaw > yawLimit) yaw = yawLimit;
   else if (yaw < -yawLimit) yaw = -yawLimit;
 
-  int velocityLeft = velocity;
-  int velocityRight = velocity;
+  targetModeVelocityLeft_ = velocity;
+  targetModeVelocityRight_ = velocity;
   int deltaVelocity = velocity * yaw / yawLimit;
   if (velocity >= 0)
   {
-    if (yaw >= 0) velocityLeft -= deltaVelocity;
-    else velocityRight += deltaVelocity;
+    if (yaw >= 0) targetModeVelocityLeft_ -= deltaVelocity;
+    else targetModeVelocityRight_ += deltaVelocity;
   }
   else
   {
-    if (yaw >= 0) velocityRight -= deltaVelocity;
-    else velocityLeft += deltaVelocity;
+    if (yaw >= 0) targetModeVelocityRight_ -= deltaVelocity;
+    else targetModeVelocityLeft_ += deltaVelocity;
   }
-
-  std_msgs::String stringMessage;
-  stringMessage.data = RoboCom::getDriveLeftCommand((signed char) velocityLeft);
-  arduinoInputPublisher_.publish(stringMessage);
-  stringMessage.data = RoboCom::getDriveRightCommand((signed char) velocityRight);
-  arduinoInputPublisher_.publish(stringMessage);
-
-  ROS_INFO("driveTowardsCallback => velocity = %d, yaw = %.1f, velocityLeft = %d, velocityRight = %d",
-           velocity, yaw, velocityLeft, velocityRight);
+//  ROS_INFO("driveTowardsCallback => velocity = %d, yaw = %.1f, velocityLeft = %d, velocityRight = %d",
+//           velocity, yaw, velocityLeft, velocityRight);
 }
 
 void HerkulexNode::logPosition()
@@ -524,6 +524,8 @@ void HerkulexNode::updateToTarget()
 //           imuYaw, imuPitch, aYaw, aPitch, yaw, pitch);
   setHeadPositionHorizontal(yaw, duration);
   setHeadPositionVertical(pitch, duration);
+
+  publishDriveCommands(targetModeVelocityLeft_, targetModeVelocityRight_);
 }
 
 void HerkulexNode::stopHead()
@@ -546,6 +548,15 @@ void HerkulexNode::setTorqueMode(HerkulexTorqueState mode)
       herkulex_.torqueState(HEAD_VERTICAL_SERVO_ID, TS_TORQUE_FREE);
       break;
   }
+}
+
+void HerkulexNode::publishDriveCommands(int leftMotorVelocity, int rightMotorVelocity)
+{
+  std_msgs::String stringMessage;
+  stringMessage.data = RoboCom::getDriveLeftCommand((signed char) leftMotorVelocity);
+  arduinoInputPublisher_.publish(stringMessage);
+  stringMessage.data = RoboCom::getDriveRightCommand((signed char) rightMotorVelocity);
+  arduinoInputPublisher_.publish(stringMessage);
 }
 
 HerkulexNode *herkulexNode = NULL;
