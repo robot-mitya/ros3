@@ -427,11 +427,11 @@ void HerkulexNode::driveTowardsCallback(const std_msgs::Int8ConstPtr& msg)
   if (velocity >= 0)
   {
     if (yaw >= 0) velocityLeft -= deltaVelocity;
-    else velocityRight -= deltaVelocity;
+    else velocityRight += deltaVelocity;
   }
   else
   {
-    if (yaw >= 0) velocityRight -= deltaVelocity;
+    if (yaw >= 0) velocityRight += deltaVelocity;
     else velocityLeft -= deltaVelocity;
   }
 
