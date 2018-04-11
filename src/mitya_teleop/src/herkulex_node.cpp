@@ -45,6 +45,7 @@
 #include <unistd.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include "madgwick.h"
+#include "robo_com.h"
 
 #define CORRECTION_DURATION 0
 
@@ -109,6 +110,10 @@ private:
   ros::Subscriber driveTowardsSubscriber_;
   void driveTowardsCallback(const std_msgs::Int8ConstPtr& msg);
 
+  // Topic RM_ARDUINO_INPUT_TOPIC_NAME ('arduino_input') publisher:
+  ros::Publisher arduinoInputPublisher_;
+
+
   struct HeadMoveValues
   {
     int horizontal;
@@ -147,6 +152,7 @@ HerkulexNode::HerkulexNode()
   headImuOutputSubscriber_ = nodeHandle.subscribe(RM_HEAD_IMU_OUTPUT_TOPIC_NAME, 100, &HerkulexNode::headImuOutputCallback, this);
   controllerImuSubscriber_ = nodeHandle.subscribe(RM_CONTROLLER_IMU_TOPIC_NAME, 100, &HerkulexNode::controllerImuCallback, this);
   driveTowardsSubscriber_ = nodeHandle.subscribe(RM_DRIVE_TOWARDS_TOPIC_NAME, 100, &HerkulexNode::driveTowardsCallback, this);
+  arduinoInputPublisher_ = nodeHandle.advertise<std_msgs::String>(RM_ARDUINO_INPUT_TOPIC_NAME, 100);
 
   ros::NodeHandle privateNodeHandle("~");
   privateNodeHandle.param("serial_port", serialPortName, (std::string) "/dev/ttyUSB0");
@@ -408,8 +414,35 @@ void HerkulexNode::controllerImuCallback(const sensor_msgs::Imu::ConstPtr& msg)
 void HerkulexNode::driveTowardsCallback(const std_msgs::Int8ConstPtr& msg)
 {
   if (!targetMode_ || centerHeadImuStarted_) return;
+
+  int velocity = msg->data;
   float yaw = herkulex_.getAngle(HEAD_HORIZONTAL_SERVO_ID);
-  ROS_INFO("driveTowardsCallback => velocity = %d, yaw = %.1f", msg->data, yaw);
+  const float yawLimit = 45;
+  if (yaw > yawLimit) yaw = yawLimit;
+  else if (yaw < -yawLimit) yaw = -yawLimit;
+
+  int velocityLeft = velocity;
+  int velocityRight = velocity;
+  int deltaVelocity = velocity * yaw / yawLimit;
+  if (velocity >= 0)
+  {
+    if (yaw >= 0) velocityLeft -= deltaVelocity;
+    else velocityRight -= deltaVelocity;
+  }
+  else
+  {
+    if (yaw >= 0) velocityRight -= deltaVelocity;
+    else velocityLeft -= deltaVelocity;
+  }
+
+  std_msgs::String stringMessage;
+  stringMessage.data = RoboCom::getDriveLeftCommand((signed char) velocityLeft);
+  arduinoInputPublisher_.publish(stringMessage);
+  stringMessage.data = RoboCom::getDriveRightCommand((signed char) velocityRight);
+  arduinoInputPublisher_.publish(stringMessage);
+
+  ROS_INFO("driveTowardsCallback => velocity = %d, yaw = %.1f, velocityLeft = %d, velocityRight = %d",
+           velocity, yaw, velocityLeft, velocityRight);
 }
 
 void HerkulexNode::logPosition()
