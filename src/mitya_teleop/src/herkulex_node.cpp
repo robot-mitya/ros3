@@ -59,7 +59,8 @@ public:
 
   HerkulexNode();
   void updateCenterHeadState();
-  void updateToTarget();
+  void updateHeadDirectedToTarget();
+  void updateDriveToTarget();
   void stopHead();
   void setTorqueMode(HerkulexTorqueState mode);
   void logPosition();
@@ -81,8 +82,7 @@ private:
   tf2::Quaternion headQuaternion_;
   tf2::Quaternion targetQuaternion_;
 
-  int targetModeVelocityLeft_;
-  int targetModeVelocityRight_;
+  int targetModeVelocity_;
 
   // Topic RM_HERKULEX_INPUT_TOPIC_NAME ('herkulex_input') subscriber:
   ros::Subscriber herkulexInputSubscriber_;
@@ -187,8 +187,7 @@ HerkulexNode::HerkulexNode()
 
   targetQuaternion_ = tf2::Quaternion::getIdentity();
   targetMode_ = false;
-  targetModeVelocityLeft_ = 0;
-  targetModeVelocityRight_ = 0;
+  targetModeVelocity_ = 0;
 
   factor1_ = 0.0f;
   factor2_ = 0.0f;
@@ -420,29 +419,7 @@ void HerkulexNode::controllerImuCallback(const sensor_msgs::Imu::ConstPtr& msg)
 
 void HerkulexNode::driveTowardsCallback(const std_msgs::Int8ConstPtr& msg)
 {
-  if (!targetMode_ || centerHeadImuStarted_) return;
-
-  int velocity = msg->data;
-  float yaw = herkulex_.getAngle(HEAD_HORIZONTAL_SERVO_ID);
-  const float yawLimit = 45;
-  if (yaw > yawLimit) yaw = yawLimit;
-  else if (yaw < -yawLimit) yaw = -yawLimit;
-
-  targetModeVelocityLeft_ = velocity;
-  targetModeVelocityRight_ = velocity;
-  int deltaVelocity = velocity * yaw / yawLimit;
-  if (velocity >= 0)
-  {
-    if (yaw >= 0) targetModeVelocityLeft_ -= deltaVelocity;
-    else targetModeVelocityRight_ += deltaVelocity;
-  }
-  else
-  {
-    if (yaw >= 0) targetModeVelocityRight_ -= deltaVelocity;
-    else targetModeVelocityLeft_ += deltaVelocity;
-  }
-//  ROS_INFO("driveTowardsCallback => velocity = %d, yaw = %.1f, velocityLeft = %d, velocityRight = %d",
-//           velocity, yaw, velocityLeft, velocityRight);
+  targetModeVelocity_ = msg->data;
 }
 
 void HerkulexNode::logPosition()
@@ -496,7 +473,7 @@ void HerkulexNode::centerHeadImu(double millis)
   centerHeadImuStarted_ = true;
 }
 
-void HerkulexNode::updateToTarget()
+void HerkulexNode::updateHeadDirectedToTarget()
 {
   if (!targetMode_ || centerHeadImuStarted_) return;
 
@@ -524,8 +501,34 @@ void HerkulexNode::updateToTarget()
 //           imuYaw, imuPitch, aYaw, aPitch, yaw, pitch);
   setHeadPositionHorizontal(yaw, duration);
   setHeadPositionVertical(pitch, duration);
+}
 
-  publishDriveCommands(targetModeVelocityLeft_, targetModeVelocityRight_);
+void HerkulexNode::updateDriveToTarget()
+{
+  if (!targetMode_ || centerHeadImuStarted_) return;
+
+  float yaw = herkulex_.getAngle(HEAD_HORIZONTAL_SERVO_ID);
+  const float yawLimit = 45;
+  if (yaw > yawLimit) yaw = yawLimit;
+  else if (yaw < -yawLimit) yaw = -yawLimit;
+
+  int velocityLeft = targetModeVelocity_;
+  int velocityRight = targetModeVelocity_;
+  int deltaVelocity = targetModeVelocity_ * yaw / yawLimit;
+  if (targetModeVelocity_ >= 0)
+  {
+    if (yaw >= 0) velocityLeft -= deltaVelocity;
+    else velocityRight += deltaVelocity;
+  }
+  else
+  {
+    if (yaw >= 0) velocityRight -= deltaVelocity;
+    else velocityLeft += deltaVelocity;
+  }
+//  ROS_INFO("driveTowardsCallback => velocity = %d, yaw = %.1f, velocityLeft = %d, velocityRight = %d",
+//           velocity, yaw, velocityLeft, velocityRight);
+
+  publishDriveCommands(velocityLeft, velocityRight);
 }
 
 void HerkulexNode::stopHead()
@@ -586,7 +589,8 @@ int main(int argc, char **argv)
   while (ros::ok())
   {
     herkulexNode->updateCenterHeadState();
-    herkulexNode->updateToTarget();
+    herkulexNode->updateHeadDirectedToTarget();
+    herkulexNode->updateDriveToTarget();
 //    herkulexNode->logPosition();
     ros::spinOnce();
     loop_rate.sleep();
