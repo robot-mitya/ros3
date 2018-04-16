@@ -100,6 +100,31 @@ char* RoboCom::getSwingTailCommand()
   return RoboCom::tailMessage_;
 }
 
+char* RoboCom::getFaceAngryCommand()
+{
+  return "angry";
+}
+
+char* RoboCom::getFaceBlueCommand()
+{
+  return "blue";
+}
+
+char* RoboCom::getFaceHappyCommand()
+{
+  return "happy";
+}
+
+char* RoboCom::getFaceIllCommand()
+{
+  return "ill";
+}
+
+char* RoboCom::getFaceOkCommand()
+{
+  return "ok";
+}
+
 char* RoboCom::getRebootCommand()
 {
   sprintf(RoboCom::rebootMessage_, "RST;");

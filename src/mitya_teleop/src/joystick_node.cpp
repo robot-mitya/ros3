@@ -47,6 +47,7 @@
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 
 enum HeadControlMode { HEAD_MOVE, HEAD_POSITION };
+enum FaceType { OK, ANGRY, BLUE, HAPPY, ILL };
 
 class JoystickNode
 {
@@ -74,9 +75,14 @@ private:
   int headMoveVerticalAxis_;
   int headMoveCenterButtonIndex_;
 
-  int led1ButtonIndex_;
-  int led2ButtonIndex_;
-  int tailButtonIndex_;
+  int greenButtonIndex_;
+  int redButtonIndex_;
+  int blueButtonIndex_;
+  int yellowButtonIndex_;
+  int altButtonIndex_;
+
+  bool altButtonState_;
+  FaceType faceType_;
 
   int driveMaxValue;
   bool driveInvertX;
@@ -98,12 +104,16 @@ private:
   ButtonEvent *rebootButton_;
   void rebootButtonHandler(bool state);
 
-  ButtonEvent *led1Button_;
-  void led1ButtonHandler(bool state);
-  ButtonEvent *led2Button_;
-  void led2ButtonHandler(bool state);
-  ButtonEvent *tailButton_;
-  void tailButtonHandler(bool state);
+  ButtonEvent *greenButton_;
+  void greenButtonHandler(bool state);
+  ButtonEvent *redButton_;
+  void redButtonHandler(bool state);
+  ButtonEvent *blueButton_;
+  void blueButtonHandler(bool state);
+  ButtonEvent *yellowButton_;
+  void yellowButtonHandler(bool state);
+  ButtonEvent *altButton_;
+  void altButtonHandler(bool state);
 
   ButtonEvent *headModeButton_;
   void headModeButtonHandler(bool state);
@@ -125,6 +135,7 @@ private:
   ros::Publisher headMovePublisher_;
   ros::Publisher arduinoInputPublisher_;
   ros::Publisher herkulexInputPublisher_;
+  ros::Publisher facePublisher_;
   void joystickCallback(const sensor_msgs::Joy::ConstPtr& joy);
   int8_t getSpeedValue(float joystickValue);
   void publishDriveMessage(float x, float y, float boost);
@@ -132,6 +143,7 @@ private:
   void publishSwitchLed1Message();
   void publishSwitchLed2Message();
   void publishSwingTailMessage();
+  void publishFaceMessage(const char* command);
   void publishCenterHerkulex(uint8_t address);
   void publishModeHerkulex(HerkulexTorqueState mode);
   void publishRebootHerkulex();
@@ -150,19 +162,22 @@ JoystickNode::JoystickNode()
   joystickSubscriber_ = joystickNodeHandle.subscribe<sensor_msgs::Joy>(RM_JOY_TOPIC_NAME, 10, &JoystickNode::joystickCallback, this);
 
   ros::NodeHandle driveNodeHandle(RM_NAMESPACE);
-  drivePublisher_ = driveNodeHandle.advertise<mitya_teleop::Drive>(RM_DRIVE_TOPIC_NAME, 1000);
+  drivePublisher_ = driveNodeHandle.advertise<mitya_teleop::Drive>(RM_DRIVE_TOPIC_NAME, 100);
 
   ros::NodeHandle headPositionNodeHandle(RM_NAMESPACE);
-  headPositionPublisher_ = headPositionNodeHandle.advertise<mitya_teleop::HeadPosition>(RM_HEAD_POSITION_TOPIC_NAME, 1000);
+  headPositionPublisher_ = headPositionNodeHandle.advertise<mitya_teleop::HeadPosition>(RM_HEAD_POSITION_TOPIC_NAME, 100);
 
   ros::NodeHandle headMoveNodeHandle(RM_NAMESPACE);
-  headMovePublisher_ = headMoveNodeHandle.advertise<mitya_teleop::HeadMove>(RM_HEAD_MOVE_TOPIC_NAME, 1000);
+  headMovePublisher_ = headMoveNodeHandle.advertise<mitya_teleop::HeadMove>(RM_HEAD_MOVE_TOPIC_NAME, 100);
 
   ros::NodeHandle arduinoInputNodeHandle(RM_NAMESPACE);
-  arduinoInputPublisher_ = arduinoInputNodeHandle.advertise<std_msgs::String>(RM_ARDUINO_INPUT_TOPIC_NAME, 1000);
+  arduinoInputPublisher_ = arduinoInputNodeHandle.advertise<std_msgs::String>(RM_ARDUINO_INPUT_TOPIC_NAME, 100);
 
   ros::NodeHandle herkulexInputNodeHandle(RM_NAMESPACE);
-  herkulexInputPublisher_ = herkulexInputNodeHandle.advertise<std_msgs::String>(RM_HERKULEX_INPUT_TOPIC_NAME, 1000);
+  herkulexInputPublisher_ = herkulexInputNodeHandle.advertise<std_msgs::String>(RM_HERKULEX_INPUT_TOPIC_NAME, 100);
+
+  ros::NodeHandle faceNodeHandle(RM_NAMESPACE);
+  facePublisher_ = herkulexInputNodeHandle.advertise<std_msgs::String>(RM_FACE_TOPIC_NAME, 100);
 
   ros::NodeHandle privateNodeHandle("~");
   privateNodeHandle.param("reboot_button", rebootButtonIndex_, 8);
@@ -186,11 +201,13 @@ JoystickNode::JoystickNode()
   privateNodeHandle.param("head_move_vertical_axis", headMoveVerticalAxis_, 7);
   privateNodeHandle.param("head_invert_horizontal", headInvertHorizontal, true);
   privateNodeHandle.param("head_invert_vertical", headInvertVertical, true);
-  privateNodeHandle.param("head_move_center_button", headMoveCenterButtonIndex_, 4);
+  privateNodeHandle.param("head_move_center_button", headMoveCenterButtonIndex_, 4); // XBOX LB
 
-  privateNodeHandle.param("led1_button", led1ButtonIndex_, 3);
-  privateNodeHandle.param("led2_button", led2ButtonIndex_, 1);
-  privateNodeHandle.param("tail_button", tailButtonIndex_, 2);
+  privateNodeHandle.param("green_button", greenButtonIndex_, 0); // Smile or swing tail(+ALT) by default
+  privateNodeHandle.param("red_button", redButtonIndex_, 1); // Angry face
+  privateNodeHandle.param("blue_button", blueButtonIndex_, 2); // Blue face or LED1(+ALT) by default
+  privateNodeHandle.param("yellow_button", yellowButtonIndex_, 3); // Ill or LED2(+ALT) by default
+  privateNodeHandle.param("alt_button", altButtonIndex_, 5); // XBOX RB by default
 
   ros::NodeHandle commonNodeHandle("");
   commonNodeHandle.param("head_horizontal_min_degree", headHorizontalMinDegree, -120.0f);
@@ -214,9 +231,14 @@ JoystickNode::JoystickNode()
 
   rebootButton_ = new ButtonEvent(this, &JoystickNode::rebootButtonHandler);
 
-  led1Button_ = new ButtonEvent(this, &JoystickNode::led1ButtonHandler);
-  led2Button_ = new ButtonEvent(this, &JoystickNode::led2ButtonHandler);
-  tailButton_ = new ButtonEvent(this, &JoystickNode::tailButtonHandler);
+  greenButton_ = new ButtonEvent(this, &JoystickNode::greenButtonHandler);
+  redButton_ = new ButtonEvent(this, &JoystickNode::redButtonHandler);
+  blueButton_ = new ButtonEvent(this, &JoystickNode::blueButtonHandler);
+  yellowButton_ = new ButtonEvent(this, &JoystickNode::yellowButtonHandler);
+  altButton_ = new ButtonEvent(this, &JoystickNode::altButtonHandler);
+
+  altButtonState_ = false;
+  faceType_ = OK;
 
   headModeButton_ = new ButtonEvent(this, &JoystickNode::headModeButtonHandler);
   headMoveLeftButton_ = new ButtonEvent(this, &JoystickNode::headMoveLeftButtonHandler);
@@ -253,9 +275,11 @@ void JoystickNode::joystickCallback(const sensor_msgs::Joy::ConstPtr& joy)
 
   rebootButton_->update(joy->buttons[rebootButtonIndex_] == 1);
 
-  led1Button_->update(joy->buttons[led1ButtonIndex_] == 1);
-  led2Button_->update(joy->buttons[led2ButtonIndex_] == 1);
-  tailButton_->update(joy->buttons[tailButtonIndex_] == 1);
+  greenButton_->update(joy->buttons[greenButtonIndex_] == 1);
+  redButton_->update(joy->buttons[redButtonIndex_] == 1);
+  blueButton_->update(joy->buttons[blueButtonIndex_] == 1);
+  yellowButton_->update(joy->buttons[yellowButtonIndex_] == 1);
+  altButton_->update(joy->buttons[altButtonIndex_] == 1);
 
   headModeButton_->update(joy->buttons[headModeButtonIndex_] == 1);
   if (headControlMode_ == HEAD_MOVE)
@@ -369,6 +393,13 @@ void JoystickNode::publishSwingTailMessage()
   arduinoInputPublisher_.publish(msg);
 }
 
+void JoystickNode::publishFaceMessage(const char* command)
+{
+  std_msgs::String msg;
+  msg.data = command;
+  facePublisher_.publish(msg);
+}
+
 void JoystickNode::publishCenterHerkulex(uint8_t address)
 {
   YAML::Emitter out;
@@ -428,22 +459,87 @@ void JoystickNode::rebootButtonHandler(bool state)
   publishRebootArduino();
 }
 
-void JoystickNode::led1ButtonHandler(bool state)
+void JoystickNode::greenButtonHandler(bool state)
 {
   if (!state) return;
-  publishSwitchLed1Message();
+  if (altButtonState_)
+    publishSwingTailMessage();
+  else
+  {
+    if (faceType_ != HAPPY)
+    {
+      publishFaceMessage(RoboCom::getFaceHappyCommand());
+      faceType_ = HAPPY;
+    }
+    else
+    {
+      publishFaceMessage(RoboCom::getFaceOkCommand());
+      faceType_ = OK;
+    }
+  }
 }
 
-void JoystickNode::led2ButtonHandler(bool state)
+void JoystickNode::redButtonHandler(bool state)
 {
   if (!state) return;
-  publishSwitchLed2Message();
+  if (!altButtonState_)
+  {
+    if (faceType_ != ANGRY)
+    {
+      publishFaceMessage(RoboCom::getFaceAngryCommand());
+      faceType_ = ANGRY;
+    }
+    else
+    {
+      publishFaceMessage(RoboCom::getFaceOkCommand());
+      faceType_ = OK;
+    }
+  }
 }
 
-void JoystickNode::tailButtonHandler(bool state)
+void JoystickNode::blueButtonHandler(bool state)
 {
   if (!state) return;
-  publishSwingTailMessage();
+  if (altButtonState_)
+    publishSwitchLed1Message();
+  else
+  {
+    if (faceType_ != BLUE)
+    {
+      publishFaceMessage(RoboCom::getFaceBlueCommand());
+      faceType_ = BLUE;
+    }
+    else
+    {
+      publishFaceMessage(RoboCom::getFaceOkCommand());
+      faceType_ = OK;
+    }
+  }
+}
+
+void JoystickNode::yellowButtonHandler(bool state)
+{
+  if (!state) return;
+  if (altButtonState_)
+    publishSwitchLed2Message();
+  else
+  {
+    if (faceType_ != ILL)
+    {
+      publishFaceMessage(RoboCom::getFaceIllCommand());
+      faceType_ = ILL;
+    }
+    else
+    {
+      publishFaceMessage(RoboCom::getFaceOkCommand());
+      faceType_ = OK;
+    }
+  }
+}
+
+void JoystickNode::altButtonHandler(bool state)
+{
+  altButtonState_ = state;
 }
 
 void JoystickNode::headModeButtonHandler(bool state)

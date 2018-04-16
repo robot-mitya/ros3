@@ -81,6 +81,11 @@ public:
   static char* getSwitchLed1Command();
   static char* getSwitchLed2Command();
   static char* getSwingTailCommand();
+  static char* getFaceAngryCommand();
+  static char* getFaceBlueCommand();
+  static char* getFaceHappyCommand();
+  static char* getFaceIllCommand();
+  static char* getFaceOkCommand();
   static char* getRebootCommand();
   static void parseMessage(const char* message, Command &command, int &param1, int &param2, int &param3);
 private:
