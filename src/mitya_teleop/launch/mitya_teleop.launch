@@ -50,9 +50,16 @@ $ tail -f /proc/17821/fd/1
 		source /home/dmitrydzz/dev/mitya3/ros3/devel/setup.bash
 		exec "$@"
 	-->
+	<!-- 
 	<machine 
 	    name="mitya" 
 	    address="192.168.100.235" 
+	    env-loader="/home/dmitrydzz/dev/mitya3/ros3/env.bash"
+	    user="dmitrydzz" />
+	 -->
+	<machine 
+	    name="mitya" 
+	    address="10.8.0.7" 
 	    env-loader="/home/dmitrydzz/dev/mitya3/ros3/env.bash"
 	    user="dmitrydzz" />
 
