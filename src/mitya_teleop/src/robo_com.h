@@ -2,10 +2,10 @@
  * robo_cmd.h
  * Copyright (c) 2017, Robot Mitya.
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  *     * Redistributions of source code must retain the above copyright
  *       notice, this list of conditions and the following disclaimer.
  *     * Redistributions in binary form must reproduce the above copyright
@@ -14,7 +14,7 @@
  *     * Neither the name of the Robot Mitya nor the names of its
  *       contributors may be used to endorse or promote products derived from
  *       this software without specific prior written permission.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
@@ -81,11 +81,11 @@ public:
   static char* getSwitchLed1Command();
   static char* getSwitchLed2Command();
   static char* getSwingTailCommand();
-  static char* getFaceAngryCommand();
-  static char* getFaceBlueCommand();
-  static char* getFaceHappyCommand();
-  static char* getFaceIllCommand();
-  static char* getFaceOkCommand();
+  static const char* getFaceAngryCommand();
+  static const char* getFaceBlueCommand();
+  static const char* getFaceHappyCommand();
+  static const char* getFaceIllCommand();
+  static const char* getFaceOkCommand();
   static char* getRebootCommand();
   static void parseMessage(const char* message, Command &command, int &param1, int &param2, int &param3);
 private:

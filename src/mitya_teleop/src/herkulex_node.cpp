@@ -142,7 +142,7 @@ private:
 
   float factor1_;
   float factor2_;
-  static const tf2Scalar POINTING_DEFAULT = 1000.0f;
+  static constexpr tf2Scalar POINTING_DEFAULT = 1000.0f;
 };
 
 HerkulexNode::HerkulexNode()

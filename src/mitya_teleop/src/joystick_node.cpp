@@ -55,7 +55,7 @@ public:
   JoystickNode();
   void sendStopHead();
 private:
-  static const float RAD_TO_DEG = 180.0f / M_PI;
+  static constexpr float RAD_TO_DEG = 180.0f / M_PI;
 
   HeadControlMode headControlMode_;
 

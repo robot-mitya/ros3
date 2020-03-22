@@ -42,7 +42,7 @@
 class MadgwickImu
 {
 public:
-  static const float PI = 3.14159265358979f;
+  static constexpr float PI = 3.14159265358979f;
 
   MadgwickImu();
 
@@ -83,8 +83,8 @@ private:
   tf2::Quaternion qResult_;
   float invSqrt(float x);
 
-  static const float BETA = 0.075574974f;
-  static const float TO_DEG = 57.295779513f;
+  static constexpr float BETA = 0.075574974f;
+  static constexpr float TO_DEG = 57.295779513f;
 };
 
 #endif
